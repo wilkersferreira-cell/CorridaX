@@ -1,32 +1,43 @@
-export type RideOption = {
+export interface RideOption {
   id: string;
   nome: string;
-  preco: number | null;
-  tempo: number | null;
+  preco: number;
+  tempo: number;
   destaque?: boolean;
-};
+}
 
-export async function compareRides(): Promise<RideOption[]> {
-  // Simulação (MVP)
+export function compareRides(
+  distance: number,
+  duration: number,
+): RideOption[] {
+
+  const uber = Number((5 + distance * 2.2).toFixed(2));
+
+  const app99 = Number((4 + distance * 2.0).toFixed(2));
+
+  const inDrive = Number((4.5 + distance * 2.1).toFixed(2));
+
   return [
     {
       id: '99',
       nome: '99',
-      preco: 18.4,
-      tempo: 11,
+      preco: app99,
+      tempo: Math.round(duration),
       destaque: true,
     },
+
     {
       id: 'uber',
       nome: 'Uber',
-      preco: 20.8,
-      tempo: 13,
+      preco: uber,
+      tempo: Math.round(duration + 2),
     },
+
     {
       id: 'indrive',
       nome: 'inDrive',
-      preco: null,
-      tempo: null,
+      preco: inDrive,
+      tempo: Math.round(duration + 3),
     },
   ];
 }

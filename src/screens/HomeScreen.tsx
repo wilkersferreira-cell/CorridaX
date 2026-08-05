@@ -1,81 +1,116 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button } from 'react-native-paper';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 
 import Header from '../components/Header';
 import DashboardCard from '../components/DashboardCard';
-import RideCard from '../components/RideCard';
-import LocationCard from '../components/LocationCard';
+import MapViewCard from '../components/MapViewCard';
 import LocationInput from '../components/LocationInput';
+import CompareButton from '../components/CompareButton';
+import RideCard from '../components/RideCard';
+import AddressSuggestions from '../components/AddressSuggestions';
 
-import { getCurrentLocation } from '../services/location';
+import useLocation from '../hooks/useLocation';
+import useRideComparison from '../hooks/useRideComparison';
 
 import { COLORS } from '../styles/colors';
 import { SPACING } from '../styles/spacing';
 
 export default function HomeScreen() {
+  const {
+    loading,
+    address,
+    latitude,
+    longitude,
+  } = useLocation();
+
+  const {
+    rides,
+    loading: loadingCompare,
+    compare,
+    suggestions,
+    search,
+    setSuggestions,
+  } = useRideComparison();
+
   const [origem, setOrigem] = useState('');
   const [destino, setDestino] = useState('');
 
-  const [address, setAddress] = useState('Obtendo localização...');
-  const [loading, setLoading] = useState(true);
-
-  const [economia] = useState('R$ 0,00');
-  const [corridas] = useState('0');
-
   useEffect(() => {
-    async function carregarLocalizacao() {
-      try {
-        const dados = await getCurrentLocation();
+    if (address && origem === '') {
+      setOrigem(address);
+    }
+  }, [address]);
 
-        setAddress(dados.address);
-        setOrigem(dados.address);
-      } catch {
-        setAddress('Não foi possível obter sua localização.');
-      } finally {
-        setLoading(false);
-      }
+  async function compararCorridas() {
+    if (!origem.trim()) {
+      Alert.alert(
+        'Origem',
+        'Informe a origem.',
+      );
+      return;
     }
 
-    carregarLocalizacao();
-  }, []);
+    if (!destino.trim()) {
+      Alert.alert(
+        'Destino',
+        'Informe o destino.',
+      );
+      return;
+    }
 
-  function compararCorridas() {
-    console.log('Comparar Corridas');
+    try {
+      await compare(origem, destino);
+    } catch (e: any) {
+      Alert.alert(
+        'Erro',
+        e.message ?? 'Erro ao comparar.',
+      );
+    }
   }
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
       <Header />
 
       <View style={styles.dashboard}>
-
         <DashboardCard
-          title="Economia"
-          value={economia}
+          title="Local"
+          value={loading ? 'Obtendo...' : 'Online'}
         />
 
         <DashboardCard
-          title="Corridas"
-          value={corridas}
+          title="GPS"
+          value={loading ? '--' : 'OK'}
         />
-
       </View>
 
-      <LocationCard
-        loading={loading}
-        address={address}
-      />
+      {!loading && (
+        <MapViewCard
+          latitude={latitude}
+          longitude={longitude}
+        />
+      )}
 
       <LocationInput
         label="Origem"
         value={origem}
-        onChangeText={setOrigem}
+        onChangeText={(text) => {
+          setOrigem(text);
+          search(text);
+        }}
         icon="map-marker"
+      />
+
+      <AddressSuggestions
+        data={suggestions}
+        onSelect={(item) => {
+          setOrigem(item.display_name);
+          setSuggestions([]);
+        }}
       />
 
       <LocationInput
@@ -85,31 +120,24 @@ export default function HomeScreen() {
         icon="flag-checkered"
       />
 
-      <Button
-        mode="contained"
-        style={styles.button}
-        contentStyle={styles.buttonContent}
+      <CompareButton
         onPress={compararCorridas}
-      >
-        Comparar Corridas
-      </Button>
-
-      <RideCard
-        nome="🏆 99 (Melhor opção)"
-        preco="R$ 18,40"
-        destaque
+        loading={loadingCompare}
       />
 
-      <RideCard
-        nome="🚗 Uber"
-        preco="R$ 20,80"
-      />
-
-      <RideCard
-        nome="🟢 inDrive"
-        preco="Negociar"
-      />
-
+      {rides.map((ride) => (
+        <RideCard
+          key={ride.id}
+          nome={
+            ride.destaque
+              ? `🏆 ${ride.nome}`
+              : ride.nome
+          }
+          preco={`R$ ${ride.preco.toFixed(2)}`}
+          tempo={`${ride.tempo} min`}
+          destaque={ride.destaque}
+        />
+      ))}
     </ScrollView>
   );
 }
@@ -127,16 +155,7 @@ const styles = StyleSheet.create({
 
   dashboard: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 20,
-  },
-
-  button: {
-    marginTop: 20,
-    marginBottom: 20,
-    borderRadius: 14,
-  },
-
-  buttonContent: {
-    height: 56,
   },
 });

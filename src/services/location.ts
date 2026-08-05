@@ -1,27 +1,44 @@
 import * as Location from 'expo-location';
 
-export async function getCurrentLocation() {
-  const { status } = await Location.requestForegroundPermissionsAsync();
+export interface LocationData {
+  address: string;
+  latitude: number;
+  longitude: number;
+}
+
+export async function getCurrentLocation(): Promise<LocationData> {
+  const { status } =
+    await Location.requestForegroundPermissionsAsync();
 
   if (status !== 'granted') {
-    throw new Error('Permissão de localização negada.');
+    throw new Error('Permissão negada.');
   }
 
-  const location = await Location.getCurrentPositionAsync({
-    accuracy: Location.Accuracy.High,
-  });
+  const currentLocation =
+    await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
 
-  const address = await Location.reverseGeocodeAsync({
-    latitude: location.coords.latitude,
-    longitude: location.coords.longitude,
-  });
+  const reverse =
+    await Location.reverseGeocodeAsync({
+      latitude: currentLocation.coords.latitude,
+      longitude: currentLocation.coords.longitude,
+    });
+
+  const first = reverse[0];
+
+  const address = [
+    first.street,
+    first.district,
+    first.city,
+  ]
+    .filter(Boolean)
+    .join(', ');
 
   return {
-    latitude: location.coords.latitude,
-    longitude: location.coords.longitude,
     address:
-      address.length > 0
-        ? `${address[0].street ?? ''}, ${address[0].name ?? ''} - ${address[0].city ?? ''}`
-        : 'Localização não encontrada',
+      address || 'Localização encontrada',
+    latitude: currentLocation.coords.latitude,
+    longitude: currentLocation.coords.longitude,
   };
 }
