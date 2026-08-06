@@ -1,6 +1,13 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, Card, Text } from 'react-native-paper';
+import {
+  StyleSheet,
+  View,
+} from 'react-native';
+import {
+  Button,
+  Card,
+  Text,
+} from 'react-native-paper';
 
 import { openRideApp } from '../services/deepLinks';
 
@@ -23,30 +30,39 @@ export default function RideCard({
   score,
   destaque = false,
 }: Props) {
+
   const normalizedName = nome.toLowerCase();
 
   function getAppData() {
+
     if (normalizedName.includes('uber')) {
+
       return {
         id: 'uber' as const,
         buttonLabel: 'Abrir Uber',
-        symbol: 'U',
+        type: 'uber',
       };
+
     }
 
     if (normalizedName.includes('99')) {
+
       return {
         id: '99' as const,
         buttonLabel: 'Abrir 99',
-        symbol: '99',
+        type: '99',
       };
+
     }
 
     return {
+
       id: 'indrive' as const,
       buttonLabel: 'Abrir inDrive',
-      symbol: 'iD',
+      type: 'indrive',
+
     };
+
   }
 
   const app = getAppData();
@@ -55,36 +71,75 @@ export default function RideCard({
     await openRideApp(app.id);
   }
 
-  const hasSaving =
-    economia !== undefined &&
-    economia !== 'R$ 0.00' &&
-    economia !== 'R$ 0,00';
+  function Logo() {
+
+    switch (app.type) {
+
+      case '99':
+
+        return (
+          <View style={styles.logo99}>
+            <Text style={styles.logo99Text}>
+              99
+            </Text>
+          </View>
+        );
+
+      case 'uber':
+
+        return (
+          <View style={styles.logoUber}>
+            <Text style={styles.logoUberText}>
+              Uber
+            </Text>
+          </View>
+        );
+
+      default:
+
+        return (
+          <View style={styles.logoIndrive}>
+            <Text style={styles.logoIndriveText}>
+              iD
+            </Text>
+          </View>
+        );
+
+    }
+
+  }
 
   return (
+
     <Card
       style={[
         styles.card,
         destaque && styles.bestCard,
       ]}
     >
+
       <Card.Content>
+
         <View style={styles.header}>
-          <View style={styles.appSymbol}>
-            <Text style={styles.appSymbolText}>
-              {app.symbol}
+
+          <Logo />
+
+          <View style={{ flex: 1 }}>
+
+            <Text style={styles.name}>
+              {nome}
             </Text>
+
+            <Text style={styles.price}>
+              {preco}
+            </Text>
+
           </View>
 
-          <Text style={styles.name}>
-            {nome}
-          </Text>
         </View>
 
-        <Text style={styles.price}>
-          {preco}
-        </Text>
-
         <View style={styles.infoRow}>
+
           {tempo && (
             <Text style={styles.info}>
               ⏱️ {tempo}
@@ -96,9 +151,10 @@ export default function RideCard({
               📏 {distancia}
             </Text>
           )}
+
         </View>
 
-        {hasSaving && (
+        {!!economia && economia !== 'R$ 0.00' && (
           <Text style={styles.saving}>
             💸 Economize {economia}
           </Text>
@@ -119,20 +175,24 @@ export default function RideCard({
         <Button
           mode="contained"
           style={styles.button}
-          contentStyle={styles.buttonContent}
           onPress={handleOpenApp}
         >
           {app.buttonLabel}
         </Button>
+
       </Card.Content>
+
     </Card>
+
   );
+
 }
 
 const styles = StyleSheet.create({
+
   card: {
     marginTop: 16,
-    borderRadius: 18,
+    borderRadius: 22,
     backgroundColor: '#18263D',
   },
 
@@ -146,25 +206,57 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  appSymbol: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: '#263B59',
-    alignItems: 'center',
+  logo99: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    backgroundColor: '#FFD400',
     justifyContent: 'center',
-    marginRight: 12,
+    alignItems: 'center',
+    marginRight: 16,
   },
 
-  appSymbolText: {
-    color: '#FFFFFF',
+  logo99Text: {
+    fontSize: 28,
     fontWeight: 'bold',
-    fontSize: 16,
+    color: '#000',
+  },
+
+  logoUber: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+
+  logoUberText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+
+  logoIndrive: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    backgroundColor: '#B8FF1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+
+  logoIndriveText: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 24,
   },
 
   name: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
   },
 
@@ -172,17 +264,17 @@ const styles = StyleSheet.create({
     color: '#32D74B',
     fontSize: 30,
     fontWeight: 'bold',
-    marginTop: 12,
+    marginTop: 4,
   },
 
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
+    marginTop: 16,
   },
 
   info: {
-    color: '#DDDDDD',
+    color: '#DDD',
     fontSize: 15,
   },
 
@@ -190,29 +282,24 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: '#FFD54F',
     fontWeight: 'bold',
-    fontSize: 15,
   },
 
   score: {
-    marginTop: 7,
+    marginTop: 6,
     color: '#64B5F6',
     fontWeight: 'bold',
-    fontSize: 15,
   },
 
   badge: {
-    marginTop: 10,
+    marginTop: 8,
     color: '#32D74B',
     fontWeight: 'bold',
-    fontSize: 16,
   },
 
   button: {
-    marginTop: 16,
-    borderRadius: 12,
+    marginTop: 18,
+    borderRadius: 14,
+    backgroundColor: '#1565C0',
   },
 
-  buttonContent: {
-    height: 48,
-  },
 });
