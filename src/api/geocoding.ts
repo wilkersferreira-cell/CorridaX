@@ -1,5 +1,3 @@
-import { API } from './http';
-
 export interface SearchResult {
   display_name: string;
   lat: string;
@@ -14,20 +12,32 @@ export async function searchAddress(
   }
 
   const response = await fetch(
-    `${API.NOMINATIM}/search?format=json&limit=5&q=${encodeURIComponent(
+    `https://photon.komoot.io/api/?q=${encodeURIComponent(
       query,
-    )}`,
-    {
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': 'CorridaX',
-      },
-    },
+    )}&limit=5`,
   );
 
   if (!response.ok) {
-    throw new Error('Erro ao pesquisar endereço.');
+    throw new Error(
+      `HTTP ${response.status}`,
+    );
   }
 
-  return await response.json();
+  const data = await response.json();
+
+  return data.features.map((item: any) => ({
+
+    display_name: [
+      item.properties.name,
+      item.properties.city,
+      item.properties.state,
+    ]
+      .filter(Boolean)
+      .join(', '),
+
+    lat: String(item.geometry.coordinates[1]),
+
+    lon: String(item.geometry.coordinates[0]),
+
+  }));
 }

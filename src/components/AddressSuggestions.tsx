@@ -1,9 +1,15 @@
 import React from 'react';
-import { FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  TouchableOpacity,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { Card, Text } from 'react-native-paper';
 
 export interface Suggestion {
   display_name: string;
+  lat: string;
+  lon: string;
 }
 
 type Props = {
@@ -20,12 +26,13 @@ export default function AddressSuggestions({
   }
 
   return (
-    <FlatList
-      data={data}
-      keyExtractor={(item) => item.display_name}
-      keyboardShouldPersistTaps="handled"
-      renderItem={({ item }) => (
-        <TouchableOpacity onPress={() => onSelect(item)}>
+    <View style={styles.container}>
+      {data.map((item, index) => (
+        <TouchableOpacity
+          key={`${item.lat}-${item.lon}-${index}`}
+          activeOpacity={0.8}
+          onPress={() => onSelect(item)}
+        >
           <Card style={styles.card}>
             <Card.Content>
               <Text numberOfLines={2}>
@@ -34,13 +41,18 @@ export default function AddressSuggestions({
             </Card.Content>
           </Card>
         </TouchableOpacity>
-      )}
-    />
+      ))}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    marginBottom: 12,
+  },
+
   card: {
     marginBottom: 8,
+    borderRadius: 12,
   },
 });

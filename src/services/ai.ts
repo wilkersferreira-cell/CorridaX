@@ -6,29 +6,40 @@ export type Recommendation = {
 };
 
 export function chooseBestRide(
-  rides: RideOption[]
+  rides: RideOption[],
 ): Recommendation {
 
-  const validRides = rides.filter(
-    ride => ride.preco !== null
-  );
-
-  if (validRides.length === 0) {
-    throw new Error('Nenhuma corrida disponível.');
+  if (rides.length === 0) {
+    throw new Error(
+      'Nenhuma corrida disponível.',
+    );
   }
 
-  const melhor = validRides.reduce((anterior, atual) => {
+  const melhor = rides.reduce(
+    (anterior, atual) =>
+      atual.score > anterior.score
+        ? atual
+        : anterior,
+  );
 
-    if ((atual.preco ?? 9999) < (anterior.preco ?? 9999)) {
-      return atual;
-    }
+  let motivo = '';
 
-    return anterior;
+  if (melhor.economia > 0) {
 
-  });
+    motivo =
+      `A IA do CorridaX recomenda ${melhor.nome} porque oferece o melhor equilíbrio entre preço e tempo. Você economiza R$ ${melhor.economia.toFixed(
+        2,
+      )} em relação à opção mais cara.`;
+
+  } else {
+
+    motivo =
+      `A IA do CorridaX recomenda ${melhor.nome} por apresentar o melhor desempenho nesta comparação.`;
+
+  }
 
   return {
     melhor,
-    motivo: 'Menor preço disponível',
+    motivo,
   };
 }

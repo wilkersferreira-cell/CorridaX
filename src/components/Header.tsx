@@ -1,36 +1,61 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { IconButton, Text } from 'react-native-paper';
 
 export default function Header() {
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>🚖 CorridaX</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.logo}>🚕</Text>
 
-      <Text style={styles.subtitle}>
-        Assistente Inteligente de Mobilidade
-      </Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>CorridaX</Text>
+
+          <Text style={styles.subtitle}>
+            Compare preços em segundos
+          </Text>
+        </View>
+
+        <IconButton
+          icon="cog"
+          size={24}
+          mode="contained-tonal"
+          onPress={() => {}}
+        />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
-    marginBottom: 30,
+    marginTop: 12,
+    marginBottom: 24,
+  },
+
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 
   logo: {
     fontSize: 34,
-    fontWeight: 'bold',
+    marginRight: 10,
+  },
+
+  titleContainer: {
+    flex: 1,
+  },
+
+  title: {
     color: '#FFFFFF',
-    textAlign: 'center',
+    fontSize: 30,
+    fontWeight: 'bold',
   },
 
   subtitle: {
-    fontSize: 16,
     color: '#A5B4C7',
-    textAlign: 'center',
-    marginTop: 6,
+    fontSize: 15,
+    marginTop: 2,
   },
 });

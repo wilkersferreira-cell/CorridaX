@@ -1,8 +1,14 @@
 import { API } from './http';
 
+export interface Coordinate {
+  latitude: number;
+  longitude: number;
+}
+
 export interface RouteResult {
   distance: number;
   duration: number;
+  coordinates: Coordinate[];
 }
 
 export async function calculateRoute(
@@ -13,7 +19,7 @@ export async function calculateRoute(
 ): Promise<RouteResult> {
 
   const response = await fetch(
-    `${API.OSRM}/route/v1/driving/${originLon},${originLat};${destinationLon},${destinationLat}?overview=false`,
+    `${API.OSRM}/route/v1/driving/${originLon},${originLat};${destinationLon},${destinationLat}?overview=full&geometries=geojson`,
   );
 
   if (!response.ok) {
@@ -24,8 +30,17 @@ export async function calculateRoute(
 
   const route = data.routes[0];
 
+  const coordinates =
+    route.geometry.coordinates.map(
+      (point: number[]) => ({
+        latitude: point[1],
+        longitude: point[0],
+      }),
+    );
+
   return {
     distance: route.distance / 1000,
     duration: route.duration / 60,
+    coordinates,
   };
 }

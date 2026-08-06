@@ -1,77 +1,55 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
-type Props = {
+export type Coordinate = {
   latitude: number;
   longitude: number;
 };
 
+type Props = {
+  userLocation: Coordinate;
+  origin?: Coordinate;
+  destination?: Coordinate;
+  route?: Coordinate[];
+};
+
 export default function MapViewCard({
-  latitude,
-  longitude,
+  userLocation,
+  origin,
+  destination,
+  route = [],
 }: Props) {
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
+  const webViewRef = useRef<WebView>(null);
 
-<link
-rel="stylesheet"
-href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  useEffect(() => {
+    const payload = {
+      userLocation,
+      origin,
+      destination,
+      route,
+    };
 
-<style>
-html,body,#map{
-margin:0;
-padding:0;
-width:100%;
-height:100%;
-}
-</style>
-</head>
-
-<body>
-
-<div id="map"></div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<script>
-
-const map=L.map('map').setView([
-${latitude},
-${longitude}
-],16);
-
-L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-{
-maxZoom:19
-}
-).addTo(map);
-
-L.marker([
-${latitude},
-${longitude}
-]).addTo(map)
-.bindPopup("Você está aqui")
-.openPopup();
-
-</script>
-
-</body>
-
-</html>
-`;
+    webViewRef.current?.postMessage(
+      JSON.stringify(payload),
+    );
+  }, [
+    userLocation,
+    origin,
+    destination,
+    route,
+  ]);
 
   return (
     <View style={styles.container}>
       <WebView
+        ref={webViewRef}
         originWhitelist={['*']}
-        source={{ html }}
+        source={require('../../assets/map/map.html')}
+        javaScriptEnabled
+        domStorageEnabled
+        allowFileAccess
+        allowUniversalAccessFromFileURLs
         style={styles.map}
       />
     </View>
@@ -80,7 +58,7 @@ ${longitude}
 
 const styles = StyleSheet.create({
   container: {
-    height: 250,
+    height: 320,
     borderRadius: 20,
     overflow: 'hidden',
     marginBottom: 20,
