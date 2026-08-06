@@ -45,7 +45,7 @@ export default function MapViewCard({
       <WebView
         ref={webViewRef}
         originWhitelist={['*']}
-        source={require('../../assets/map/map.html')}
+        source={require('../../../assets/map/map.html')}
         javaScriptEnabled
         domStorageEnabled
         allowFileAccess
