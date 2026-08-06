@@ -9,7 +9,7 @@ import {
   Text,
 } from 'react-native-paper';
 
-import { openRideApp } from '../services/deepLinks';
+import { openRideApp } from '../../services/deepLinks';
 
 type Props = {
   nome: string;

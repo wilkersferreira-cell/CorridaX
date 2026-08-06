@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
+
 import { TextInput } from 'react-native-paper';
 
 type Props = {
@@ -19,35 +20,51 @@ export default function LocationInput({
 }: Props) {
   return (
     <TextInput
-      label={label}
       mode="outlined"
+      label={label}
       value={value}
-      onChangeText={onChangeText}
       editable={editable}
-      left={<TextInput.Icon icon={icon} />}
+      onChangeText={onChangeText}
+      left={
+        <TextInput.Icon
+          icon={icon}
+          color="#3B82F6"
+        />
+      }
       style={styles.input}
       contentStyle={styles.content}
       outlineStyle={styles.outline}
+      textColor="#FFFFFF"
+      theme={{
+        colors: {
+          background: '#16243B',
+          primary: '#3B82F6',
+          outline: '#29476B',
+          onSurfaceVariant: '#8FA4C2',
+        },
+      }}
       autoCorrect={false}
       autoCapitalize="words"
-      dense={false}
+      selectionColor="#3B82F6"
     />
   );
 }
 
 const styles = StyleSheet.create({
+
   input: {
-    marginBottom: 16,
-    backgroundColor: '#101826',
+    marginBottom: 18,
+    backgroundColor: '#16243B',
   },
 
   content: {
     fontSize: 17,
-    minHeight: 58,
+    minHeight: 60,
   },
 
   outline: {
-    borderRadius: 14,
-    borderWidth: 1.2,
+    borderRadius: 18,
+    borderWidth: 1.5,
   },
+
 });

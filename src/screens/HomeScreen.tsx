@@ -1,17 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 
-import AddressSuggestions from '../components/AddressSuggestions';
-import AIRecommendationCard from '../components/AIRecommendationCard';
-import CompareButton from '../components/CompareButton';
-import CurrentLocationCard from '../components/CurrentLocationCard';
-import DashboardCard from '../components/DashboardCard';
-import Header from '../components/Header';
-import LocationInput from '../components/LocationInput';
-import MapViewCard from '../components/MapViewCard';
-import RideCard from '../components/RideCard';
-import SavingsSummaryCard from '../components/SavingsSummaryCard';
-
+import AddressSuggestions from '../components/inputs/AddressSuggestions';
+import AIRecommendationCard from '../components/cards/AIRecommendationCard';
+import CompareButton from '../components/buttons/CompareButton';
+import CurrentLocationCard from '../components/cards/CurrentLocationCard';
+import DashboardCard from '../components/cards/DashboardCard';
+import Header from '../components/layout/Header';
+import LocationInput from '../components/inputs/LocationInput';
+import MapViewCard from '../components/map/MapViewCard';
+import RideCard from '../components/cards/RideCard';
+import SavingsSummaryCard from '../components/cards/SavingsSummaryCard';
 import useLocation from '../hooks/useLocation';
 import useRideComparison from '../hooks/useRideComparison';
 
@@ -68,6 +72,21 @@ export default function HomeScreen() {
     };
   }, [recommendation]);
 
+  const dashboardData = useMemo(() => {
+    const bestRide = recommendation?.melhor;
+
+    return {
+      location: loading ? 'Obtendo...' : 'Ativa',
+      saving: bestRide
+        ? `R$ ${bestRide.economia.toFixed(2)}`
+        : 'R$ 0,00',
+      bestApp: bestRide?.nome ?? '--',
+      estimatedTime: bestRide
+        ? `${bestRide.tempo} min`
+        : '--',
+    };
+  }, [loading, recommendation]);
+
   async function compararCorridas() {
     if (!origem.trim()) {
       Alert.alert(
@@ -108,15 +127,37 @@ export default function HomeScreen() {
       <Header />
 
       <View style={styles.dashboard}>
-        <DashboardCard
-          title="Local"
-          value={loading ? 'Obtendo...' : 'Online'}
-        />
+        <View style={styles.dashboardRow}>
+          <DashboardCard
+            icon="📍"
+            title="Localização"
+            value={dashboardData.location}
+            color="#32D74B"
+          />
 
-        <DashboardCard
-          title="GPS"
-          value={loading ? '--' : 'OK'}
-        />
+          <DashboardCard
+            icon="💰"
+            title="Economia"
+            value={dashboardData.saving}
+            color="#32D74B"
+          />
+        </View>
+
+        <View style={styles.dashboardRow}>
+          <DashboardCard
+            icon="🚖"
+            title="Melhor opção"
+            value={dashboardData.bestApp}
+            color="#64B5F6"
+          />
+
+          <DashboardCard
+            icon="⏱️"
+            title="Tempo"
+            value={dashboardData.estimatedTime}
+            color="#FFD54F"
+          />
+        </View>
       </View>
 
       {!loading && (
@@ -208,8 +249,10 @@ const styles = StyleSheet.create({
   },
 
   dashboard: {
+    marginBottom: 18,
+  },
+
+  dashboardRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
   },
 });
