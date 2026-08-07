@@ -13,6 +13,8 @@ import {
 
 import AddressSuggestions from '../components/inputs/AddressSuggestions';
 import AIRecommendationCard from '../components/cards/AIRecommendationCard';
+import CalibrationCard from '../components/cards/CalibrationCard';
+import CalibrationMetricsCard from '../components/cards/CalibrationMetricsCard';
 import CompareButton from '../components/buttons/CompareButton';
 import ComparisonModeSelector from '../components/inputs/ComparisonModeSelector';
 import CurrentLocationCard from '../components/cards/CurrentLocationCard';
@@ -24,6 +26,7 @@ import MapViewCard from '../components/map/MapViewCard';
 import RideCard from '../components/cards/RideCard';
 import SavingsSummaryCard from '../components/cards/SavingsSummaryCard';
 
+import useCalibrationMetrics from '../hooks/useCalibrationMetrics';
 import useLocation from '../hooks/useLocation';
 import useRideComparison from '../hooks/useRideComparison';
 
@@ -56,8 +59,16 @@ export default function HomeScreen() {
     setComparisonMode,
   } = useRideComparison();
 
-  const [origem, setOrigem] = useState('');
-  const [destino, setDestino] = useState('');
+  const {
+    metrics: uberMetrics,
+    refresh: refreshUberMetrics,
+  } = useCalibrationMetrics('uber');
+
+  const [origem, setOrigem] =
+    useState('');
+
+  const [destino, setDestino] =
+    useState('');
 
   useEffect(() => {
     if (address && !origem) {
@@ -65,51 +76,73 @@ export default function HomeScreen() {
     }
   }, [address, origem]);
 
-  const recommendation = useMemo(() => {
-    if (rides.length === 0) {
-      return null;
-    }
+  const recommendation =
+    useMemo(() => {
+      if (rides.length === 0) {
+        return null;
+      }
 
-    return chooseBestRide(rides);
-  }, [rides]);
+      return chooseBestRide(rides);
+    }, [rides]);
 
-  const savingSummary = useMemo(() => {
-    if (!recommendation) {
-      return null;
-    }
+  const savingSummary =
+    useMemo(() => {
+      if (!recommendation) {
+        return null;
+      }
 
-    return {
-      appName: recommendation.melhor.nome,
-      amount: recommendation.melhor.economia,
-    };
-  }, [recommendation]);
+      return {
+        appName:
+          recommendation.melhor.nome,
 
-  const dashboardData = useMemo(() => {
-    const bestRide = recommendation?.melhor;
+        amount:
+          recommendation.melhor
+            .economia,
+      };
+    }, [recommendation]);
 
-    return {
-      location: loading
-        ? 'Obtendo...'
-        : 'Ativa',
+  const dashboardData =
+    useMemo(() => {
+      const bestRide =
+        recommendation?.melhor;
 
-      saving: bestRide
-        ? bestRide.economia.toLocaleString(
-            'pt-BR',
-            {
-              style: 'currency',
-              currency: 'BRL',
-            },
-          )
-        : 'R$ 0,00',
+      return {
+        location: loading
+          ? 'Obtendo...'
+          : 'Ativa',
 
-      bestApp:
-        bestRide?.nome ?? '--',
+        saving: bestRide
+          ? bestRide.economia.toLocaleString(
+              'pt-BR',
+              {
+                style: 'currency',
+                currency: 'BRL',
+              },
+            )
+          : 'R$ 0,00',
 
-      estimatedTime: bestRide
-        ? `${bestRide.tempo} min`
-        : '--',
-    };
-  }, [loading, recommendation]);
+        bestApp:
+          bestRide?.nome ?? '--',
+
+        estimatedTime: bestRide
+          ? `${bestRide.tempo} min`
+          : '--',
+      };
+    }, [
+      loading,
+      recommendation,
+    ]);
+
+  const uberRide =
+    useMemo(() => {
+      return rides.find(
+        (ride) =>
+          ride.id === 'uber' ||
+          ride.nome
+            .toLowerCase()
+            .includes('uber'),
+      );
+    }, [rides]);
 
   async function compararCorridas() {
     if (!origem.trim()) {
@@ -153,41 +186,58 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
+      contentContainerStyle={
+        styles.content
+      }
     >
       <Header />
 
       <View style={styles.dashboard}>
-        <View style={styles.dashboardRow}>
+        <View
+          style={
+            styles.dashboardRow
+          }
+        >
           <DashboardCard
             icon="📍"
             title="Localização"
-            value={dashboardData.location}
+            value={
+              dashboardData.location
+            }
             color={COLORS.success}
           />
 
           <DashboardCard
             icon="💰"
             title="Economia"
-            value={dashboardData.saving}
+            value={
+              dashboardData.saving
+            }
             color={COLORS.success}
           />
         </View>
 
-        <View style={styles.dashboardRow}>
+        <View
+          style={
+            styles.dashboardRow
+          }
+        >
           <DashboardCard
             icon="🚖"
             title="Melhor opção"
-            value={dashboardData.bestApp}
+            value={
+              dashboardData.bestApp
+            }
             color={COLORS.info}
           />
 
           <DashboardCard
             icon="⏱️"
             title="Tempo"
-            value={dashboardData.estimatedTime}
+            value={
+              dashboardData
+                .estimatedTime
+            }
             color={COLORS.warning}
           />
         </View>
@@ -200,7 +250,9 @@ export default function HomeScreen() {
             longitude,
           }}
           origin={origin}
-          destination={destination}
+          destination={
+            destination
+          }
           route={routeCoordinates}
         />
       )}
@@ -245,7 +297,9 @@ export default function HomeScreen() {
 
       <ComparisonModeSelector
         value={comparisonMode}
-        onChange={setComparisonMode}
+        onChange={
+          setComparisonMode
+        }
       />
 
       <CompareButton
@@ -287,73 +341,101 @@ export default function HomeScreen() {
       )}
 
       {rides.map((ride) => (
-  <RideCard
-    key={ride.id}
-    nome={ride.nome}
-    preco={ride.preco.toLocaleString(
-      'pt-BR',
-      {
-        style: 'currency',
-        currency: 'BRL',
-      },
-    )}
-    tempo={`${ride.tempo} min`}
-    distancia={`${ride.distancia.toFixed(
-      1,
-    )} km`}
-    economia={ride.economia.toLocaleString(
-      'pt-BR',
-      {
-        style: 'currency',
-        currency: 'BRL',
-      },
-    )}
-    score={ride.score}
-    destaque={ride.destaque}
-    origin={
-      origin
-        ? {
-            latitude:
-              origin.latitude,
-            longitude:
-              origin.longitude,
-            address: origem,
+        <RideCard
+          key={ride.id}
+          nome={ride.nome}
+          preco={ride.preco.toLocaleString(
+            'pt-BR',
+            {
+              style: 'currency',
+              currency: 'BRL',
+            },
+          )}
+          tempo={`${ride.tempo} min`}
+          distancia={`${ride.distancia.toFixed(
+            1,
+          )} km`}
+          economia={ride.economia.toLocaleString(
+            'pt-BR',
+            {
+              style: 'currency',
+              currency: 'BRL',
+            },
+          )}
+          score={ride.score}
+          destaque={ride.destaque}
+          origin={
+            origin
+              ? {
+                  latitude:
+                    origin.latitude,
+                  longitude:
+                    origin.longitude,
+                  address: origem,
+                }
+              : undefined
           }
-        : undefined
-    }
-    destination={
-      destination
-        ? {
-            latitude:
-              destination.latitude,
-            longitude:
-              destination.longitude,
-            address: destino,
+          destination={
+            destination
+              ? {
+                  latitude:
+                    destination.latitude,
+                  longitude:
+                    destination.longitude,
+                  address: destino,
+                }
+              : undefined
           }
-        : undefined
-    }
-  />
-))}
+        />
+      ))}
+
+      {uberRide && (
+        <>
+          <CalibrationCard
+            provider="uber"
+            providerName="Uber"
+            estimatedPrice={
+              uberRide.preco
+            }
+            distanceKm={
+              uberRide.distancia
+            }
+            durationMinutes={
+              uberRide.tempo
+            }
+            onSaved={
+              refreshUberMetrics
+            }
+          />
+
+          <CalibrationMetricsCard
+            providerName="Uber"
+            metrics={uberMetrics}
+          />
+        </>
+      )}
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+const styles =
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor:
+        COLORS.background,
+    },
 
-  content: {
-    padding: SPACING.lg,
-    paddingBottom: 44,
-  },
+    content: {
+      padding: SPACING.lg,
+      paddingBottom: 44,
+    },
 
-  dashboard: {
-    marginBottom: SPACING.xl,
-  },
+    dashboard: {
+      marginBottom: SPACING.xl,
+    },
 
-  dashboardRow: {
-    flexDirection: 'row',
-  },
-});
+    dashboardRow: {
+      flexDirection: 'row',
+    },
+  });
