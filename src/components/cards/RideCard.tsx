@@ -151,6 +151,14 @@ export default function RideCard({
               {nome}
             </Text>
 
+            <Text
+              style={
+                styles.estimateLabel
+              }
+            >
+              Estimativa CorridaX
+            </Text>
+
             <Text style={styles.price}>
               {preco}
             </Text>
@@ -281,6 +289,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 22,
     fontWeight: 'bold',
+  },
+
+  estimateLabel: {
+    color: '#93A8C7',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
 
   price: {

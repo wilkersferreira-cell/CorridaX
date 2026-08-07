@@ -1,15 +1,19 @@
 import {
+  estimateRidePrice,
+} from '../services/priceEstimator';
+
+import {
   RideEstimate,
   RideProvider,
   RideRequest,
 } from './types';
 
-function roundPrice(value: number): number {
-  return Number(value.toFixed(2));
-}
-
-function roundDistance(value: number): number {
-  return Number(value.toFixed(1));
+function roundDistance(
+  value: number,
+): number {
+  return Number(
+    value.toFixed(1),
+  );
 }
 
 export const SimulationProvider: RideProvider = {
@@ -20,45 +24,59 @@ export const SimulationProvider: RideProvider = {
   async getEstimates(
     request: RideRequest,
   ): Promise<RideEstimate[]> {
-    const safeDistance = Math.max(
-      0,
-      request.distance,
-    );
+    const safeDistance =
+      Math.max(
+        0,
+        request.distance,
+      );
 
-    const safeDuration = Math.max(
-      1,
-      request.duration,
-    );
+    const safeDuration =
+      Math.max(
+        1,
+        request.duration,
+      );
 
     const distanceKm =
-      roundDistance(safeDistance);
+      roundDistance(
+        safeDistance,
+      );
 
     const fetchedAt =
       new Date().toISOString();
 
     /*
-     * 99
-     * Mais econômica na simulação.
+     * PREÇO CORRIDAX v1
+     *
+     * Os preços agora são calculados
+     * pelo priceEstimator.
+     *
+     * Eles continuam sendo estimativas
+     * internas e NÃO tarifas oficiais.
      */
-    const app99Price = roundPrice(
-      4 + safeDistance * 2.0,
-    );
 
-    /*
-     * Uber
-     * Mais rápida na simulação.
-     */
-    const uberPrice = roundPrice(
-      6 + safeDistance * 2.1,
-    );
+    const app99Price =
+      estimateRidePrice({
+        provider: '99',
+        distanceKm,
+        durationMinutes:
+          safeDuration,
+      });
 
-    /*
-     * inDrive
-     * Opção intermediária.
-     */
-    const inDrivePrice = roundPrice(
-      5 + safeDistance * 2.05,
-    );
+    const uberPrice =
+      estimateRidePrice({
+        provider: 'uber',
+        distanceKm,
+        durationMinutes:
+          safeDuration,
+      });
+
+    const inDrivePrice =
+      estimateRidePrice({
+        provider: 'indrive',
+        distanceKm,
+        durationMinutes:
+          safeDuration,
+      });
 
     return [
       {
@@ -78,12 +96,13 @@ export const SimulationProvider: RideProvider = {
 
         pickupTimeMinutes: 5,
 
-        tripDurationMinutes: Math.max(
-          1,
-          Math.round(
-            safeDuration + 2,
+        tripDurationMinutes:
+          Math.max(
+            1,
+            Math.round(
+              safeDuration + 2,
+            ),
           ),
-        ),
 
         distanceKm,
 
@@ -111,12 +130,13 @@ export const SimulationProvider: RideProvider = {
 
         pickupTimeMinutes: 3,
 
-        tripDurationMinutes: Math.max(
-          1,
-          Math.round(
-            safeDuration - 2,
+        tripDurationMinutes:
+          Math.max(
+            1,
+            Math.round(
+              safeDuration - 2,
+            ),
           ),
-        ),
 
         distanceKm,
 
@@ -144,12 +164,13 @@ export const SimulationProvider: RideProvider = {
 
         pickupTimeMinutes: 4,
 
-        tripDurationMinutes: Math.max(
-          1,
-          Math.round(
-            safeDuration,
+        tripDurationMinutes:
+          Math.max(
+            1,
+            Math.round(
+              safeDuration,
+            ),
           ),
-        ),
 
         distanceKm,
 
