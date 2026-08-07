@@ -1,3 +1,7 @@
+import {
+  getRideEstimates,
+} from './rideProviders';
+
 export interface RideOption {
   id: string;
   nome: string;
@@ -72,132 +76,49 @@ export function compareRides(
   duration: number,
   mode: ComparisonMode = 'balanced',
 ): RideOption[] {
-  const safeDistance =
-    Math.max(0, distance);
-
-  const safeDuration =
-    Math.max(1, duration);
-
   const weights =
     WEIGHTS[mode];
 
   /*
-   * DADOS SIMULADOS DE DESENVOLVIMENTO
+   * As estimativas vêm da camada
+   * de provedores.
    *
-   * O objetivo desta simulação é criar
-   * um trade-off real entre preço e tempo.
-   *
-   * 99:
-   * tendência de menor preço
-   *
-   * Uber:
-   * tendência de menor tempo
-   *
-   * inDrive:
-   * posição intermediária
-   *
-   * Futuramente estes valores serão
-   * substituídos por dados reais.
+   * O motor CorridaX não precisa
+   * saber como preços e tempos
+   * foram obtidos.
    */
+  const estimates =
+    getRideEstimates(
+      distance,
+      duration,
+    );
 
-  const uber = Number(
-    (
-      6 +
-      safeDistance * 2.1
-    ).toFixed(2),
-  );
-
-  const app99 = Number(
-    (
-      4 +
-      safeDistance * 2.0
-    ).toFixed(2),
-  );
-
-  const inDrive = Number(
-    (
-      5 +
-      safeDistance * 2.05
-    ).toFixed(2),
-  );
+  if (estimates.length === 0) {
+    return [];
+  }
 
   /*
-   * Também simulamos diferenças de tempo.
-   *
-   * Uber = mais rápida
-   * inDrive = intermediária
-   * 99 = mais econômica
+   * Transformamos as estimativas
+   * em opções que receberão
+   * economia, score e destaque.
    */
-
-  const uberTime =
-    Math.max(
-      1,
-      Math.round(
-        safeDuration - 2,
-      ),
-    );
-
-  const inDriveTime =
-    Math.max(
-      1,
-      Math.round(
-        safeDuration,
-      ),
-    );
-
-  const app99Time =
-    Math.max(
-      1,
-      Math.round(
-        safeDuration + 2,
-      ),
-    );
-
-  const rides: RideOption[] = [
-    {
-      id: '99',
-      nome: '99',
-      preco: app99,
-      tempo: app99Time,
-      distancia: Number(
-        safeDistance.toFixed(1),
-      ),
+  const rides: RideOption[] =
+    estimates.map((estimate) => ({
+      ...estimate,
       economia: 0,
       score: 0,
-    },
+      destaque: false,
+    }));
 
-    {
-      id: 'uber',
-      nome: 'Uber',
-      preco: uber,
-      tempo: uberTime,
-      distancia: Number(
-        safeDistance.toFixed(1),
-      ),
-      economia: 0,
-      score: 0,
-    },
+  const prices =
+    rides.map(
+      (ride) => ride.preco,
+    );
 
-    {
-      id: 'indrive',
-      nome: 'inDrive',
-      preco: inDrive,
-      tempo: inDriveTime,
-      distancia: Number(
-        safeDistance.toFixed(1),
-      ),
-      economia: 0,
-      score: 0,
-    },
-  ];
-
-  const prices = rides.map(
-    (ride) => ride.preco,
-  );
-
-  const times = rides.map(
-    (ride) => ride.tempo,
-  );
+  const times =
+    rides.map(
+      (ride) => ride.tempo,
+    );
 
   const minPrice =
     Math.min(...prices);
@@ -212,10 +133,9 @@ export function compareRides(
     Math.max(...times);
 
   /*
-   * Economia em relação à opção
-   * mais cara disponível.
+   * Economia em relação à
+   * opção mais cara disponível.
    */
-
   rides.forEach((ride) => {
     ride.economia = Number(
       (
@@ -228,19 +148,18 @@ export function compareRides(
   /*
    * SCORE CORRIDAX v3
    *
-   * BALANCED
+   * balanced:
    * 65% preço
    * 35% tempo
    *
-   * ECONOMY
+   * economy:
    * 85% preço
    * 15% tempo
    *
-   * FAST
+   * fast:
    * 25% preço
    * 75% tempo
    */
-
   rides.forEach((ride) => {
     const priceScore =
       normalizeInverse(
@@ -269,11 +188,10 @@ export function compareRides(
   /*
    * Ordenação:
    *
-   * 1. Maior Score
+   * 1. Maior Score CorridaX
    * 2. Menor preço
    * 3. Menor tempo
    */
-
   rides.sort((a, b) => {
     if (b.score !== a.score) {
       return b.score - a.score;
@@ -287,10 +205,9 @@ export function compareRides(
   });
 
   /*
-   * A primeira corrida após a
-   * ordenação recebe o destaque.
+   * A primeira opção após
+   * a ordenação recebe o destaque.
    */
-
   rides.forEach(
     (ride, index) => {
       ride.destaque =
