@@ -1,6 +1,10 @@
 import { useState } from 'react';
 
-import { searchAddress, SearchResult } from '../api/geocoding';
+import {
+  searchAddress,
+  SearchResult,
+} from '../api/geocoding';
+
 import {
   calculateRoute,
   Coordinate,
@@ -8,15 +12,19 @@ import {
 
 import {
   compareRides,
+  ComparisonMode,
   RideOption,
 } from '../services/comparison';
 
 export default function useRideComparison() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [rides, setRides] = useState<RideOption[]>([]);
+  const [rides, setRides] =
+    useState<RideOption[]>([]);
 
-  const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
+  const [suggestions, setSuggestions] =
+    useState<SearchResult[]>([]);
 
   const [origin, setOrigin] =
     useState<Coordinate | undefined>();
@@ -24,17 +32,30 @@ export default function useRideComparison() {
   const [destination, setDestination] =
     useState<Coordinate | undefined>();
 
-  const [routeCoordinates, setRouteCoordinates] =
-    useState<Coordinate[]>([]);
+  const [
+    routeCoordinates,
+    setRouteCoordinates,
+  ] = useState<Coordinate[]>([]);
 
-  async function search(query: string) {
+  const [
+    comparisonMode,
+    setComparisonMode,
+  ] = useState<ComparisonMode>(
+    'balanced',
+  );
+
+  async function search(
+    query: string,
+  ) {
     if (query.trim().length < 3) {
       setSuggestions([]);
       return;
     }
 
     try {
-      const result = await searchAddress(query);
+      const result =
+        await searchAddress(query);
+
       setSuggestions(result);
     } catch {
       setSuggestions([]);
@@ -63,18 +84,30 @@ export default function useRideComparison() {
         );
       }
 
-      const originCoordinate = {
-        latitude: Number(origemBusca[0].lat),
-        longitude: Number(origemBusca[0].lon),
+      const originCoordinate: Coordinate = {
+        latitude: Number(
+          origemBusca[0].lat,
+        ),
+        longitude: Number(
+          origemBusca[0].lon,
+        ),
       };
 
-      const destinationCoordinate = {
-        latitude: Number(destinoBusca[0].lat),
-        longitude: Number(destinoBusca[0].lon),
-      };
+      const destinationCoordinate: Coordinate =
+        {
+          latitude: Number(
+            destinoBusca[0].lat,
+          ),
+          longitude: Number(
+            destinoBusca[0].lon,
+          ),
+        };
 
       setOrigin(originCoordinate);
-      setDestination(destinationCoordinate);
+
+      setDestination(
+        destinationCoordinate,
+      );
 
       const route =
         await calculateRoute(
@@ -92,17 +125,16 @@ export default function useRideComparison() {
         compareRides(
           route.distance,
           route.duration,
+          comparisonMode,
         );
 
       setRides(resultado);
-
     } finally {
       setLoading(false);
     }
   }
 
   return {
-
     rides,
 
     loading,
@@ -121,5 +153,8 @@ export default function useRideComparison() {
 
     routeCoordinates,
 
+    comparisonMode,
+
+    setComparisonMode,
   };
 }
