@@ -1,6 +1,6 @@
 import {
-  getRideEstimates,
-} from './rideProviders';
+  SimulationProvider,
+} from '../providers/SimulationProvider';
 
 export interface RideOption {
   id: string;
@@ -71,44 +71,91 @@ function clampScore(
   );
 }
 
-export function compareRides(
+export async function compareRides(
   distance: number,
   duration: number,
   mode: ComparisonMode = 'balanced',
-): RideOption[] {
+): Promise<RideOption[]> {
   const weights =
     WEIGHTS[mode];
 
   /*
-   * As estimativas vêm da camada
-   * de provedores.
+   * O motor solicita as estimativas
+   * através do provider.
    *
-   * O motor CorridaX não precisa
-   * saber como preços e tempos
-   * foram obtidos.
+   * Hoje usamos o SimulationProvider.
+   * Futuramente poderemos trocar a fonte
+   * sem alterar a lógica do Score.
    */
   const estimates =
-    getRideEstimates(
+    await SimulationProvider.getEstimates({
+      origin: {
+        latitude: 0,
+        longitude: 0,
+      },
+
+      destination: {
+        latitude: 0,
+        longitude: 0,
+      },
+
       distance,
       duration,
+    });
+
+  /*
+   * Consideramos somente opções
+   * disponíveis.
+   */
+  const availableEstimates =
+    estimates.filter(
+      (estimate) =>
+        estimate.available,
     );
 
-  if (estimates.length === 0) {
+  if (
+    availableEstimates.length === 0
+  ) {
     return [];
   }
 
   /*
-   * Transformamos as estimativas
-   * em opções que receberão
-   * economia, score e destaque.
+   * Converte o formato comum dos
+   * providers para o formato utilizado
+   * atualmente pelo Motor CorridaX.
+   *
+   * Enquanto houver faixa de preço,
+   * usamos a média entre mínimo e máximo.
    */
   const rides: RideOption[] =
-    estimates.map((estimate) => ({
-      ...estimate,
-      economia: 0,
-      score: 0,
-      destaque: false,
-    }));
+    availableEstimates.map(
+      (estimate) => ({
+        id: estimate.providerId,
+
+        nome:
+          estimate.providerName,
+
+        preco: Number(
+          (
+            (estimate.price.min +
+              estimate.price.max) /
+            2
+          ).toFixed(2),
+        ),
+
+        tempo:
+          estimate.tripDurationMinutes,
+
+        distancia:
+          estimate.distanceKm,
+
+        economia: 0,
+
+        score: 0,
+
+        destaque: false,
+      }),
+    );
 
   const prices =
     rides.map(
@@ -148,17 +195,14 @@ export function compareRides(
   /*
    * SCORE CORRIDAX v3
    *
-   * balanced:
-   * 65% preço
-   * 35% tempo
+   * Equilibrado:
+   * 65% preço / 35% tempo
    *
-   * economy:
-   * 85% preço
-   * 15% tempo
+   * Economizar:
+   * 85% preço / 15% tempo
    *
-   * fast:
-   * 25% preço
-   * 75% tempo
+   * Rápido:
+   * 25% preço / 75% tempo
    */
   rides.forEach((ride) => {
     const priceScore =
@@ -188,7 +232,7 @@ export function compareRides(
   /*
    * Ordenação:
    *
-   * 1. Maior Score CorridaX
+   * 1. Maior Score
    * 2. Menor preço
    * 3. Menor tempo
    */
@@ -205,8 +249,8 @@ export function compareRides(
   });
 
   /*
-   * A primeira opção após
-   * a ordenação recebe o destaque.
+   * A primeira opção recebe
+   * o destaque principal.
    */
   rides.forEach(
     (ride, index) => {

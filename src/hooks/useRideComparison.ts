@@ -122,7 +122,7 @@ export default function useRideComparison() {
       );
 
       const resultado =
-        compareRides(
+        await compareRides(
           route.distance,
           route.duration,
           comparisonMode,
