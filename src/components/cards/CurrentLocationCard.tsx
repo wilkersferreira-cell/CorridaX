@@ -1,6 +1,21 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Text } from 'react-native-paper';
+import {
+  StyleSheet,
+  View,
+} from 'react-native';
+
+import {
+  ActivityIndicator,
+  Text,
+} from 'react-native-paper';
+
+import {
+  COLORS,
+  RADIUS,
+  SHADOWS,
+  SPACING,
+  TYPOGRAPHY,
+} from '../../theme';
 
 type Props = {
   address: string;
@@ -14,19 +29,39 @@ export default function CurrentLocationCard({
   return (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
-        <Text style={styles.icon}>📍</Text>
+        <Text style={styles.icon}>
+          📍
+        </Text>
       </View>
 
       <View style={styles.textContainer}>
-        <Text style={styles.title}>
-          Minha localização
-        </Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>
+            Minha localização
+          </Text>
+
+          {!loading && (
+            <View style={styles.statusContainer}>
+              <View style={styles.statusDot} />
+
+              <Text style={styles.statusText}>
+                GPS ativo
+              </Text>
+            </View>
+          )}
+        </View>
 
         {loading ? (
-          <ActivityIndicator
-            size="small"
-            style={styles.loading}
-          />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator
+              size="small"
+              color={COLORS.primary}
+            />
+
+            <Text style={styles.loadingText}>
+              Obtendo localização...
+            </Text>
+          </View>
         ) : (
           <Text
             style={styles.address}
@@ -44,45 +79,103 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#18263D',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+
+    marginBottom: SPACING.lg,
+    padding: SPACING.lg,
+
+    backgroundColor: COLORS.surfaceLight,
+
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+
+    borderRadius: RADIUS.lg,
+
+    ...SHADOWS.sm,
   },
 
   iconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#213754',
+    width: 44,
+    height: 44,
+
+    marginRight: SPACING.md,
+
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+
+    borderRadius: RADIUS.round,
+
+    backgroundColor: COLORS.primarySoft,
   },
 
   icon: {
-    fontSize: 22,
+    fontSize: TYPOGRAPHY.size.xl,
   },
 
   textContainer: {
     flex: 1,
   },
 
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
   title: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+    flexShrink: 1,
+
+    color: COLORS.white,
+
+    fontSize: TYPOGRAPHY.size.md,
+    fontWeight: TYPOGRAPHY.weight.bold,
+  },
+
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+
+    marginLeft: SPACING.sm,
+  },
+
+  statusDot: {
+    width: 7,
+    height: 7,
+
+    marginRight: SPACING.xs,
+
+    borderRadius: RADIUS.round,
+
+    backgroundColor: COLORS.success,
+  },
+
+  statusText: {
+    color: COLORS.success,
+
+    fontSize: TYPOGRAPHY.size.xs,
+    fontWeight: TYPOGRAPHY.weight.semiBold,
   },
 
   address: {
-    color: '#B8C5D8',
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 4,
+    marginTop: SPACING.xs,
+
+    color: COLORS.textSecondary,
+
+    fontSize: TYPOGRAPHY.size.sm,
+    lineHeight: TYPOGRAPHY.lineHeight.md,
   },
 
-  loading: {
-    alignSelf: 'flex-start',
-    marginTop: 8,
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+
+    marginTop: SPACING.sm,
+  },
+
+  loadingText: {
+    marginLeft: SPACING.sm,
+
+    color: COLORS.textSecondary,
+
+    fontSize: TYPOGRAPHY.size.sm,
   },
 });

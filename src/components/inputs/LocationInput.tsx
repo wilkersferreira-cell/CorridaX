@@ -3,6 +3,13 @@ import { StyleSheet } from 'react-native';
 
 import { TextInput } from 'react-native-paper';
 
+import {
+  COLORS,
+  RADIUS,
+  SPACING,
+  TYPOGRAPHY,
+} from '../../theme';
+
 type Props = {
   label: string;
   value: string;
@@ -28,43 +35,48 @@ export default function LocationInput({
       left={
         <TextInput.Icon
           icon={icon}
-          color="#3B82F6"
+          color={COLORS.primary}
         />
       }
-      style={styles.input}
+      style={[
+        styles.input,
+        !editable && styles.inputDisabled,
+      ]}
       contentStyle={styles.content}
       outlineStyle={styles.outline}
-      textColor="#FFFFFF"
+      textColor={COLORS.white}
       theme={{
         colors: {
-          background: '#16243B',
-          primary: '#3B82F6',
-          outline: '#29476B',
-          onSurfaceVariant: '#8FA4C2',
+          background: COLORS.surfaceLight,
+          primary: COLORS.primary,
+          outline: COLORS.border,
+          onSurfaceVariant: COLORS.textSecondary,
         },
       }}
       autoCorrect={false}
       autoCapitalize="words"
-      selectionColor="#3B82F6"
+      selectionColor={COLORS.primary}
     />
   );
 }
 
 const styles = StyleSheet.create({
-
   input: {
-    marginBottom: 18,
-    backgroundColor: '#16243B',
+    marginBottom: SPACING.xl,
+    backgroundColor: COLORS.surfaceLight,
+  },
+
+  inputDisabled: {
+    opacity: 0.9,
   },
 
   content: {
-    fontSize: 17,
+    fontSize: TYPOGRAPHY.size.lg,
     minHeight: 60,
   },
 
   outline: {
-    borderRadius: 18,
+    borderRadius: RADIUS.xl,
     borderWidth: 1.5,
   },
-
 });

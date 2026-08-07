@@ -6,6 +6,14 @@ import {
 
 import { Text } from 'react-native-paper';
 
+import {
+  COLORS,
+  RADIUS,
+  SHADOWS,
+  SPACING,
+  TYPOGRAPHY,
+} from '../../theme';
+
 type Props = {
   icon: string;
   title: string;
@@ -17,21 +25,21 @@ export default function DashboardCard({
   icon,
   title,
   value,
-  color = '#FFFFFF',
+  color = COLORS.white,
 }: Props) {
   return (
     <View style={styles.card}>
-
       <View style={styles.header}>
-
         <Text style={styles.icon}>
           {icon}
         </Text>
 
-        <Text style={styles.title}>
+        <Text
+          style={styles.title}
+          numberOfLines={1}
+        >
           {title}
         </Text>
-
       </View>
 
       <Text
@@ -42,39 +50,30 @@ export default function DashboardCard({
           },
         ]}
         numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
       >
         {value}
       </Text>
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-
   card: {
     flex: 1,
 
-    backgroundColor: '#18263D',
+    backgroundColor: COLORS.surfaceLight,
 
-    borderRadius: 18,
+    borderRadius: RADIUS.xl,
 
-    padding: 16,
-
-    margin: 6,
+    padding: SPACING.lg,
+    margin: SPACING.xs,
 
     borderWidth: 1,
-    borderColor: '#233754',
+    borderColor: COLORS.borderSoft,
 
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-
-    elevation: 6,
+    ...SHADOWS.md,
   },
 
   header: {
@@ -83,22 +82,25 @@ const styles = StyleSheet.create({
   },
 
   icon: {
-    fontSize: 18,
-    marginRight: 8,
+    fontSize: TYPOGRAPHY.size.lg,
+    marginRight: SPACING.sm,
   },
 
   title: {
-    color: '#93A8C7',
-    fontSize: 13,
-    fontWeight: '600',
+    flex: 1,
+
+    color: COLORS.textSecondary,
+
+    fontSize: TYPOGRAPHY.size.sm,
+    lineHeight: TYPOGRAPHY.lineHeight.sm,
+    fontWeight: TYPOGRAPHY.weight.semiBold,
   },
 
   value: {
-    marginTop: 14,
+    marginTop: SPACING.md,
 
-    fontSize: 24,
-
-    fontWeight: 'bold',
+    fontSize: TYPOGRAPHY.size.xxl,
+    lineHeight: TYPOGRAPHY.lineHeight.xl,
+    fontWeight: TYPOGRAPHY.weight.bold,
   },
-
 });

@@ -1,5 +1,14 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
+
 import { Button } from 'react-native-paper';
+
+import {
+  COLORS,
+  RADIUS,
+  SPACING,
+  TYPOGRAPHY,
+} from '../../theme';
 
 type Props = {
   onPress: () => void;
@@ -11,12 +20,32 @@ export default function SearchAddressButton({
   return (
     <Button
       mode="outlined"
+      icon="map-search-outline"
       onPress={onPress}
-      style={{
-        marginBottom: 15,
-      }}
+      textColor={COLORS.primaryLight}
+      style={styles.button}
+      contentStyle={styles.content}
+      labelStyle={styles.label}
     >
-      Buscar Endereço
+      Buscar endereço
     </Button>
   );
 }
+
+const styles = StyleSheet.create({
+  button: {
+    marginBottom: SPACING.lg,
+
+    borderRadius: RADIUS.lg,
+    borderColor: COLORS.border,
+  },
+
+  content: {
+    minHeight: 50,
+  },
+
+  label: {
+    fontSize: TYPOGRAPHY.size.md,
+    fontWeight: TYPOGRAPHY.weight.semiBold,
+  },
+});

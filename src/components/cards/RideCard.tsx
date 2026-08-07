@@ -3,6 +3,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+
 import {
   Button,
   Card,
@@ -10,6 +11,14 @@ import {
 } from 'react-native-paper';
 
 import { openRideApp } from '../../services/deepLinks';
+
+import {
+  COLORS,
+  RADIUS,
+  SHADOWS,
+  SPACING,
+  TYPOGRAPHY,
+} from '../../theme';
 
 type Props = {
   nome: string;
@@ -21,6 +30,8 @@ type Props = {
   destaque?: boolean;
 };
 
+type RideAppType = 'uber' | '99' | 'indrive';
+
 export default function RideCard({
   nome,
   preco,
@@ -30,39 +41,34 @@ export default function RideCard({
   score,
   destaque = false,
 }: Props) {
-
   const normalizedName = nome.toLowerCase();
 
-  function getAppData() {
-
+  function getAppData(): {
+    id: RideAppType;
+    buttonLabel: string;
+    type: RideAppType;
+  } {
     if (normalizedName.includes('uber')) {
-
       return {
-        id: 'uber' as const,
+        id: 'uber',
         buttonLabel: 'Abrir Uber',
         type: 'uber',
       };
-
     }
 
     if (normalizedName.includes('99')) {
-
       return {
-        id: '99' as const,
+        id: '99',
         buttonLabel: 'Abrir 99',
         type: '99',
       };
-
     }
 
     return {
-
-      id: 'indrive' as const,
+      id: 'indrive',
       buttonLabel: 'Abrir inDrive',
       type: 'indrive',
-
     };
-
   }
 
   const app = getAppData();
@@ -72,13 +78,10 @@ export default function RideCard({
   }
 
   function Logo() {
-
     switch (app.type) {
-
       case '99':
-
         return (
-          <View style={styles.logo99}>
+          <View style={[styles.logo, styles.logo99]}>
             <Text style={styles.logo99Text}>
               99
             </Text>
@@ -86,9 +89,8 @@ export default function RideCard({
         );
 
       case 'uber':
-
         return (
-          <View style={styles.logoUber}>
+          <View style={[styles.logo, styles.logoUber]}>
             <Text style={styles.logoUberText}>
               Uber
             </Text>
@@ -96,50 +98,57 @@ export default function RideCard({
         );
 
       default:
-
         return (
-          <View style={styles.logoIndrive}>
+          <View style={[styles.logo, styles.logoIndrive]}>
             <Text style={styles.logoIndriveText}>
               iD
             </Text>
           </View>
         );
-
     }
-
   }
 
-  return (
+  const hasSaving =
+    !!economia &&
+    economia !== 'R$ 0.00' &&
+    economia !== 'R$ 0,00';
 
+  return (
     <Card
       style={[
         styles.card,
         destaque && styles.bestCard,
       ]}
     >
-
       <Card.Content>
-
         <View style={styles.header}>
-
           <Logo />
 
-          <View style={{ flex: 1 }}>
+          <View style={styles.mainInfo}>
+            <View style={styles.nameRow}>
+              <Text
+                style={styles.name}
+                numberOfLines={1}
+              >
+                {nome}
+              </Text>
 
-            <Text style={styles.name}>
-              {nome}
-            </Text>
+              {destaque && (
+                <View style={styles.recommendedPill}>
+                  <Text style={styles.recommendedPillText}>
+                    MELHOR
+                  </Text>
+                </View>
+              )}
+            </View>
 
             <Text style={styles.price}>
               {preco}
             </Text>
-
           </View>
-
         </View>
 
         <View style={styles.infoRow}>
-
           {tempo && (
             <Text style={styles.info}>
               ⏱️ {tempo}
@@ -151,19 +160,40 @@ export default function RideCard({
               📏 {distancia}
             </Text>
           )}
-
         </View>
 
-        {!!economia && economia !== 'R$ 0.00' && (
+        {hasSaving && (
           <Text style={styles.saving}>
             💸 Economize {economia}
           </Text>
         )}
 
         {score !== undefined && (
-          <Text style={styles.score}>
-            ⭐ Score CorridaX: {score}
-          </Text>
+          <View style={styles.scoreContainer}>
+            <View style={styles.scoreHeader}>
+              <Text style={styles.score}>
+                ⭐ Score CorridaX
+              </Text>
+
+              <Text style={styles.scoreValue}>
+                {score}
+              </Text>
+            </View>
+
+            <View style={styles.scoreTrack}>
+              <View
+                style={[
+                  styles.scoreProgress,
+                  {
+                    width: `${Math.min(
+                      Math.max(score, 0),
+                      100,
+                    )}%`,
+                  },
+                ]}
+              />
+            </View>
+          </View>
         )}
 
         {destaque && (
@@ -174,31 +204,38 @@ export default function RideCard({
 
         <Button
           mode="contained"
+          icon="open-in-new"
+          buttonColor={COLORS.primary}
+          textColor={COLORS.white}
           style={styles.button}
+          contentStyle={styles.buttonContent}
+          labelStyle={styles.buttonLabel}
           onPress={handleOpenApp}
         >
           {app.buttonLabel}
         </Button>
-
       </Card.Content>
-
     </Card>
-
   );
-
 }
 
 const styles = StyleSheet.create({
-
   card: {
-    marginTop: 16,
-    borderRadius: 22,
-    backgroundColor: '#18263D',
+    marginTop: SPACING.lg,
+
+    borderRadius: RADIUS.xxl,
+
+    backgroundColor: COLORS.surfaceLight,
+
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+
+    ...SHADOWS.md,
   },
 
   bestCard: {
     borderWidth: 2,
-    borderColor: '#32D74B',
+    borderColor: COLORS.recommended,
   },
 
   header: {
@@ -206,100 +243,184 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  logo99: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    backgroundColor: '#FFD400',
-    justifyContent: 'center',
+  mainInfo: {
+    flex: 1,
+  },
+
+  nameRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
-  },
-
-  logo99Text: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-
-  logoUber: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-
-  logoUberText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
-
-  logoIndrive: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    backgroundColor: '#B8FF1A',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-
-  logoIndriveText: {
-    color: '#000',
-    fontWeight: 'bold',
-    fontSize: 24,
   },
 
   name: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: 'bold',
+    flexShrink: 1,
+
+    color: COLORS.white,
+
+    fontSize: TYPOGRAPHY.size.xl,
+    fontWeight: TYPOGRAPHY.weight.bold,
+  },
+
+  recommendedPill: {
+    marginLeft: SPACING.sm,
+
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+
+    borderRadius: RADIUS.round,
+
+    backgroundColor: COLORS.successSoft,
+  },
+
+  recommendedPillText: {
+    color: COLORS.recommended,
+
+    fontSize: TYPOGRAPHY.size.xs,
+    fontWeight: TYPOGRAPHY.weight.bold,
   },
 
   price: {
-    color: '#32D74B',
-    fontSize: 30,
-    fontWeight: 'bold',
-    marginTop: 4,
+    marginTop: SPACING.xs,
+
+    color: COLORS.success,
+
+    fontSize: TYPOGRAPHY.size.title,
+    lineHeight: TYPOGRAPHY.lineHeight.title,
+    fontWeight: TYPOGRAPHY.weight.bold,
   },
 
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+
+    marginTop: SPACING.lg,
   },
 
   info: {
-    color: '#DDD',
-    fontSize: 15,
+    color: COLORS.textSecondary,
+
+    fontSize: TYPOGRAPHY.size.md,
   },
 
   saving: {
-    marginTop: 10,
-    color: '#FFD54F',
-    fontWeight: 'bold',
+    marginTop: SPACING.sm,
+
+    color: COLORS.economy,
+
+    fontSize: TYPOGRAPHY.size.md,
+    fontWeight: TYPOGRAPHY.weight.bold,
+  },
+
+  scoreContainer: {
+    marginTop: SPACING.md,
+  },
+
+  scoreHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 
   score: {
-    marginTop: 6,
-    color: '#64B5F6',
-    fontWeight: 'bold',
+    color: COLORS.score,
+
+    fontSize: TYPOGRAPHY.size.sm,
+    fontWeight: TYPOGRAPHY.weight.semiBold,
+  },
+
+  scoreValue: {
+    color: COLORS.score,
+
+    fontSize: TYPOGRAPHY.size.sm,
+    fontWeight: TYPOGRAPHY.weight.bold,
+  },
+
+  scoreTrack: {
+    height: 6,
+
+    marginTop: SPACING.sm,
+
+    borderRadius: RADIUS.round,
+
+    overflow: 'hidden',
+
+    backgroundColor: COLORS.borderSoft,
+  },
+
+  scoreProgress: {
+    height: '100%',
+
+    borderRadius: RADIUS.round,
+
+    backgroundColor: COLORS.score,
   },
 
   badge: {
-    marginTop: 8,
-    color: '#32D74B',
-    fontWeight: 'bold',
+    marginTop: SPACING.md,
+
+    color: COLORS.recommended,
+
+    fontSize: TYPOGRAPHY.size.md,
+    fontWeight: TYPOGRAPHY.weight.bold,
   },
 
   button: {
-    marginTop: 18,
-    borderRadius: 14,
-    backgroundColor: '#1565C0',
+    marginTop: SPACING.xl,
+
+    borderRadius: RADIUS.md,
   },
 
+  buttonContent: {
+    height: 50,
+  },
+
+  buttonLabel: {
+    fontSize: TYPOGRAPHY.size.md,
+    fontWeight: TYPOGRAPHY.weight.bold,
+  },
+
+  logo: {
+    width: 60,
+    height: 60,
+
+    marginRight: SPACING.lg,
+
+    borderRadius: RADIUS.lg,
+
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  logo99: {
+    backgroundColor: '#FFD400',
+  },
+
+  logo99Text: {
+    color: COLORS.black,
+
+    fontSize: TYPOGRAPHY.size.xxl,
+    fontWeight: TYPOGRAPHY.weight.bold,
+  },
+
+  logoUber: {
+    backgroundColor: COLORS.black,
+  },
+
+  logoUberText: {
+    color: COLORS.white,
+
+    fontSize: TYPOGRAPHY.size.lg,
+    fontWeight: TYPOGRAPHY.weight.bold,
+  },
+
+  logoIndrive: {
+    backgroundColor: '#B8FF1A',
+  },
+
+  logoIndriveText: {
+    color: COLORS.black,
+
+    fontSize: TYPOGRAPHY.size.xxl,
+    fontWeight: TYPOGRAPHY.weight.bold,
+  },
 });

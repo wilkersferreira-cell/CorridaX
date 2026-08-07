@@ -1,6 +1,21 @@
-import React, { useEffect, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { WebView } from 'react-native-webview';
+import React, {
+  useEffect,
+  useRef,
+} from 'react';
+
+import {
+  StyleSheet,
+  View,
+} from 'react-native';
+
+import WebView from 'react-native-webview';
+
+import {
+  COLORS,
+  RADIUS,
+  SHADOWS,
+  SPACING,
+} from '../../theme';
 
 export type Coordinate = {
   latitude: number;
@@ -59,12 +74,24 @@ export default function MapViewCard({
 const styles = StyleSheet.create({
   container: {
     height: 320,
-    borderRadius: 20,
+
+    marginBottom: SPACING.xl,
+
+    borderRadius: RADIUS.xxl,
+
     overflow: 'hidden',
-    marginBottom: 20,
+
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+
+    backgroundColor: COLORS.surfaceLight,
+
+    ...SHADOWS.md,
   },
 
   map: {
     flex: 1,
+
+    backgroundColor: COLORS.surfaceLight,
   },
 });

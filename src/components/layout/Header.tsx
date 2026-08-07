@@ -11,6 +11,13 @@ import {
 
 import LogoCX from './LogoCX';
 
+import {
+  COLORS,
+  RADIUS,
+  SPACING,
+  TYPOGRAPHY,
+} from '../../theme';
+
 export default function Header() {
   const hour = new Date().getHours();
 
@@ -18,20 +25,16 @@ export default function Header() {
     hour < 12
       ? 'Bom dia 👋'
       : hour < 18
-      ? 'Boa tarde 👋'
-      : 'Boa noite 🌙';
+        ? 'Boa tarde 👋'
+        : 'Boa noite 🌙';
 
   return (
     <View style={styles.container}>
-
       <View style={styles.topRow}>
-
         <View style={styles.left}>
-
           <LogoCX size={64} />
 
           <View style={styles.textContainer}>
-
             <Text style={styles.greeting}>
               {greeting}
             </Text>
@@ -40,33 +43,32 @@ export default function Header() {
               CorridaX
             </Text>
 
-            <Text style={styles.subtitle}>
+            <Text
+              style={styles.subtitle}
+              numberOfLines={1}
+            >
               Assistente Inteligente de Mobilidade
             </Text>
-
           </View>
-
         </View>
 
         <IconButton
           icon="cog-outline"
-          iconColor="#FFFFFF"
-          containerColor="#162845"
+          iconColor={COLORS.white}
+          containerColor={COLORS.surfaceElevated}
           size={24}
+          style={styles.settingsButton}
           onPress={() => {}}
         />
-
       </View>
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-
   container: {
-    marginTop: 10,
-    marginBottom: 22,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xxl,
   },
 
   topRow: {
@@ -76,32 +78,38 @@ const styles = StyleSheet.create({
   },
 
   left: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
   },
 
   textContainer: {
-    marginLeft: 14,
     flex: 1,
+    marginLeft: SPACING.md,
   },
 
   greeting: {
-    color: '#8EA4C6',
-    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.size.sm,
+    lineHeight: TYPOGRAPHY.lineHeight.sm,
   },
 
   title: {
-    color: '#FFFFFF',
-    fontSize: 30,
-    fontWeight: 'bold',
-    marginTop: 2,
+    color: COLORS.white,
+    fontSize: TYPOGRAPHY.size.title,
+    lineHeight: TYPOGRAPHY.lineHeight.title,
+    fontWeight: TYPOGRAPHY.weight.bold,
   },
 
   subtitle: {
-    color: '#9FB2CC',
-    fontSize: 14,
-    marginTop: 2,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.size.sm,
+    lineHeight: TYPOGRAPHY.lineHeight.sm,
   },
 
+  settingsButton: {
+    borderRadius: RADIUS.round,
+    margin: 0,
+    marginLeft: SPACING.sm,
+  },
 });

@@ -1,6 +1,15 @@
 import React from 'react';
-import { Button } from 'react-native-paper';
 import { StyleSheet } from 'react-native';
+
+import { Button } from 'react-native-paper';
+
+import {
+  COLORS,
+  RADIUS,
+  SHADOWS,
+  SPACING,
+  TYPOGRAPHY,
+} from '../../theme';
 
 type Props = {
   onPress: () => void;
@@ -14,10 +23,16 @@ export default function CompareButton({
   return (
     <Button
       mode="contained"
+      icon={loading ? undefined : 'car-search'}
       onPress={onPress}
       loading={loading}
       disabled={loading}
-      style={styles.button}
+      buttonColor={COLORS.primary}
+      textColor={COLORS.white}
+      style={[
+        styles.button,
+        !loading && SHADOWS.primary,
+      ]}
       contentStyle={styles.content}
       labelStyle={styles.label}
     >
@@ -28,9 +43,10 @@ export default function CompareButton({
 
 const styles = StyleSheet.create({
   button: {
-    marginTop: 20,
-    marginBottom: 20,
-    borderRadius: 16,
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.xl,
+
+    borderRadius: RADIUS.lg,
   },
 
   content: {
@@ -38,7 +54,8 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: TYPOGRAPHY.size.lg,
+    fontWeight: TYPOGRAPHY.weight.bold,
+    letterSpacing: TYPOGRAPHY.letterSpacing.normal,
   },
 });

@@ -5,6 +5,12 @@ import {
   View,
 } from 'react-native';
 
+import {
+  COLORS,
+  SHADOWS,
+  TYPOGRAPHY,
+} from '../../theme';
+
 type Props = {
   size?: number;
 };
@@ -12,7 +18,6 @@ type Props = {
 export default function LogoCX({
   size = 60,
 }: Props) {
-
   const radius = size * 0.28;
 
   return (
@@ -26,7 +31,6 @@ export default function LogoCX({
         },
       ]}
     >
-
       <Text
         style={[
           styles.c,
@@ -48,46 +52,37 @@ export default function LogoCX({
       >
         X
       </Text>
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-
   container: {
-    backgroundColor: '#1565FF',
+    backgroundColor: COLORS.primary,
 
     justifyContent: 'center',
     alignItems: 'center',
 
-    shadowColor: '#1565FF',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-
-    elevation: 8,
+    ...SHADOWS.primary,
   },
 
   c: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-
     position: 'absolute',
 
     left: '18%',
+
+    color: COLORS.white,
+
+    fontWeight: TYPOGRAPHY.weight.black,
   },
 
   x: {
-    color: '#57D2FF',
-    fontWeight: '900',
-
     position: 'absolute',
 
     right: '15%',
-  },
 
+    color: COLORS.primaryLight,
+
+    fontWeight: TYPOGRAPHY.weight.black,
+  },
 });
