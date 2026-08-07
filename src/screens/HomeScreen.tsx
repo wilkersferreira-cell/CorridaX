@@ -287,31 +287,53 @@ export default function HomeScreen() {
       )}
 
       {rides.map((ride) => (
-        <RideCard
-          key={ride.id}
-          nome={ride.nome}
-          preco={ride.preco.toLocaleString(
-            'pt-BR',
-            {
-              style: 'currency',
-              currency: 'BRL',
-            },
-          )}
-          tempo={`${ride.tempo} min`}
-          distancia={`${ride.distancia.toFixed(
-            1,
-          )} km`}
-          economia={ride.economia.toLocaleString(
-            'pt-BR',
-            {
-              style: 'currency',
-              currency: 'BRL',
-            },
-          )}
-          score={ride.score}
-          destaque={ride.destaque}
-        />
-      ))}
+  <RideCard
+    key={ride.id}
+    nome={ride.nome}
+    preco={ride.preco.toLocaleString(
+      'pt-BR',
+      {
+        style: 'currency',
+        currency: 'BRL',
+      },
+    )}
+    tempo={`${ride.tempo} min`}
+    distancia={`${ride.distancia.toFixed(
+      1,
+    )} km`}
+    economia={ride.economia.toLocaleString(
+      'pt-BR',
+      {
+        style: 'currency',
+        currency: 'BRL',
+      },
+    )}
+    score={ride.score}
+    destaque={ride.destaque}
+    origin={
+      origin
+        ? {
+            latitude:
+              origin.latitude,
+            longitude:
+              origin.longitude,
+            address: origem,
+          }
+        : undefined
+    }
+    destination={
+      destination
+        ? {
+            latitude:
+              destination.latitude,
+            longitude:
+              destination.longitude,
+            address: destino,
+          }
+        : undefined
+    }
+  />
+))}
     </ScrollView>
   );
 }
