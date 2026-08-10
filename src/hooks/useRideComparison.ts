@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import {
+  useState,
+} from 'react';
 
 import {
   searchAddress,
@@ -11,10 +13,19 @@ import {
 } from '../api/routes';
 
 import {
+  calculateGoogleRoute,
+} from '../api/googleRoutes';
+
+import {
   compareRides,
   ComparisonMode,
   RideOption,
 } from '../services/comparison';
+
+import {
+  compareRouteEngines,
+  RouteComparisonResult,
+} from '../services/routeComparison';
 
 export default function useRideComparison() {
   const [loading, setLoading] =
@@ -44,6 +55,14 @@ export default function useRideComparison() {
     'balanced',
   );
 
+  const [
+    routeComparison,
+    setRouteComparison,
+  ] =
+    useState<
+      RouteComparisonResult | null
+    >(null);
+
   async function search(
     query: string,
   ) {
@@ -65,70 +84,217 @@ export default function useRideComparison() {
   async function compare(
     origem: string,
     destino: string,
+    originLatitude: number,
+    originLongitude: number,
   ) {
     setLoading(true);
 
     try {
-      const origemBusca =
-        await searchAddress(origem);
-
-      const destinoBusca =
-        await searchAddress(destino);
-
+      /*
+       * ORIGEM
+       *
+       * Agora usamos diretamente
+       * o GPS real do celular.
+       *
+       * Não pesquisamos novamente
+       * o endereço da origem.
+       */
       if (
-        origemBusca.length === 0 ||
-        destinoBusca.length === 0
+        !Number.isFinite(
+          originLatitude,
+        ) ||
+        !Number.isFinite(
+          originLongitude,
+        ) ||
+        (
+          originLatitude === 0 &&
+          originLongitude === 0
+        )
       ) {
         throw new Error(
-          'Endereço não encontrado.',
+          'Localização GPS ainda não disponível.',
         );
       }
 
-      const originCoordinate: Coordinate = {
+      const originCoordinate:
+        Coordinate = {
+        latitude:
+          originLatitude,
+
+        longitude:
+          originLongitude,
+      };
+
+      /*
+       * DESTINO
+       *
+       * O destino continua sendo
+       * convertido em coordenadas
+       * através da busca.
+       */
+      const destinoBusca =
+        await searchAddress(
+          destino,
+        );
+
+      if (
+        destinoBusca.length === 0
+      ) {
+        throw new Error(
+          'Destino não encontrado.',
+        );
+      }
+
+      const destinationCoordinate:
+        Coordinate = {
         latitude: Number(
-          origemBusca[0].lat,
+          destinoBusca[0].lat,
         ),
+
         longitude: Number(
-          origemBusca[0].lon,
+          destinoBusca[0].lon,
         ),
       };
 
-      const destinationCoordinate: Coordinate =
-        {
-          latitude: Number(
-            destinoBusca[0].lat,
-          ),
-          longitude: Number(
-            destinoBusca[0].lon,
-          ),
-        };
-
-      setOrigin(originCoordinate);
+      setOrigin(
+        originCoordinate,
+      );
 
       setDestination(
         destinationCoordinate,
       );
 
-      const route =
-        await calculateRoute(
-          originCoordinate.latitude,
-          originCoordinate.longitude,
-          destinationCoordinate.latitude,
-          destinationCoordinate.longitude,
+      /*
+       * GOOGLE ROUTES
+       *
+       * Motor principal do CorridaX.
+       */
+      let routeDistance: number;
+      let routeDuration: number;
+      let coordinates:
+        Coordinate[];
+
+      try {
+        const googleRoute =
+          await calculateGoogleRoute(
+            originCoordinate.latitude,
+            originCoordinate.longitude,
+            destinationCoordinate.latitude,
+            destinationCoordinate.longitude,
+          );
+
+        routeDistance =
+          googleRoute.distance;
+
+        routeDuration =
+          googleRoute.duration;
+
+        coordinates =
+          googleRoute.coordinates;
+
+        /*
+         * Segurança:
+         * se o Google retornar uma
+         * rota sem geometria,
+         * usamos OSRM para desenhar.
+         */
+        if (
+          coordinates.length === 0
+        ) {
+          const osrmGeometry =
+            await calculateRoute(
+              originCoordinate.latitude,
+              originCoordinate.longitude,
+              destinationCoordinate.latitude,
+              destinationCoordinate.longitude,
+            );
+
+          coordinates =
+            osrmGeometry.coordinates;
+        }
+      } catch (googleError) {
+        /*
+         * FALLBACK
+         *
+         * Se Google Routes falhar,
+         * CorridaX continua funcionando
+         * através do OSRM.
+         */
+        console.warn(
+          'Google Routes indisponível. Usando OSRM.',
+          googleError,
         );
 
+        const osrmRoute =
+          await calculateRoute(
+            originCoordinate.latitude,
+            originCoordinate.longitude,
+            destinationCoordinate.latitude,
+            destinationCoordinate.longitude,
+          );
+
+        routeDistance =
+          osrmRoute.distance;
+
+        routeDuration =
+          osrmRoute.duration;
+
+        coordinates =
+          osrmRoute.coordinates;
+      }
+
       setRouteCoordinates(
-        route.coordinates,
+        coordinates,
       );
 
+      /*
+       * MOTOR DE PREÇOS CORRIDAX
+       *
+       * Agora recebe distância e
+       * duração do Google Routes
+       * sempre que disponível.
+       */
       const resultado =
         await compareRides(
-          route.distance,
-          route.duration,
+          routeDistance,
+          routeDuration,
           comparisonMode,
         );
 
-      setRides(resultado);
+      setRides(
+        resultado,
+      );
+
+      /*
+       * DIAGNÓSTICO TEMPORÁRIO
+       *
+       * Mantemos Google × OSRM
+       * para continuar avaliando
+       * os dois motores.
+       *
+       * Falha aqui NÃO interrompe
+       * a comparação principal.
+       */
+      try {
+        const comparison =
+          await compareRouteEngines(
+            originCoordinate,
+            destinationCoordinate,
+          );
+
+        setRouteComparison(
+          comparison,
+        );
+      } catch (error) {
+        console.warn(
+          'Falha no diagnóstico Google × OSRM:',
+          error,
+        );
+
+        setRouteComparison(
+          null,
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -156,5 +322,7 @@ export default function useRideComparison() {
     comparisonMode,
 
     setComparisonMode,
+
+    routeComparison,
   };
 }

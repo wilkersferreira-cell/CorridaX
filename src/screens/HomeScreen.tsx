@@ -26,6 +26,7 @@ import LocationInput from '../components/inputs/LocationInput';
 import LearningProgressCard from '../components/cards/LearningProgressCard';
 import MapViewCard from '../components/map/MapViewCard';
 import RideCard from '../components/cards/RideCard';
+import RouteComparisonCard from '../components/cards/RouteComparisonCard';
 import SavingsSummaryCard from '../components/cards/SavingsSummaryCard';
 
 import useCalibrationMetrics from '../hooks/useCalibrationMetrics';
@@ -47,19 +48,20 @@ export default function HomeScreen() {
     longitude,
   } = useLocation();
 
-  const {
-    rides,
-    loading: loadingCompare,
-    compare,
-    suggestions,
-    search,
-    setSuggestions,
-    origin,
-    destination,
-    routeCoordinates,
-    comparisonMode,
-    setComparisonMode,
-  } = useRideComparison();
+ const {
+  rides,
+  loading: loadingCompare,
+  compare,
+  suggestions,
+  search,
+  setSuggestions,
+  origin,
+  destination,
+  routeCoordinates,
+  comparisonMode,
+  setComparisonMode,
+  routeComparison,
+} = useRideComparison();
 
   const {
     metrics: uberMetrics,
@@ -202,9 +204,11 @@ export default function HomeScreen() {
 
     try {
       await compare(
-        origem,
-        destino,
-      );
+  origem,
+  destino,
+  latitude,
+  longitude,
+);
 
       setSuggestions([]);
     } catch (error) {
@@ -343,7 +347,11 @@ export default function HomeScreen() {
         onPress={compararCorridas}
         loading={loadingCompare}
       />
-
+{routeComparison && (
+  <RouteComparisonCard
+    result={routeComparison}
+  />
+)}
       <LearningProgressCard
         providers={[
           {

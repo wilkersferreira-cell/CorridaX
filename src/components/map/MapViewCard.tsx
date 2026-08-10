@@ -1,14 +1,11 @@
-import React, {
-  useEffect,
-  useRef,
-} from 'react';
+import React from 'react';
 
 import {
   StyleSheet,
   View,
 } from 'react-native';
 
-import WebView from 'react-native-webview';
+import MapView from 'react-native-maps';
 
 import {
   COLORS,
@@ -30,68 +27,51 @@ type Props = {
 };
 
 export default function MapViewCard({
-  userLocation,
-  origin,
-  destination,
-  route = [],
+  userLocation: _userLocation,
+  origin: _origin,
+  destination: _destination,
+  route: _route = [],
 }: Props) {
-  const webViewRef = useRef<WebView>(null);
-
-  useEffect(() => {
-    const payload = {
-      userLocation,
-      origin,
-      destination,
-      route,
-    };
-
-    webViewRef.current?.postMessage(
-      JSON.stringify(payload),
-    );
-  }, [
-    userLocation,
-    origin,
-    destination,
-    route,
-  ]);
-
   return (
     <View style={styles.container}>
-      <WebView
-        ref={webViewRef}
-        originWhitelist={['*']}
-        source={require('../../../assets/map/map.html')}
-        javaScriptEnabled
-        domStorageEnabled
-        allowFileAccess
-        allowUniversalAccessFromFileURLs
+      <MapView
         style={styles.map}
+        initialRegion={{
+          latitude: -3.119,
+          longitude: -60.0217,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    height: 320,
+const styles =
+  StyleSheet.create({
+    container: {
+      height: 320,
 
-    marginBottom: SPACING.xl,
+      marginBottom:
+        SPACING.xl,
 
-    borderRadius: RADIUS.xxl,
+      borderRadius:
+        RADIUS.xxl,
 
-    overflow: 'hidden',
+      overflow: 'hidden',
 
-    borderWidth: 1,
-    borderColor: COLORS.borderSoft,
+      borderWidth: 1,
 
-    backgroundColor: COLORS.surfaceLight,
+      borderColor:
+        COLORS.borderSoft,
 
-    ...SHADOWS.md,
-  },
+      backgroundColor:
+        COLORS.surfaceLight,
 
-  map: {
-    flex: 1,
+      ...SHADOWS.md,
+    },
 
-    backgroundColor: COLORS.surfaceLight,
-  },
-});
+    map: {
+      flex: 1,
+    },
+  });
