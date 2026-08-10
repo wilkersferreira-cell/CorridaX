@@ -66,6 +66,12 @@ export default function HomeScreen() {
     refresh: refreshUberMetrics,
   } = useCalibrationMetrics('uber');
 
+  const {
+    metrics: app99Metrics,
+    records: app99Records,
+    refresh: refreshApp99Metrics,
+  } = useCalibrationMetrics('99');
+
   const [origem, setOrigem] =
     useState('');
 
@@ -143,6 +149,17 @@ export default function HomeScreen() {
           ride.nome
             .toLowerCase()
             .includes('uber'),
+      );
+    }, [rides]);
+
+  const app99Ride =
+    useMemo(() => {
+      return rides.find(
+        (ride) =>
+          ride.id === '99' ||
+          ride.nome
+            .toLowerCase()
+            .includes('99'),
       );
     }, [rides]);
 
@@ -418,6 +435,37 @@ export default function HomeScreen() {
           <CalibrationHistoryCard
             providerName="Uber"
             records={uberRecords}
+          />
+        </>
+      )}
+
+      {app99Ride && (
+        <>
+          <CalibrationCard
+            provider="99"
+            providerName="99"
+            estimatedPrice={
+              app99Ride.preco
+            }
+            distanceKm={
+              app99Ride.distancia
+            }
+            durationMinutes={
+              app99Ride.tempo
+            }
+            onSaved={
+              refreshApp99Metrics
+            }
+          />
+
+          <CalibrationMetricsCard
+            providerName="99"
+            metrics={app99Metrics}
+          />
+
+          <CalibrationHistoryCard
+            providerName="99"
+            records={app99Records}
           />
         </>
       )}
