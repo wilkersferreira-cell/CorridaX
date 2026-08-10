@@ -14,6 +14,7 @@ import {
 import AddressSuggestions from '../components/inputs/AddressSuggestions';
 import AIRecommendationCard from '../components/cards/AIRecommendationCard';
 import CalibrationCard from '../components/cards/CalibrationCard';
+import CalibrationHistoryCard from '../components/cards/CalibrationHistoryCard';
 import CalibrationMetricsCard from '../components/cards/CalibrationMetricsCard';
 import CompareButton from '../components/buttons/CompareButton';
 import ComparisonModeSelector from '../components/inputs/ComparisonModeSelector';
@@ -61,6 +62,7 @@ export default function HomeScreen() {
 
   const {
     metrics: uberMetrics,
+    records: uberRecords,
     refresh: refreshUberMetrics,
   } = useCalibrationMetrics('uber');
 
@@ -411,6 +413,11 @@ export default function HomeScreen() {
           <CalibrationMetricsCard
             providerName="Uber"
             metrics={uberMetrics}
+          />
+
+          <CalibrationHistoryCard
+            providerName="Uber"
+            records={uberRecords}
           />
         </>
       )}

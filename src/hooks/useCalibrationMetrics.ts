@@ -14,6 +14,10 @@ import {
 } from '../services/calibrationStorage';
 
 import {
+  PriceCalibrationResult,
+} from '../services/priceCalibration';
+
+import {
   ProviderPriceId,
 } from '../services/priceEstimator';
 
@@ -35,6 +39,11 @@ export default function useCalibrationMetrics(
       EMPTY_METRICS,
     );
 
+  const [records, setRecords] =
+    useState<
+      PriceCalibrationResult[]
+    >([]);
+
   const [loading, setLoading] =
     useState(true);
 
@@ -43,18 +52,26 @@ export default function useCalibrationMetrics(
       setLoading(true);
 
       try {
-        const records =
+        const providerRecords =
           await getCalibrationRecordsByProvider(
             provider,
           );
 
         const calculated =
           calculateCalibrationMetrics(
-            records,
+            providerRecords,
           );
 
-        setMetrics(calculated);
+        setRecords(
+          providerRecords,
+        );
+
+        setMetrics(
+          calculated,
+        );
       } catch {
+        setRecords([]);
+
         setMetrics(
           EMPTY_METRICS,
         );
@@ -69,6 +86,7 @@ export default function useCalibrationMetrics(
 
   return {
     metrics,
+    records,
     loading,
     refresh,
   };
