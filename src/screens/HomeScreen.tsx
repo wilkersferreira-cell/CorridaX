@@ -23,6 +23,7 @@ import DashboardCard from '../components/cards/DashboardCard';
 import DecisionSummaryCard from '../components/cards/DecisionSummaryCard';
 import Header from '../components/layout/Header';
 import LocationInput from '../components/inputs/LocationInput';
+import LearningProgressCard from '../components/cards/LearningProgressCard';
 import MapViewCard from '../components/map/MapViewCard';
 import RideCard from '../components/cards/RideCard';
 import SavingsSummaryCard from '../components/cards/SavingsSummaryCard';
@@ -338,9 +339,29 @@ export default function HomeScreen() {
         }
       />
 
-      <CompareButton
+            <CompareButton
         onPress={compararCorridas}
         loading={loadingCompare}
+      />
+
+      <LearningProgressCard
+        providers={[
+          {
+            name: 'Uber',
+            samples:
+              uberMetrics.sampleCount,
+          },
+          {
+            name: '99',
+            samples:
+              app99Metrics.sampleCount,
+          },
+          {
+            name: 'inDrive',
+            samples:
+              inDriveMetrics.sampleCount,
+          },
+        ]}
       />
 
       {recommendation && (

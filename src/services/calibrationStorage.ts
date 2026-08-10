@@ -1,66 +1,96 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import {
   PriceCalibrationInput,
   PriceCalibrationResult,
   calculatePriceCalibration,
 } from './priceCalibration';
 
-/*
- * DATASET DE CALIBRAÇÃO CORRIDAX v1
- *
- * Nesta primeira versão, os registros
- * permanecem em memória durante a
- * execução do aplicativo.
- *
- * A camada foi criada separadamente
- * para permitir futura persistência
- * local ou remota sem alterar a lógica
- * de calibração.
- */
-
-let calibrationRecords:
-  PriceCalibrationResult[] = [];
+const STORAGE_KEY =
+  '@corridax:calibration-records:v1';
 
 /**
- * Registra uma nova observação.
+ * Salva o dataset completo de calibração
+ * no armazenamento persistente.
  */
-export function addCalibrationRecord(
+async function saveCalibrationRecords(
+  records: PriceCalibrationResult[],
+): Promise<void> {
+  await AsyncStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(records),
+  );
+}
+
+/**
+ * Retorna todos os registros
+ * persistidos no dispositivo.
+ */
+export async function getCalibrationRecords():
+Promise<PriceCalibrationResult[]> {
+  const stored =
+    await AsyncStorage.getItem(
+      STORAGE_KEY,
+    );
+
+  if (!stored) {
+    return [];
+  }
+
+  try {
+    const parsed =
+      JSON.parse(stored);
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed as
+      PriceCalibrationResult[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Registra uma nova observação
+ * e persiste o dataset atualizado.
+ */
+export async function addCalibrationRecord(
   input: PriceCalibrationInput,
-): PriceCalibrationResult {
+): Promise<PriceCalibrationResult> {
   const record =
     calculatePriceCalibration(
       input,
     );
 
-  calibrationRecords = [
-    ...calibrationRecords,
+  const currentRecords =
+    await getCalibrationRecords();
+
+  const updatedRecords = [
+    ...currentRecords,
     record,
   ];
+
+  await saveCalibrationRecords(
+    updatedRecords,
+  );
 
   return record;
 }
 
 /**
- * Retorna todos os registros.
- *
- * Uma cópia é retornada para impedir
- * alterações externas no dataset.
- */
-export function getCalibrationRecords():
-  PriceCalibrationResult[] {
-  return [
-    ...calibrationRecords,
-  ];
-}
-
-/**
  * Retorna somente os registros
- * de uma determinada plataforma.
+ * de uma plataforma.
  */
-export function getCalibrationRecordsByProvider(
+export async function getCalibrationRecordsByProvider(
   provider:
     PriceCalibrationResult['provider'],
-): PriceCalibrationResult[] {
-  return calibrationRecords.filter(
+): Promise<PriceCalibrationResult[]> {
+  const records =
+    await getCalibrationRecords();
+
+  return records.filter(
     (record) =>
       record.provider === provider,
   );
@@ -68,21 +98,25 @@ export function getCalibrationRecordsByProvider(
 
 /**
  * Retorna a quantidade total
- * de observações registradas.
+ * de observações persistidas.
  */
-export function getCalibrationRecordCount():
-  number {
-  return calibrationRecords.length;
+export async function getCalibrationRecordCount():
+Promise<number> {
+  const records =
+    await getCalibrationRecords();
+
+  return records.length;
 }
 
 /**
- * Remove todos os registros.
+ * Remove todos os registros persistidos.
  *
- * Deve ser usado apenas em testes
- * ou quando houver uma ação explícita
- * de limpeza do dataset.
+ * Usar somente quando houver uma ação
+ * explícita de limpeza do dataset.
  */
-export function clearCalibrationRecords():
-  void {
-  calibrationRecords = [];
+export async function clearCalibrationRecords():
+Promise<void> {
+  await AsyncStorage.removeItem(
+    STORAGE_KEY,
+  );
 }
