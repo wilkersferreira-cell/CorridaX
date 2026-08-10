@@ -72,6 +72,12 @@ export default function HomeScreen() {
     refresh: refreshApp99Metrics,
   } = useCalibrationMetrics('99');
 
+  const {
+    metrics: inDriveMetrics,
+    records: inDriveRecords,
+    refresh: refreshInDriveMetrics,
+  } = useCalibrationMetrics('indrive');
+
   const [origem, setOrigem] =
     useState('');
 
@@ -160,6 +166,17 @@ export default function HomeScreen() {
           ride.nome
             .toLowerCase()
             .includes('99'),
+      );
+    }, [rides]);
+
+  const inDriveRide =
+    useMemo(() => {
+      return rides.find(
+        (ride) =>
+          ride.id === 'indrive' ||
+          ride.nome
+            .toLowerCase()
+            .includes('indrive'),
       );
     }, [rides]);
 
@@ -466,6 +483,37 @@ export default function HomeScreen() {
           <CalibrationHistoryCard
             providerName="99"
             records={app99Records}
+          />
+        </>
+      )}
+
+      {inDriveRide && (
+        <>
+          <CalibrationCard
+            provider="indrive"
+            providerName="inDrive"
+            estimatedPrice={
+              inDriveRide.preco
+            }
+            distanceKm={
+              inDriveRide.distancia
+            }
+            durationMinutes={
+              inDriveRide.tempo
+            }
+            onSaved={
+              refreshInDriveMetrics
+            }
+          />
+
+          <CalibrationMetricsCard
+            providerName="inDrive"
+            metrics={inDriveMetrics}
+          />
+
+          <CalibrationHistoryCard
+            providerName="inDrive"
+            records={inDriveRecords}
           />
         </>
       )}
