@@ -16,7 +16,7 @@ module.exports = {
     [
       'react-native-maps',
       {
-       androidGoogleMapsApiKey:'AIzaSyDGLw4lm4FD3E3B1bgsG09fSgQbqomuFrI',
+       androidGoogleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
       },
     ],
   ],
