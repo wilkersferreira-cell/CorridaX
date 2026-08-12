@@ -42,15 +42,23 @@ export default function MapViewCard({
     useRef<MapView>(null);
 
   /*
-   * Quando a rota chegar,
-   * enquadra todo o percurso
-   * automaticamente no mapa.
+   * Controle inteligente da câmera.
+   *
+   * 1. Se existir rota:
+   *    mostra o trajeto completo.
+   *
+   * 2. Se ainda não existir rota:
+   *    mostra origem + destino.
    */
   useEffect(() => {
-    if (
-      route.length >= 2 &&
-      mapRef.current
-    ) {
+    if (!mapRef.current) {
+      return;
+    }
+
+    /*
+     * ROTA CALCULADA
+     */
+    if (route.length >= 2) {
       mapRef.current.fitToCoordinates(
         route,
         {
@@ -64,8 +72,68 @@ export default function MapViewCard({
           animated: true,
         },
       );
+
+      return;
     }
-  }, [route]);
+
+    /*
+     * PRÉ-VISUALIZAÇÃO
+     *
+     * Assim que o destino é
+     * selecionado, mostramos
+     * origem + destino.
+     */
+    if (
+      origin &&
+      destination
+    ) {
+      mapRef.current.fitToCoordinates(
+        [
+          origin,
+          destination,
+        ],
+        {
+          edgePadding: {
+            top: 70,
+            right: 55,
+            bottom: 70,
+            left: 55,
+          },
+
+          animated: true,
+        },
+      );
+
+      return;
+    }
+
+    /*
+     * SOMENTE ORIGEM
+     */
+    if (origin) {
+      mapRef.current.animateToRegion(
+        {
+          latitude:
+            origin.latitude,
+
+          longitude:
+            origin.longitude,
+
+          latitudeDelta:
+            0.025,
+
+          longitudeDelta:
+            0.025,
+        },
+
+        500,
+      );
+    }
+  }, [
+    route,
+    origin,
+    destination,
+  ]);
 
   const initialLatitude =
     Number.isFinite(
@@ -93,8 +161,11 @@ export default function MapViewCard({
           longitude:
             initialLongitude,
 
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
+          latitudeDelta:
+            0.05,
+
+          longitudeDelta:
+            0.05,
         }}
         showsUserLocation
         showsMyLocationButton
@@ -104,23 +175,75 @@ export default function MapViewCard({
             coordinate={origin}
             title="Origem"
             description="Sua localização"
-          />
+            anchor={{
+              x: 0.5,
+              y: 0.5,
+            }}
+          >
+            <View
+              style={
+                styles.originMarkerOuter
+              }
+            >
+              <View
+                style={
+                  styles.originMarkerInner
+                }
+              />
+            </View>
+          </Marker>
         )}
 
         {destination && (
           <Marker
-            coordinate={destination}
+            coordinate={
+              destination
+            }
             title="Destino"
-          />
+            anchor={{
+              x: 0.5,
+              y: 0.5,
+            }}
+          >
+            <View
+              style={
+                styles.destinationMarker
+              }
+            >
+              <View
+                style={
+                  styles.destinationMarkerInner
+                }
+              />
+            </View>
+          </Marker>
         )}
 
         {route.length >= 2 && (
-  <Polyline
-    coordinates={route}
-    strokeColor="#42A5F5"
-    strokeWidth={6}
-  />
-)}
+          <>
+            {/*
+             * CONTORNO
+             */}
+            <Polyline
+              coordinates={route}
+              strokeColor={
+                COLORS.white
+              }
+              strokeWidth={8}
+            />
+
+            {/*
+             * ROTA CORRIDAX
+             */}
+            <Polyline
+              coordinates={route}
+              strokeColor={
+                COLORS.primaryLight
+              }
+              strokeWidth={5}
+            />
+          </>
+        )}
       </MapView>
     </View>
   );
@@ -152,5 +275,70 @@ const styles =
 
     map: {
       flex: 1,
+    },
+
+    /*
+     * ORIGEM
+     */
+    originMarkerOuter: {
+      width: 24,
+      height: 24,
+
+      alignItems: 'center',
+      justifyContent: 'center',
+
+      borderRadius:
+        RADIUS.round,
+
+      backgroundColor:
+        COLORS.white,
+
+      ...SHADOWS.sm,
+    },
+
+    originMarkerInner: {
+      width: 14,
+      height: 14,
+
+      borderRadius:
+        RADIUS.round,
+
+      backgroundColor:
+        COLORS.primary,
+    },
+
+    /*
+     * DESTINO
+     */
+    destinationMarker: {
+      width: 28,
+      height: 28,
+
+      alignItems: 'center',
+      justifyContent: 'center',
+
+      borderRadius:
+        RADIUS.round,
+
+      borderWidth: 3,
+
+      borderColor:
+        COLORS.white,
+
+      backgroundColor:
+        COLORS.success,
+
+      ...SHADOWS.sm,
+    },
+
+    destinationMarkerInner: {
+      width: 8,
+      height: 8,
+
+      borderRadius:
+        RADIUS.round,
+
+      backgroundColor:
+        COLORS.white,
     },
   });

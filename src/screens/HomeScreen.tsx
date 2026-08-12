@@ -48,22 +48,23 @@ export default function HomeScreen() {
     longitude,
   } = useLocation();
 
- const {
-  rides,
-  loading: loadingCompare,
-  compare,
-  suggestions,
-  search,
-  setSuggestions,
+  const {
+    rides,
+    loading: loadingCompare,
+    compare,
+    suggestions,
+    search,
+    setSuggestions,
     selectDestination,
-  clearSelectedDestination,
-  origin,
-  destination,
-  routeCoordinates,
-  comparisonMode,
-  setComparisonMode,
-  routeComparison,
-} = useRideComparison();
+    clearSelectedDestination,
+    setGpsOrigin,
+    origin,
+    destination,
+    routeCoordinates,
+    comparisonMode,
+    setComparisonMode,
+    routeComparison,
+  } = useRideComparison();
 
   const {
     metrics: uberMetrics,
@@ -89,11 +90,44 @@ export default function HomeScreen() {
   const [destino, setDestino] =
     useState('');
 
+  /*
+   * Preenche o campo de origem
+   * quando o endereço do GPS
+   * estiver disponível.
+   */
   useEffect(() => {
     if (address && !origem) {
       setOrigem(address);
     }
   }, [address, origem]);
+
+  /*
+   * Sincroniza as coordenadas
+   * reais do GPS com o mapa.
+   *
+   * IMPORTANTE:
+   * setGpsOrigin não entra nas
+   * dependências para evitar
+   * loop de renderização.
+   */
+  useEffect(() => {
+    if (
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      !(
+        latitude === 0 &&
+        longitude === 0
+      )
+    ) {
+      setGpsOrigin(
+        latitude,
+        longitude,
+      );
+    }
+  }, [
+    latitude,
+    longitude,
+  ]);
 
   const recommendation =
     useMemo(() => {
@@ -206,11 +240,11 @@ export default function HomeScreen() {
 
     try {
       await compare(
-  origem,
-  destino,
-  latitude,
-  longitude,
-);
+        origem,
+        destino,
+        latitude,
+        longitude,
+      );
 
       setSuggestions([]);
     } catch (error) {
@@ -318,57 +352,66 @@ export default function HomeScreen() {
       />
 
       <LocationInput
-  label="Destino"
-  value={destino}
-  onChangeText={(text) => {
-    setDestino(text);
+        label="Destino"
+        value={destino}
+        onChangeText={(text) => {
+          setDestino(text);
 
-    clearSelectedDestination();
+          clearSelectedDestination();
 
-    search(
-      text,
-      latitude,
-      longitude,
-    );
-  }}
-  icon="flag-checkered"
-/>
+          search(
+            text,
+            latitude,
+            longitude,
+          );
+        }}
+        icon="flag-checkered"
+      />
 
-<AddressSuggestions
-  data={suggestions}
-  onSelect={async (item) => {
-    try {
-      const selected =
-        await selectDestination(item);
+      <AddressSuggestions
+        data={suggestions}
+        onSelect={async (item) => {
+          try {
+            const selected =
+              await selectDestination(
+                item,
+              );
 
-      setDestino(
-        selected.displayName,
-      );
+            setDestino(
+              selected.displayName,
+            );
 
-      setSuggestions([]);
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível selecionar o destino.';
+            setSuggestions([]);
+          } catch (error) {
+            const message =
+              error instanceof Error
+                ? error.message
+                : 'Não foi possível selecionar o destino.';
 
-      Alert.alert(
-        'Destino',
-        message,
-      );
-    }
-  }}
-/>
+            Alert.alert(
+              'Destino',
+              message,
+            );
+          }
+        }}
+      />
 
-            <CompareButton
+      <ComparisonModeSelector
+        value={comparisonMode}
+        onChange={setComparisonMode}
+      />
+
+      <CompareButton
         onPress={compararCorridas}
         loading={loadingCompare}
       />
-{routeComparison && (
-  <RouteComparisonCard
-    result={routeComparison}
-  />
-)}
+
+      {routeComparison && (
+        <RouteComparisonCard
+          result={routeComparison}
+        />
+      )}
+
       <LearningProgressCard
         providers={[
           {
@@ -451,9 +494,12 @@ export default function HomeScreen() {
               ? {
                   latitude:
                     origin.latitude,
+
                   longitude:
                     origin.longitude,
-                  address: origem,
+
+                  address:
+                    origem,
                 }
               : undefined
           }
@@ -462,9 +508,12 @@ export default function HomeScreen() {
               ? {
                   latitude:
                     destination.latitude,
+
                   longitude:
                     destination.longitude,
-                  address: destino,
+
+                  address:
+                    destino,
                 }
               : undefined
           }
@@ -571,20 +620,26 @@ const styles =
   StyleSheet.create({
     container: {
       flex: 1,
+
       backgroundColor:
         COLORS.background,
     },
 
     content: {
-      padding: SPACING.lg,
-      paddingBottom: 44,
+      padding:
+        SPACING.lg,
+
+      paddingBottom:
+        44,
     },
 
     dashboard: {
-      marginBottom: SPACING.xl,
+      marginBottom:
+        SPACING.xl,
     },
 
     dashboardRow: {
-      flexDirection: 'row',
+      flexDirection:
+        'row',
     },
   });

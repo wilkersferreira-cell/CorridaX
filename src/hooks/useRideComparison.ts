@@ -74,12 +74,37 @@ export default function useRideComparison() {
     >(null);
 
   /**
-   * Pesquisa o destino usando
-   * Google Places API (New).
+   * Define a origem diretamente
+   * a partir do GPS do aparelho.
    *
-   * Latitude e longitude são opcionais
-   * e servem para priorizar resultados
-   * próximos da localização atual.
+   * Isso permite que o mapa conheça
+   * a origem antes de o usuário
+   * clicar em Comparar.
+   */
+  function setGpsOrigin(
+    latitude: number,
+    longitude: number,
+  ) {
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      (
+        latitude === 0 &&
+        longitude === 0
+      )
+    ) {
+      return;
+    }
+
+    setOrigin({
+      latitude,
+      longitude,
+    });
+  }
+
+  /**
+   * Pesquisa destinos utilizando
+   * Google Places.
    */
   async function search(
     query: string,
@@ -111,8 +136,8 @@ export default function useRideComparison() {
   }
 
   /**
-   * Resolve o placeId escolhido pelo
-   * usuário para coordenadas exatas.
+   * Resolve o destino escolhido
+   * para coordenadas exatas.
    */
   async function selectDestination(
     suggestion: GooglePlaceSuggestion,
@@ -123,48 +148,76 @@ export default function useRideComparison() {
       );
 
     const coordinate: Coordinate = {
-      latitude: place.latitude,
-      longitude: place.longitude,
+      latitude:
+        place.latitude,
+
+      longitude:
+        place.longitude,
     };
 
-    setSelectedDestination({
-      placeId: suggestion.placeId,
+    const displayName =
+      place.displayName ||
+      suggestion.displayName;
 
-      displayName:
-        place.displayName ||
-        suggestion.displayName,
+    setSelectedDestination({
+      placeId:
+        suggestion.placeId,
+
+      displayName,
 
       coordinate,
     });
 
-    setDestination(coordinate);
-
-    setSuggestions([]);
+    /*
+     * O destino entra imediatamente
+     * no estado do mapa.
+     */
+    setDestination(
+      coordinate,
+    );
 
     /*
-     * Limpa a rota anterior.
-     * A nova será calculada ao comparar.
+     * Remove a rota anterior.
+     * Assim o mapa mostra somente
+     * origem + novo destino.
      */
     setRouteCoordinates([]);
 
-    return {
-      displayName:
-        place.displayName ||
-        suggestion.displayName,
+    setRouteComparison(
+      null,
+    );
 
+    setRides([]);
+
+    setSuggestions([]);
+
+    return {
+      displayName,
       coordinate,
     };
   }
 
   /**
-   * Quando o usuário começa a digitar
-   * outro destino, invalida a seleção
-   * anterior.
+   * Quando o usuário começa a
+   * digitar um novo destino,
+   * invalida a seleção anterior.
    */
   function clearSelectedDestination() {
-    setSelectedDestination(null);
-    setDestination(undefined);
+    setSelectedDestination(
+      null,
+    );
+
+    setDestination(
+      undefined,
+    );
+
     setRouteCoordinates([]);
+
+    setRouteComparison(
+      null,
+    );
+
+    setRides([]);
   }
 
   async function compare(
@@ -179,8 +232,7 @@ export default function useRideComparison() {
       /*
        * ORIGEM
        *
-       * Utilizamos diretamente
-       * o GPS real do celular.
+       * GPS real do aparelho.
        */
       if (
         !Number.isFinite(
@@ -211,9 +263,8 @@ export default function useRideComparison() {
       /*
        * DESTINO
        *
-       * Preferimos sempre o destino
-       * selecionado pelo usuário na
-       * lista do Google Places.
+       * Prioridade para o destino
+       * escolhido na lista do Google.
        */
       let destinationCoordinate:
         Coordinate;
@@ -223,10 +274,9 @@ export default function useRideComparison() {
           selectedDestination.coordinate;
       } else {
         /*
-         * Caso o usuário digite um destino
-         * e pressione comparar sem tocar
-         * numa sugestão, tentamos localizar
-         * o primeiro resultado do Google.
+         * Caso o usuário não selecione
+         * uma sugestão, pesquisamos o
+         * texto informado no Google.
          */
         const results =
           await searchGooglePlaces(
@@ -235,7 +285,9 @@ export default function useRideComparison() {
             originLongitude,
           );
 
-        if (results.length === 0) {
+        if (
+          results.length === 0
+        ) {
           throw new Error(
             'Destino não encontrado.',
           );
@@ -278,7 +330,7 @@ export default function useRideComparison() {
       /*
        * GOOGLE ROUTES
        *
-       * Motor principal do CorridaX.
+       * Motor principal.
        */
       let routeDistance: number;
       let routeDuration: number;
@@ -305,10 +357,9 @@ export default function useRideComparison() {
           googleRoute.coordinates;
 
         /*
-         * Se o Google retornar distância
-         * e tempo, mas não geometria,
-         * utilizamos OSRM somente para
-         * desenhar o percurso.
+         * Se o Google não fornecer
+         * geometria, OSRM desenha
+         * o percurso.
          */
         if (
           coordinates.length === 0
@@ -327,9 +378,6 @@ export default function useRideComparison() {
       } catch (googleError) {
         /*
          * FALLBACK OSRM
-         *
-         * Se Google Routes falhar,
-         * o CorridaX continua funcionando.
          */
         console.warn(
           'Google Routes indisponível. Usando OSRM.',
@@ -354,6 +402,10 @@ export default function useRideComparison() {
           osrmRoute.coordinates;
       }
 
+      /*
+       * A partir daqui o mapa recebe
+       * a geometria completa da rota.
+       */
       setRouteCoordinates(
         coordinates,
       );
@@ -374,7 +426,6 @@ export default function useRideComparison() {
 
       /*
        * DIAGNÓSTICO TEMPORÁRIO
-       *
        * Google × OSRM.
        */
       try {
@@ -420,6 +471,8 @@ export default function useRideComparison() {
     clearSelectedDestination,
 
     selectedDestination,
+
+    setGpsOrigin,
 
     origin,
 
