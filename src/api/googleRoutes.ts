@@ -22,6 +22,26 @@ type ComputeRoutesResponse = {
   }>;
 };
 
+const ANDROID_PACKAGE =
+  'com.corridax.app';
+
+const ANDROID_SHA1 =
+  '5E8F16062EA3CD2C4A0D547876BAA6F38CABF625';
+
+function getRoutesApiKey(): string {
+  const apiKey =
+    process.env
+      .EXPO_PUBLIC_GOOGLE_ROUTES_API_KEY;
+
+  if (!apiKey) {
+    throw new Error(
+      'Chave do Google Routes não configurada.',
+    );
+  }
+
+  return apiKey;
+}
+
 export async function calculateGoogleRoute(
   originLat: number,
   originLon: number,
@@ -29,14 +49,7 @@ export async function calculateGoogleRoute(
   destinationLon: number,
 ): Promise<GoogleRouteResult> {
   const apiKey =
-    process.env
-      .EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-  if (!apiKey) {
-    throw new Error(
-      'Chave do Google Maps não configurada.',
-    );
-  }
+    getRoutesApiKey();
 
   const response = await fetch(
     'https://routes.googleapis.com/directions/v2:computeRoutes',
@@ -49,6 +62,12 @@ export async function calculateGoogleRoute(
 
         'X-Goog-Api-Key':
           apiKey,
+
+        'X-Android-Package':
+          ANDROID_PACKAGE,
+
+        'X-Android-Cert':
+          ANDROID_SHA1,
 
         'X-Goog-FieldMask':
           [
@@ -64,6 +83,7 @@ export async function calculateGoogleRoute(
             latLng: {
               latitude:
                 originLat,
+
               longitude:
                 originLon,
             },
@@ -75,16 +95,24 @@ export async function calculateGoogleRoute(
             latLng: {
               latitude:
                 destinationLat,
+
               longitude:
                 destinationLon,
             },
           },
         },
 
-        travelMode: 'DRIVE',
+        travelMode:
+          'DRIVE',
 
         routingPreference:
           'TRAFFIC_AWARE',
+
+        polylineQuality:
+          'HIGH_QUALITY',
+
+        polylineEncoding:
+          'ENCODED_POLYLINE',
       }),
     },
   );

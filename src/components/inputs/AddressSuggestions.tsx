@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {
   StyleSheet,
   TouchableOpacity,
@@ -19,9 +20,8 @@ import {
 } from '../../theme';
 
 export interface Suggestion {
-  display_name: string;
-  lat: string;
-  lon: string;
+  placeId: string;
+  displayName: string;
 }
 
 type Props = {
@@ -43,26 +43,32 @@ export default function AddressSuggestions({
         Sugestões de destino
       </Text>
 
-      {data.map((item, index) => (
+      {data.map((item) => (
         <TouchableOpacity
-          key={`${item.lat}-${item.lon}-${index}`}
+          key={item.placeId}
           activeOpacity={0.75}
           onPress={() => onSelect(item)}
         >
           <Card style={styles.card}>
-            <Card.Content style={styles.cardContent}>
-              <View style={styles.iconContainer}>
+            <Card.Content
+              style={styles.cardContent}
+            >
+              <View
+                style={styles.iconContainer}
+              >
                 <Text style={styles.icon}>
                   📍
                 </Text>
               </View>
 
-              <View style={styles.textContainer}>
+              <View
+                style={styles.textContainer}
+              >
                 <Text
                   style={styles.address}
                   numberOfLines={2}
                 >
-                  {item.display_name}
+                  {item.displayName}
                 </Text>
 
                 <Text style={styles.helper}>
@@ -93,7 +99,8 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
 
     fontSize: TYPOGRAPHY.size.xs,
-    fontWeight: TYPOGRAPHY.weight.semiBold,
+    fontWeight:
+      TYPOGRAPHY.weight.semiBold,
   },
 
   card: {
@@ -101,7 +108,8 @@ const styles = StyleSheet.create({
 
     borderRadius: RADIUS.md,
 
-    backgroundColor: COLORS.surfaceLight,
+    backgroundColor:
+      COLORS.surfaceLight,
 
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
@@ -125,7 +133,8 @@ const styles = StyleSheet.create({
 
     borderRadius: RADIUS.round,
 
-    backgroundColor: COLORS.primarySoft,
+    backgroundColor:
+      COLORS.primarySoft,
   },
 
   icon: {
@@ -143,8 +152,10 @@ const styles = StyleSheet.create({
     color: COLORS.text,
 
     fontSize: TYPOGRAPHY.size.sm,
-    lineHeight: TYPOGRAPHY.lineHeight.md,
-    fontWeight: TYPOGRAPHY.weight.medium,
+    lineHeight:
+      TYPOGRAPHY.lineHeight.md,
+    fontWeight:
+      TYPOGRAPHY.weight.medium,
   },
 
   helper: {
@@ -159,6 +170,7 @@ const styles = StyleSheet.create({
     color: COLORS.primaryLight,
 
     fontSize: TYPOGRAPHY.size.xxl,
-    fontWeight: TYPOGRAPHY.weight.medium,
+    fontWeight:
+      TYPOGRAPHY.weight.medium,
   },
 });

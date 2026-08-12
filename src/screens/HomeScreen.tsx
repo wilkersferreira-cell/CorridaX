@@ -55,6 +55,8 @@ export default function HomeScreen() {
   suggestions,
   search,
   setSuggestions,
+    selectDestination,
+  clearSelectedDestination,
   origin,
   destination,
   routeCoordinates,
@@ -316,32 +318,47 @@ export default function HomeScreen() {
       />
 
       <LocationInput
-        label="Destino"
-        value={destino}
-        onChangeText={(text) => {
-          setDestino(text);
-          search(text);
-        }}
-        icon="flag-checkered"
-      />
+  label="Destino"
+  value={destino}
+  onChangeText={(text) => {
+    setDestino(text);
 
-      <AddressSuggestions
-        data={suggestions}
-        onSelect={(item) => {
-          setDestino(
-            item.display_name,
-          );
+    clearSelectedDestination();
 
-          setSuggestions([]);
-        }}
-      />
+    search(
+      text,
+      latitude,
+      longitude,
+    );
+  }}
+  icon="flag-checkered"
+/>
 
-      <ComparisonModeSelector
-        value={comparisonMode}
-        onChange={
-          setComparisonMode
-        }
-      />
+<AddressSuggestions
+  data={suggestions}
+  onSelect={async (item) => {
+    try {
+      const selected =
+        await selectDestination(item);
+
+      setDestino(
+        selected.displayName,
+      );
+
+      setSuggestions([]);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível selecionar o destino.';
+
+      Alert.alert(
+        'Destino',
+        message,
+      );
+    }
+  }}
+/>
 
             <CompareButton
         onPress={compararCorridas}
