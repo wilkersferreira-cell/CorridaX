@@ -6,8 +6,11 @@ import {
 } from 'react-native';
 
 import {
+  MaterialCommunityIcons,
+} from '@expo/vector-icons';
+
+import {
   Button,
-  Card,
   Text,
 } from 'react-native-paper';
 
@@ -16,14 +19,30 @@ import {
   RideLocation,
 } from '../../services/deepLinks';
 
+import {
+  COLORS,
+  RADIUS,
+  SHADOWS,
+  SPACING,
+  TYPOGRAPHY,
+} from '../../theme';
+
+export type RideHighlight =
+  | 'cheapest'
+  | 'fastest'
+  | 'balanced'
+  | 'alternative';
+
 type Props = {
   nome: string;
   preco: string;
   tempo?: string;
   distancia?: string;
   economia?: string;
-  score?: number;
-  destaque?: boolean;
+
+  highlight?: RideHighlight;
+
+  advantageText?: string;
 
   origin?: RideLocation;
   destination?: RideLocation;
@@ -35,8 +54,8 @@ export default function RideCard({
   tempo,
   distancia,
   economia,
-  score,
-  destaque = false,
+  highlight = 'alternative',
+  advantageText,
   origin,
   destination,
 }: Props) {
@@ -51,29 +70,41 @@ export default function RideCard({
     ) {
       return {
         id: 'uber' as const,
-        buttonLabel: 'Abrir Uber',
-        type: 'uber',
+
+        buttonLabel:
+          'Abrir Uber',
+
+        type: 'uber' as const,
       };
     }
 
     if (
-      normalizedName.includes('99')
+      normalizedName.includes(
+        '99',
+      )
     ) {
       return {
         id: '99' as const,
-        buttonLabel: 'Abrir 99',
-        type: '99',
+
+        buttonLabel:
+          'Abrir 99',
+
+        type: '99' as const,
       };
     }
 
     return {
       id: 'indrive' as const,
-      buttonLabel: 'Abrir inDrive',
-      type: 'indrive',
+
+      buttonLabel:
+        'Abrir inDrive',
+
+      type: 'indrive' as const,
     };
   }
 
-  const app = getAppData();
+  const app =
+    getAppData();
 
   async function handleOpenApp() {
     await openRideApp(
@@ -89,7 +120,11 @@ export default function RideCard({
     switch (app.type) {
       case '99':
         return (
-          <View style={styles.logo99}>
+          <View
+            style={
+              styles.logo99
+            }
+          >
             <Text
               style={
                 styles.logo99Text
@@ -103,7 +138,9 @@ export default function RideCard({
       case 'uber':
         return (
           <View
-            style={styles.logoUber}
+            style={
+              styles.logoUber
+            }
           >
             <Text
               style={
@@ -134,210 +171,663 @@ export default function RideCard({
     }
   }
 
+  function getHighlightData() {
+    if (
+      highlight ===
+      'cheapest'
+    ) {
+      return {
+        icon:
+          'cash-multiple' as const,
+
+        label:
+          'Mais econômico',
+
+        color:
+          COLORS.economy,
+      };
+    }
+
+    if (
+      highlight ===
+      'fastest'
+    ) {
+      return {
+        icon:
+          'lightning-bolt' as const,
+
+        label:
+          'Mais rápido',
+
+        color:
+          COLORS.info,
+      };
+    }
+
+    if (
+      highlight ===
+      'balanced'
+    ) {
+      return {
+        icon:
+          'scale-balance' as const,
+
+        label:
+          'Equilíbrio',
+
+        color:
+          COLORS.primaryLight,
+      };
+    }
+
+    return {
+      icon:
+        'car-outline' as const,
+
+      label:
+        'Outra opção',
+
+      color:
+        COLORS.textSecondary,
+    };
+  }
+
+  const highlightData =
+    getHighlightData();
+
+  /*
+   * Converte a economia
+   * formatada para número.
+   *
+   * Exemplos:
+   *
+   * R$ 2,18 -> 2.18
+   * R$ 0,00 -> 0
+   */
+  const savingValue =
+    economia
+      ? Number(
+          economia
+            .replace(
+              /[^\d,.-]/g,
+              '',
+            )
+            .replace(
+              /\./g,
+              '',
+            )
+            .replace(
+              ',',
+              '.',
+            ),
+        )
+      : 0;
+
+  /*
+   * Só mostra economia
+   * quando o valor for
+   * realmente maior que zero.
+   */
+  const hasSaving =
+    Number.isFinite(
+      savingValue,
+    ) &&
+    savingValue > 0;
+
+  function getAdvantageIcon() {
+    if (
+      highlight ===
+      'fastest'
+    ) {
+      return 'lightning-bolt' as const;
+    }
+
+    if (
+      highlight ===
+      'cheapest'
+    ) {
+      return 'cash-multiple' as const;
+    }
+
+    if (
+      highlight ===
+      'balanced'
+    ) {
+      return 'scale-balance' as const;
+    }
+
+    return 'information-outline' as const;
+  }
+
   return (
-    <Card
+    <View
       style={[
         styles.card,
-        destaque &&
-          styles.bestCard,
+
+        highlight ===
+          'cheapest' &&
+          styles.cheapestCard,
+
+        highlight ===
+          'fastest' &&
+          styles.fastestCard,
+
+        highlight ===
+          'balanced' &&
+          styles.balancedCard,
       ]}
     >
-      <Card.Content>
-        <View style={styles.header}>
-          <Logo />
+      <View
+        style={
+          styles.badgeRow
+        }
+      >
+        <MaterialCommunityIcons
+          name={
+            highlightData.icon
+          }
+          size={15}
+          color={
+            highlightData.color
+          }
+        />
 
-          <View style={styles.details}>
-            <Text style={styles.name}>
-              {nome}
-            </Text>
+        <Text
+          style={[
+            styles.badgeText,
+            {
+              color:
+                highlightData.color,
+            },
+          ]}
+        >
+          {highlightData.label}
+        </Text>
+      </View>
 
-            <Text
-              style={
-                styles.estimateLabel
-              }
-            >
-              Estimativa CorridaX
-            </Text>
+      <View
+        style={
+          styles.mainRow
+        }
+      >
+        <Logo />
 
-            <Text style={styles.price}>
-              {preco}
-            </Text>
+        <View
+          style={
+            styles.details
+          }
+        >
+          <Text
+            style={
+              styles.name
+            }
+            numberOfLines={1}
+          >
+            {nome}
+          </Text>
+
+          <View
+            style={
+              styles.tripRow
+            }
+          >
+            {tempo && (
+              <View
+                style={
+                  styles.tripItem
+                }
+              >
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  size={15}
+                  color={
+                    COLORS.textSecondary
+                  }
+                />
+
+                <Text
+                  style={
+                    styles.tripText
+                  }
+                >
+                  {tempo}
+                </Text>
+              </View>
+            )}
+
+            {tempo &&
+              distancia && (
+                <View
+                  style={
+                    styles.dot
+                  }
+                />
+              )}
+
+            {distancia && (
+              <View
+                style={
+                  styles.tripItem
+                }
+              >
+                <MaterialCommunityIcons
+                  name="map-marker-distance"
+                  size={15}
+                  color={
+                    COLORS.textSecondary
+                  }
+                />
+
+                <Text
+                  style={
+                    styles.tripText
+                  }
+                >
+                  {distancia}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
-        <View style={styles.infoRow}>
-          {tempo && (
-            <Text style={styles.info}>
-              ⏱️ {tempo}
-            </Text>
-          )}
+        <Text
+          style={
+            styles.price
+          }
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {preco}
+        </Text>
+      </View>
 
-          {distancia && (
-            <Text style={styles.info}>
-              📏 {distancia}
-            </Text>
-          )}
+      {!!advantageText && (
+        <View
+          style={
+            styles.advantageRow
+          }
+        >
+          <MaterialCommunityIcons
+            name={
+              getAdvantageIcon()
+            }
+            size={16}
+            color={
+              highlightData.color
+            }
+          />
+
+          <Text
+            style={[
+              styles.advantageText,
+              {
+                color:
+                  highlightData.color,
+              },
+            ]}
+          >
+            {advantageText}
+          </Text>
         </View>
+      )}
 
-        {!!economia &&
-          economia !== 'R$ 0.00' &&
-          economia !== 'R$ 0,00' && (
+      {!advantageText &&
+        hasSaving && (
+          <View
+            style={
+              styles.advantageRow
+            }
+          >
+            <MaterialCommunityIcons
+              name="tag-outline"
+              size={16}
+              color={
+                COLORS.economy
+              }
+            />
+
             <Text
-              style={styles.saving}
+              style={
+                styles.saving
+              }
             >
-              💸 Economize{' '}
+              Economize{' '}
               {economia}
             </Text>
-          )}
-
-        {score !== undefined && (
-          <Text style={styles.score}>
-            ⭐ Score CorridaX:{' '}
-            {score}
-          </Text>
+          </View>
         )}
 
-        {destaque && (
-          <Text style={styles.badge}>
-            🏆 Melhor
-            custo-benefício
-          </Text>
-        )}
-
-        <Button
-          mode="contained"
-          style={styles.button}
-          onPress={handleOpenApp}
-        >
-          {app.buttonLabel}
-        </Button>
-      </Card.Content>
-    </Card>
+      <Button
+        mode="outlined"
+        onPress={
+          handleOpenApp
+        }
+        style={
+          styles.button
+        }
+        contentStyle={
+          styles.buttonContent
+        }
+        labelStyle={
+          styles.buttonLabel
+        }
+        textColor={
+          COLORS.primaryLight
+        }
+      >
+        {app.buttonLabel}
+      </Button>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginTop: 16,
-    borderRadius: 22,
-    backgroundColor: '#18263D',
-  },
+const styles =
+  StyleSheet.create({
+    card: {
+      marginBottom:
+        SPACING.md,
 
-  bestCard: {
-    borderWidth: 2,
-    borderColor: '#32D74B',
-  },
+      padding:
+        SPACING.md,
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+      backgroundColor:
+        COLORS.surfaceLight,
 
-  details: {
-    flex: 1,
-  },
+      borderWidth: 1,
 
-  logo99: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    backgroundColor: '#FFD400',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
+      borderColor:
+        COLORS.borderSoft,
 
-  logo99Text: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
+      borderRadius:
+        RADIUS.xl,
 
-  logoUber: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
+      ...SHADOWS.sm,
+    },
 
-  logoUberText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
+    /*
+     * Bordas discretas para
+     * comunicar a função de
+     * cada opção sem poluir
+     * visualmente o card.
+     */
+    cheapestCard: {
+      borderColor:
+        COLORS.economy,
+    },
 
-  logoIndrive: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    backgroundColor: '#B8FF1A',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
+    fastestCard: {
+      borderColor:
+        COLORS.info,
+    },
 
-  logoIndriveText: {
-    color: '#000000',
-    fontWeight: 'bold',
-    fontSize: 24,
-  },
+    balancedCard: {
+      borderColor:
+        COLORS.primary,
+    },
 
-  name: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
+    badgeRow: {
+      flexDirection:
+        'row',
 
-  estimateLabel: {
-    color: '#93A8C7',
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
-  },
+      alignItems:
+        'center',
 
-  price: {
-    color: '#32D74B',
-    fontSize: 30,
-    fontWeight: 'bold',
-    marginTop: 4,
-  },
+      marginBottom:
+        SPACING.sm,
+    },
 
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent:
-      'space-between',
-    marginTop: 16,
-  },
+    badgeText: {
+      marginLeft: 5,
 
-  info: {
-    color: '#DDDDDD',
-    fontSize: 15,
-  },
+      fontSize:
+        TYPOGRAPHY.size.xs,
 
-  saving: {
-    marginTop: 10,
-    color: '#FFD54F',
-    fontWeight: 'bold',
-  },
+      fontWeight:
+        TYPOGRAPHY.weight.bold,
+    },
 
-  score: {
-    marginTop: 6,
-    color: '#64B5F6',
-    fontWeight: 'bold',
-  },
+    mainRow: {
+      flexDirection:
+        'row',
 
-  badge: {
-    marginTop: 8,
-    color: '#32D74B',
-    fontWeight: 'bold',
-  },
+      alignItems:
+        'center',
+    },
 
-  button: {
-    marginTop: 18,
-    borderRadius: 14,
-    backgroundColor: '#1565C0',
-  },
-});
+    details: {
+      flex: 1,
+
+      marginLeft:
+        SPACING.md,
+
+      marginRight:
+        SPACING.sm,
+    },
+
+    name: {
+      color:
+        COLORS.white,
+
+      fontSize:
+        TYPOGRAPHY.size.lg,
+
+      fontWeight:
+        TYPOGRAPHY.weight.bold,
+    },
+
+    tripRow: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      flexWrap:
+        'wrap',
+
+      marginTop: 5,
+    },
+
+    tripItem: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+    },
+
+    tripText: {
+      marginLeft: 4,
+
+      color:
+        COLORS.textSecondary,
+
+      fontSize:
+        TYPOGRAPHY.size.xs,
+    },
+
+    dot: {
+      width: 3,
+      height: 3,
+
+      marginHorizontal:
+        SPACING.sm,
+
+      borderRadius:
+        RADIUS.round,
+
+      backgroundColor:
+        COLORS.textMuted,
+    },
+
+    price: {
+      maxWidth: 115,
+
+      color:
+        COLORS.white,
+
+      fontSize: 21,
+
+      fontWeight:
+        TYPOGRAPHY.weight.extraBold,
+
+      textAlign:
+        'right',
+    },
+
+    advantageRow: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      marginTop:
+        SPACING.md,
+
+      paddingTop:
+        SPACING.sm,
+
+      borderTopWidth: 1,
+
+      borderTopColor:
+        COLORS.borderSoft,
+    },
+
+    advantageText: {
+      flex: 1,
+
+      marginLeft:
+        SPACING.xs,
+
+      fontSize:
+        TYPOGRAPHY.size.xs,
+
+      fontWeight:
+        TYPOGRAPHY.weight.semiBold,
+
+      lineHeight: 18,
+    },
+
+    saving: {
+      flex: 1,
+
+      marginLeft:
+        SPACING.xs,
+
+      color:
+        COLORS.economy,
+
+      fontSize:
+        TYPOGRAPHY.size.xs,
+
+      fontWeight:
+        TYPOGRAPHY.weight.semiBold,
+
+      lineHeight: 18,
+    },
+
+    button: {
+      marginTop:
+        SPACING.md,
+
+      borderRadius:
+        RADIUS.lg,
+
+      borderColor:
+        COLORS.primary,
+    },
+
+    buttonContent: {
+      minHeight: 42,
+    },
+
+    buttonLabel: {
+      fontSize:
+        TYPOGRAPHY.size.sm,
+
+      fontWeight:
+        TYPOGRAPHY.weight.bold,
+    },
+
+    logo99: {
+      width: 48,
+      height: 48,
+
+      borderRadius:
+        RADIUS.md,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        '#FFD400',
+    },
+
+    logo99Text: {
+      color:
+        '#000000',
+
+      fontSize: 22,
+
+      fontWeight:
+        '800',
+    },
+
+    logoUber: {
+      width: 48,
+      height: 48,
+
+      borderRadius:
+        RADIUS.md,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        '#000000',
+    },
+
+    logoUberText: {
+      color:
+        '#FFFFFF',
+
+      fontSize: 15,
+
+      fontWeight:
+        '700',
+    },
+
+    logoIndrive: {
+      width: 48,
+      height: 48,
+
+      borderRadius:
+        RADIUS.md,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        '#B8FF1A',
+    },
+
+    logoIndriveText: {
+      color:
+        '#000000',
+
+      fontSize: 20,
+
+      fontWeight:
+        '800',
+    },
+  });

@@ -17,7 +17,6 @@ import {
   COLORS,
   RADIUS,
   SHADOWS,
-  SPACING,
 } from '../../theme';
 
 export type Coordinate = {
@@ -41,15 +40,6 @@ export default function MapViewCard({
   const mapRef =
     useRef<MapView>(null);
 
-  /*
-   * Controle inteligente da câmera.
-   *
-   * 1. Se existir rota:
-   *    mostra o trajeto completo.
-   *
-   * 2. Se ainda não existir rota:
-   *    mostra origem + destino.
-   */
   useEffect(() => {
     if (!mapRef.current) {
       return;
@@ -63,10 +53,10 @@ export default function MapViewCard({
         route,
         {
           edgePadding: {
-            top: 60,
-            right: 50,
-            bottom: 60,
-            left: 50,
+            top: 35,
+            right: 35,
+            bottom: 35,
+            left: 35,
           },
 
           animated: true,
@@ -77,11 +67,7 @@ export default function MapViewCard({
     }
 
     /*
-     * PRÉ-VISUALIZAÇÃO
-     *
-     * Assim que o destino é
-     * selecionado, mostramos
-     * origem + destino.
+     * ORIGEM + DESTINO
      */
     if (
       origin &&
@@ -94,10 +80,10 @@ export default function MapViewCard({
         ],
         {
           edgePadding: {
-            top: 70,
-            right: 55,
-            bottom: 70,
-            left: 55,
+            top: 40,
+            right: 40,
+            bottom: 40,
+            left: 40,
           },
 
           animated: true,
@@ -108,7 +94,7 @@ export default function MapViewCard({
     }
 
     /*
-     * SOMENTE ORIGEM
+     * SOMENTE LOCALIZAÇÃO
      */
     if (origin) {
       mapRef.current.animateToRegion(
@@ -162,13 +148,14 @@ export default function MapViewCard({
             initialLongitude,
 
           latitudeDelta:
-            0.05,
+            0.04,
 
           longitudeDelta:
-            0.05,
+            0.04,
         }}
         showsUserLocation
         showsMyLocationButton
+        toolbarEnabled={false}
       >
         {origin && (
           <Marker
@@ -221,26 +208,20 @@ export default function MapViewCard({
 
         {route.length >= 2 && (
           <>
-            {/*
-             * CONTORNO
-             */}
             <Polyline
               coordinates={route}
               strokeColor={
                 COLORS.white
               }
-              strokeWidth={8}
+              strokeWidth={7}
             />
 
-            {/*
-             * ROTA CORRIDAX
-             */}
             <Polyline
               coordinates={route}
               strokeColor={
                 COLORS.primaryLight
               }
-              strokeWidth={5}
+              strokeWidth={4}
             />
           </>
         )}
@@ -252,10 +233,7 @@ export default function MapViewCard({
 const styles =
   StyleSheet.create({
     container: {
-      height: 320,
-
-      marginBottom:
-        SPACING.xl,
+      height: 240,
 
       borderRadius:
         RADIUS.xxl,
@@ -270,19 +248,16 @@ const styles =
       backgroundColor:
         COLORS.surfaceLight,
 
-      ...SHADOWS.md,
+      ...SHADOWS.sm,
     },
 
     map: {
       flex: 1,
     },
 
-    /*
-     * ORIGEM
-     */
     originMarkerOuter: {
-      width: 24,
-      height: 24,
+      width: 22,
+      height: 22,
 
       alignItems: 'center',
       justifyContent: 'center',
@@ -297,8 +272,8 @@ const styles =
     },
 
     originMarkerInner: {
-      width: 14,
-      height: 14,
+      width: 13,
+      height: 13,
 
       borderRadius:
         RADIUS.round,
@@ -307,12 +282,9 @@ const styles =
         COLORS.primary,
     },
 
-    /*
-     * DESTINO
-     */
     destinationMarker: {
-      width: 28,
-      height: 28,
+      width: 26,
+      height: 26,
 
       alignItems: 'center',
       justifyContent: 'center',
@@ -332,8 +304,8 @@ const styles =
     },
 
     destinationMarkerInner: {
-      width: 8,
-      height: 8,
+      width: 7,
+      height: 7,
 
       borderRadius:
         RADIUS.round,

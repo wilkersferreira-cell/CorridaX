@@ -43,18 +43,30 @@ const WEIGHTS: Record<
   },
 };
 
-function normalizeInverse(
+/*
+ * Calcula uma nota de 0 a 100
+ * comparando o valor com a
+ * melhor opção disponível.
+ *
+ * Diferentemente da normalização
+ * min/max, pequenas diferenças
+ * reais produzem pequenas
+ * diferenças no Score.
+ */
+function relativeScore(
   value: number,
-  min: number,
-  max: number,
+  bestValue: number,
 ): number {
-  if (max === min) {
+  if (
+    value <= 0 ||
+    bestValue <= 0
+  ) {
     return 100;
   }
 
   return (
-    ((max - value) /
-      (max - min)) *
+    bestValue /
+    value *
     100
   );
 }
@@ -80,12 +92,11 @@ export async function compareRides(
     WEIGHTS[mode];
 
   /*
-   * O motor solicita as estimativas
-   * através do provider.
+   * Obtém as estimativas através
+   * do provider.
    *
-   * Hoje usamos o SimulationProvider.
-   * Futuramente poderemos trocar a fonte
-   * sem alterar a lógica do Score.
+   * Atualmente usamos o
+   * SimulationProvider.
    */
   const estimates =
     await SimulationProvider.getEstimates({
@@ -104,7 +115,7 @@ export async function compareRides(
     });
 
   /*
-   * Consideramos somente opções
+   * Considera somente opções
    * disponíveis.
    */
   const availableEstimates =
@@ -120,25 +131,27 @@ export async function compareRides(
   }
 
   /*
-   * Converte o formato comum dos
-   * providers para o formato utilizado
-   * atualmente pelo Motor CorridaX.
+   * Converte o formato comum
+   * dos providers para RideOption.
    *
-   * Enquanto houver faixa de preço,
-   * usamos a média entre mínimo e máximo.
+   * Quando houver uma faixa
+   * de preço, usamos o ponto médio.
    */
   const rides: RideOption[] =
     availableEstimates.map(
       (estimate) => ({
-        id: estimate.providerId,
+        id:
+          estimate.providerId,
 
         nome:
           estimate.providerName,
 
         preco: Number(
           (
-            (estimate.price.min +
-              estimate.price.max) /
+            (
+              estimate.price.min +
+              estimate.price.max
+            ) /
             2
           ).toFixed(2),
         ),
@@ -159,12 +172,14 @@ export async function compareRides(
 
   const prices =
     rides.map(
-      (ride) => ride.preco,
+      (ride) =>
+        ride.preco,
     );
 
   const times =
     rides.map(
-      (ride) => ride.tempo,
+      (ride) =>
+        ride.tempo,
     );
 
   const minPrice =
@@ -176,47 +191,46 @@ export async function compareRides(
   const minTime =
     Math.min(...times);
 
-  const maxTime =
-    Math.max(...times);
-
   /*
-   * Economia em relação à
-   * opção mais cara disponível.
+   * Economia absoluta em relação
+   * à opção mais cara disponível.
    */
   rides.forEach((ride) => {
-    ride.economia = Number(
-      (
-        maxPrice -
-        ride.preco
-      ).toFixed(2),
-    );
+    ride.economia =
+      Number(
+        (
+          maxPrice -
+          ride.preco
+        ).toFixed(2),
+      );
   });
 
   /*
-   * SCORE CORRIDAX v3
+   * SCORE CORRIDAX v4
    *
-   * Equilibrado:
-   * 65% preço / 35% tempo
+   * O Score passa a considerar
+   * a diferença REAL entre preço
+   * e tempo.
    *
-   * Economizar:
-   * 85% preço / 15% tempo
+   * Exemplo:
    *
-   * Rápido:
-   * 25% preço / 75% tempo
+   * R$ 20 vs R$ 21 não deve
+   * produzir 100 vs 0.
+   *
+   * A nota relativa preserva
+   * a magnitude da diferença.
    */
   rides.forEach((ride) => {
     const priceScore =
-      normalizeInverse(
+      relativeScore(
         ride.preco,
         minPrice,
-        maxPrice,
       );
 
     const timeScore =
-      normalizeInverse(
+      relativeScore(
         ride.tempo,
         minTime,
-        maxTime,
       );
 
     const finalScore =
@@ -226,26 +240,41 @@ export async function compareRides(
         weights.time;
 
     ride.score =
-      clampScore(finalScore);
+      clampScore(
+        finalScore,
+      );
   });
 
   /*
    * Ordenação:
    *
-   * 1. Maior Score
+   * 1. Maior Score CorridaX
    * 2. Menor preço
    * 3. Menor tempo
    */
   rides.sort((a, b) => {
-    if (b.score !== a.score) {
-      return b.score - a.score;
+    if (
+      b.score !== a.score
+    ) {
+      return (
+        b.score -
+        a.score
+      );
     }
 
-    if (a.preco !== b.preco) {
-      return a.preco - b.preco;
+    if (
+      a.preco !== b.preco
+    ) {
+      return (
+        a.preco -
+        b.preco
+      );
     }
 
-    return a.tempo - b.tempo;
+    return (
+      a.tempo -
+      b.tempo
+    );
   });
 
   /*

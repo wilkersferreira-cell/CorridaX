@@ -6,7 +6,23 @@ export interface GooglePlaceSuggestion {
 export interface GooglePlaceCoordinate {
   latitude: number;
   longitude: number;
+
+  /*
+   * Nome principal do local.
+   *
+   * Exemplo:
+   * Shopping Grande Circular
+   */
   displayName: string;
+
+  /*
+   * Endereço completo.
+   *
+   * Continua disponível para
+   * navegação, deep links e
+   * uso interno do CorridaX.
+   */
+  formattedAddress: string;
 }
 
 const GOOGLE_PLACES_API_KEY =
@@ -29,35 +45,56 @@ function getApiKey(): string {
 }
 
 /**
- * Pesquisa sugestões de destinos usando
- * Google Places API (New).
+ * Pesquisa sugestões de destinos
+ * usando Google Places API (New).
  */
 export async function searchGooglePlaces(
   query: string,
   latitude?: number,
   longitude?: number,
 ): Promise<GooglePlaceSuggestion[]> {
-  const input = query.trim();
+  const input =
+    query.trim();
 
   if (input.length < 3) {
     return [];
   }
 
-  const body: Record<string, unknown> = {
+  const body: Record<
+    string,
+    unknown
+  > = {
     input,
-    languageCode: 'pt-BR',
-    regionCode: 'BR',
-    includedRegionCodes: ['br'],
+
+    languageCode:
+      'pt-BR',
+
+    regionCode:
+      'BR',
+
+    includedRegionCodes: [
+      'br',
+    ],
   };
 
   /*
-   * Favorece resultados próximos da
-   * localização atual do usuário.
-   * Não impede resultados de outras cidades.
+   * Favorece resultados próximos
+   * da localização atual.
+   *
+   * Isso melhora bastante buscas
+   * como:
+   *
+   * "Grande Circular"
+   * "Amazonas Shopping"
+   * "Ponta Negra"
    */
   if (
-    Number.isFinite(latitude) &&
-    Number.isFinite(longitude)
+    Number.isFinite(
+      latitude,
+    ) &&
+    Number.isFinite(
+      longitude,
+    )
   ) {
     body.locationBias = {
       circle: {
@@ -65,38 +102,45 @@ export async function searchGooglePlaces(
           latitude,
           longitude,
         },
+
         radius: 50000,
       },
     };
   }
 
-  const response = await fetch(
-    'https://places.googleapis.com/v1/places:autocomplete',
-    {
-      method: 'POST',
+  const response =
+    await fetch(
+      'https://places.googleapis.com/v1/places:autocomplete',
+      {
+        method: 'POST',
 
-      headers: {
-  'Content-Type': 'application/json',
+        headers: {
+          'Content-Type':
+            'application/json',
 
-  'X-Goog-Api-Key':
-    getApiKey(),
+          'X-Goog-Api-Key':
+            getApiKey(),
 
-  'X-Android-Package':
-    ANDROID_PACKAGE,
+          'X-Android-Package':
+            ANDROID_PACKAGE,
 
-  'X-Android-Cert':
-    ANDROID_SHA1,
+          'X-Android-Cert':
+            ANDROID_SHA1,
 
-  'X-Goog-FieldMask':
-    'suggestions.placePrediction.placeId,suggestions.placePrediction.text',
-},
+          'X-Goog-FieldMask':
+            'suggestions.placePrediction.placeId,suggestions.placePrediction.text',
+        },
 
-      body: JSON.stringify(body),
-    },
-  );
+        body:
+          JSON.stringify(
+            body,
+          ),
+      },
+    );
 
   if (!response.ok) {
-    const errorText = await response.text();
+    const errorText =
+      await response.text();
 
     console.warn(
       'Google Places Autocomplete:',
@@ -109,65 +153,94 @@ export async function searchGooglePlaces(
     );
   }
 
-  const data = await response.json();
+  const data =
+    await response.json();
 
-  return (data.suggestions ?? [])
-    .map((suggestion: any) => {
-      const prediction =
-        suggestion.placePrediction;
+  return (
+    data.suggestions ?? []
+  )
+    .map(
+      (
+        suggestion: any,
+      ) => {
+        const prediction =
+          suggestion.placePrediction;
 
-      if (!prediction?.placeId) {
-        return null;
-      }
+        if (
+          !prediction?.placeId
+        ) {
+          return null;
+        }
 
-      return {
-        placeId: prediction.placeId,
-        displayName:
-          prediction.text?.text ?? '',
-      };
-    })
+        return {
+          placeId:
+            prediction.placeId,
+
+          displayName:
+            prediction.text
+              ?.text ?? '',
+        };
+      },
+    )
     .filter(
       (
-        item: GooglePlaceSuggestion | null,
+        item:
+          | GooglePlaceSuggestion
+          | null,
       ): item is GooglePlaceSuggestion =>
         item !== null &&
-        Boolean(item.displayName),
+        Boolean(
+          item.displayName,
+        ),
     );
 }
 
 /**
- * Depois que o usuário escolhe uma sugestão,
- * busca latitude/longitude exatas daquele Place.
+ * Busca os detalhes do destino
+ * selecionado.
+ *
+ * Mantemos separadamente:
+ *
+ * - nome do local
+ * - endereço completo
+ * - coordenadas
+ *
+ * Isso permite mostrar uma
+ * informação amigável na tela
+ * sem perder o endereço necessário
+ * para navegação.
  */
 export async function getGooglePlaceCoordinate(
   placeId: string,
 ): Promise<GooglePlaceCoordinate> {
-  const response = await fetch(
-    `https://places.googleapis.com/v1/places/${encodeURIComponent(
-      placeId,
-    )}`,
-    {
-     headers: {
-  'X-Goog-Api-Key':
-    getApiKey(),
+  const response =
+    await fetch(
+      `https://places.googleapis.com/v1/places/${encodeURIComponent(
+        placeId,
+      )}`,
+      {
+        headers: {
+          'X-Goog-Api-Key':
+            getApiKey(),
 
-  'X-Android-Package':
-    ANDROID_PACKAGE,
+          'X-Android-Package':
+            ANDROID_PACKAGE,
 
-  'X-Android-Cert':
-    ANDROID_SHA1,
+          'X-Android-Cert':
+            ANDROID_SHA1,
 
-  'X-Goog-FieldMask':
-    'id,displayName,formattedAddress,location',
+          'X-Goog-FieldMask':
+            'id,displayName,formattedAddress,location',
 
-  'Accept-Language':
-    'pt-BR',
-},
-    },
-  );
+          'Accept-Language':
+            'pt-BR',
+        },
+      },
+    );
 
   if (!response.ok) {
-    const errorText = await response.text();
+    const errorText =
+      await response.text();
 
     console.warn(
       'Google Place Details:',
@@ -180,29 +253,65 @@ export async function getGooglePlaceCoordinate(
     );
   }
 
-  const data = await response.json();
+  const data =
+    await response.json();
 
   const latitude =
-    Number(data.location?.latitude);
+    Number(
+      data.location
+        ?.latitude,
+    );
 
   const longitude =
-    Number(data.location?.longitude);
+    Number(
+      data.location
+        ?.longitude,
+    );
 
   if (
-    !Number.isFinite(latitude) ||
-    !Number.isFinite(longitude)
+    !Number.isFinite(
+      latitude,
+    ) ||
+    !Number.isFinite(
+      longitude,
+    )
   ) {
     throw new Error(
       'O Google não retornou as coordenadas do destino.',
     );
   }
 
+  /*
+   * Nome amigável do estabelecimento
+   * ou ponto de interesse.
+   *
+   * Exemplo:
+   * Shopping Grande Circular
+   */
+  const displayName =
+    data.displayName?.text ??
+    '';
+
+  /*
+   * Endereço físico completo.
+   *
+   * Exemplo:
+   * Av. Autaz Mirim, 6100 -
+   * São José Operário, Manaus - AM
+   */
+  const formattedAddress =
+    data.formattedAddress ??
+    '';
+
   return {
     latitude,
+
     longitude,
+
     displayName:
-      data.formattedAddress ??
-      data.displayName?.text ??
-      '',
+      displayName ||
+      formattedAddress,
+
+    formattedAddress,
   };
 }

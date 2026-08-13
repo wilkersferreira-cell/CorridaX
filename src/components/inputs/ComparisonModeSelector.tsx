@@ -1,52 +1,66 @@
 import React from 'react';
+
 import {
   Pressable,
   StyleSheet,
   View,
 } from 'react-native';
 
-import { Text } from 'react-native-paper';
+import {
+  MaterialCommunityIcons,
+} from '@expo/vector-icons';
 
-import { ComparisonMode } from '../../services/comparison';
+import {
+  Text,
+} from 'react-native-paper';
+
+import {
+  ComparisonMode,
+} from '../../services/comparison';
 
 import {
   COLORS,
   RADIUS,
-  SHADOWS,
   SPACING,
   TYPOGRAPHY,
 } from '../../theme';
 
 type Props = {
   value: ComparisonMode;
-  onChange: (mode: ComparisonMode) => void;
+
+  onChange: (
+    mode: ComparisonMode,
+  ) => void;
 };
 
 type ModeOption = {
   id: ComparisonMode;
-  icon: string;
+
+  icon:
+    | 'scale-balance'
+    | 'cash'
+    | 'lightning-bolt';
+
   label: string;
-  description: string;
 };
 
 const MODES: ModeOption[] = [
   {
     id: 'balanced',
-    icon: '⚖️',
+    icon: 'scale-balance',
     label: 'Equilibrado',
-    description: 'Preço + tempo',
   },
+
   {
     id: 'economy',
-    icon: '💰',
+    icon: 'cash',
     label: 'Economizar',
-    description: 'Menor preço',
   },
+
   {
     id: 'fast',
-    icon: '⚡',
+    icon: 'lightning-bolt',
     label: 'Rápido',
-    description: 'Menor tempo',
   },
 ];
 
@@ -55,197 +69,142 @@ export default function ComparisonModeSelector({
   onChange,
 }: Props) {
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>
-          Qual é sua prioridade?
-        </Text>
-
-        <Text style={styles.subtitle}>
-          O CorridaX ajusta a recomendação para você
-        </Text>
-      </View>
-
-      <View style={styles.options}>
-        {MODES.map((mode) => {
+    <View
+      style={
+        styles.container
+      }
+    >
+      {MODES.map(
+        (mode) => {
           const selected =
-            value === mode.id;
+            value ===
+            mode.id;
 
           return (
             <Pressable
-              key={mode.id}
-              onPress={() =>
-                onChange(mode.id)
+              key={
+                mode.id
               }
-              style={({ pressed }) => [
+              onPress={() =>
+                onChange(
+                  mode.id,
+                )
+              }
+              style={({
+                pressed,
+              }) => [
                 styles.option,
+
                 selected &&
                   styles.optionSelected,
+
                 pressed &&
                   styles.optionPressed,
               ]}
             >
-              <Text style={styles.icon}>
-                {mode.icon}
-              </Text>
+              <MaterialCommunityIcons
+                name={
+                  mode.icon
+                }
+                size={20}
+                color={
+                  selected
+                    ? COLORS.primaryLight
+                    : COLORS.textSecondary
+                }
+              />
 
               <Text
                 style={[
                   styles.label,
+
                   selected &&
                     styles.labelSelected,
                 ]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
+                numberOfLines={
+                  1
+                }
               >
                 {mode.label}
               </Text>
-
-              <Text
-                style={[
-                  styles.description,
-                  selected &&
-                    styles.descriptionSelected,
-                ]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-              >
-                {mode.description}
-              </Text>
-
-              {selected && (
-                <View
-                  style={
-                    styles.selectedIndicator
-                  }
-                />
-              )}
             </Pressable>
           );
-        })}
-      </View>
+        },
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: SPACING.lg,
+const styles =
+  StyleSheet.create({
+    container: {
+      flexDirection:
+        'row',
 
-    padding: SPACING.lg,
+      padding: 4,
 
-    backgroundColor: COLORS.surfaceLight,
+      backgroundColor:
+        COLORS.surface,
 
-    borderWidth: 1,
-    borderColor: COLORS.borderSoft,
+      borderWidth: 1,
 
-    borderRadius: RADIUS.xl,
+      borderColor:
+        COLORS.borderSoft,
 
-    ...SHADOWS.sm,
-  },
+      borderRadius:
+        RADIUS.xl,
+    },
 
-  header: {
-    marginBottom: SPACING.md,
-  },
+    option: {
+      flex: 1,
 
-  title: {
-    color: COLORS.white,
+      minHeight: 48,
 
-    fontSize: TYPOGRAPHY.size.md,
-    fontWeight: TYPOGRAPHY.weight.bold,
-  },
+      flexDirection:
+        'row',
 
-  subtitle: {
-    marginTop: SPACING.xs,
+      alignItems:
+        'center',
 
-    color: COLORS.textSecondary,
+      justifyContent:
+        'center',
 
-    fontSize: TYPOGRAPHY.size.xs,
-  },
+      gap: 5,
 
-  options: {
-    flexDirection: 'row',
-  },
+      paddingHorizontal:
+        SPACING.xs,
 
-  option: {
-    position: 'relative',
+      borderRadius:
+        RADIUS.lg,
+    },
 
-    flex: 1,
+    optionSelected: {
+      backgroundColor:
+        COLORS.primarySoft,
 
-    minHeight: 92,
+      borderWidth: 1,
 
-    marginHorizontal: SPACING.xs,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xs,
+      borderColor:
+        COLORS.primary,
+    },
 
-    alignItems: 'center',
-    justifyContent: 'center',
+    optionPressed: {
+      opacity: 0.75,
+    },
 
-    backgroundColor: COLORS.surface,
+    label: {
+      color:
+        COLORS.textSecondary,
 
-    borderWidth: 1,
-    borderColor: COLORS.borderSoft,
+      fontSize:
+        TYPOGRAPHY.size.xs,
 
-    borderRadius: RADIUS.lg,
+      fontWeight:
+        TYPOGRAPHY.weight.semiBold,
+    },
 
-    overflow: 'hidden',
-  },
-
-  optionSelected: {
-    backgroundColor: COLORS.primarySoft,
-
-    borderColor: COLORS.primary,
-    borderWidth: 1.5,
-  },
-
-  optionPressed: {
-    opacity: 0.8,
-  },
-
-  icon: {
-    fontSize: TYPOGRAPHY.size.xl,
-  },
-
-  label: {
-    marginTop: SPACING.xs,
-
-    color: COLORS.textSecondary,
-
-    fontSize: TYPOGRAPHY.size.xs,
-    fontWeight: TYPOGRAPHY.weight.semiBold,
-
-    textAlign: 'center',
-  },
-
-  labelSelected: {
-    color: COLORS.primaryLight,
-  },
-
-  description: {
-    marginTop: SPACING.xs,
-
-    color: COLORS.textMuted,
-
-    fontSize: TYPOGRAPHY.size.xs,
-
-    textAlign: 'center',
-  },
-
-  descriptionSelected: {
-    color: COLORS.text,
-  },
-
-  selectedIndicator: {
-    position: 'absolute',
-
-    bottom: 0,
-    left: 12,
-    right: 12,
-
-    height: 3,
-
-    borderRadius: RADIUS.round,
-
-    backgroundColor: COLORS.primary,
-  },
-});
+    labelSelected: {
+      color:
+        COLORS.primaryLight,
+    },
+  });

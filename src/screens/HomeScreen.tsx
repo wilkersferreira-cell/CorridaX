@@ -8,37 +8,390 @@ import {
   Alert,
   ScrollView,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 
 import AddressSuggestions from '../components/inputs/AddressSuggestions';
 import AIRecommendationCard from '../components/cards/AIRecommendationCard';
-import CalibrationCard from '../components/cards/CalibrationCard';
-import CalibrationHistoryCard from '../components/cards/CalibrationHistoryCard';
-import CalibrationMetricsCard from '../components/cards/CalibrationMetricsCard';
 import CompareButton from '../components/buttons/CompareButton';
 import ComparisonModeSelector from '../components/inputs/ComparisonModeSelector';
-import CurrentLocationCard from '../components/cards/CurrentLocationCard';
-import DashboardCard from '../components/cards/DashboardCard';
-import DecisionSummaryCard from '../components/cards/DecisionSummaryCard';
 import Header from '../components/layout/Header';
 import LocationInput from '../components/inputs/LocationInput';
-import LearningProgressCard from '../components/cards/LearningProgressCard';
 import MapViewCard from '../components/map/MapViewCard';
-import RideCard from '../components/cards/RideCard';
-import RouteComparisonCard from '../components/cards/RouteComparisonCard';
-import SavingsSummaryCard from '../components/cards/SavingsSummaryCard';
 
-import useCalibrationMetrics from '../hooks/useCalibrationMetrics';
+import RideCard, {
+  RideHighlight,
+} from '../components/cards/RideCard';
+
 import useLocation from '../hooks/useLocation';
 import useRideComparison from '../hooks/useRideComparison';
 
-import { chooseBestRide } from '../services/ai';
+import {
+  chooseBestRide,
+} from '../services/ai';
+
+import {
+  RideOption,
+} from '../services/comparison';
 
 import {
   COLORS,
   SPACING,
 } from '../theme';
+
+/*
+ * Exibe um endereço de forma
+ * resumida quando o destino
+ * não possuir um nome comercial.
+ *
+ * Exemplos:
+ *
+ * Shopping Grande Circular
+ * continua:
+ * Shopping Grande Circular
+ *
+ * Av. Coronel Teixeira,
+ * 5705 - Ponta Negra
+ *
+ * vira:
+ * Av. Coronel Teixeira, 5705
+ */
+function formatDestinationName(
+  value: string,
+): string {
+  if (!value) {
+    return '';
+  }
+
+  const parts =
+    value
+      .split(',')
+      .map((part) =>
+        part.trim(),
+      )
+      .filter(Boolean);
+
+  /*
+   * Nomes comerciais normalmente
+   * não possuem vírgula.
+   *
+   * Exemplo:
+   * Shopping Grande Circular
+   */
+  if (parts.length <= 1) {
+    return value;
+  }
+
+  const firstPart =
+    parts[0];
+
+  const secondPart =
+    parts[1]
+      ? parts[1]
+          .split(' - ')[0]
+          .trim()
+      : '';
+
+  /*
+   * Se o segundo trecho começar
+   * com número, provavelmente
+   * estamos diante de um endereço.
+   */
+  const looksLikeAddress =
+    /^\d/.test(
+      secondPart,
+    );
+
+  if (!looksLikeAddress) {
+    return firstPart;
+  }
+
+  return `${firstPart}, ${secondPart}`;
+}
+
+/*
+ * Localiza a opção
+ * de menor preço.
+ */
+function getCheapestRide(
+  rides: RideOption[],
+): RideOption | undefined {
+  if (rides.length === 0) {
+    return undefined;
+  }
+
+  return rides.reduce(
+    (current, ride) =>
+      ride.preco <
+      current.preco
+        ? ride
+        : current,
+  );
+}
+
+/*
+ * Localiza a opção
+ * de menor tempo.
+ */
+function getFastestRide(
+  rides: RideOption[],
+): RideOption | undefined {
+  if (rides.length === 0) {
+    return undefined;
+  }
+
+  return rides.reduce(
+    (current, ride) =>
+      ride.tempo <
+      current.tempo
+        ? ride
+        : current,
+  );
+}
+
+/*
+ * Formatação monetária utilizada
+ * nas mensagens comerciais.
+ */
+function formatCurrency(
+  value: number,
+): string {
+  return value.toLocaleString(
+    'pt-BR',
+    {
+      style: 'currency',
+      currency: 'BRL',
+    },
+  );
+}
+
+/*
+ * Define a classificação comercial
+ * de cada alternativa.
+ *
+ * A melhor escolha é apresentada
+ * separadamente pelo CorridaX.
+ *
+ * Entre as demais:
+ *
+ * - menor preço = Mais econômico
+ * - menor tempo = Mais rápido
+ * - intermediária = Equilíbrio
+ */
+function getRideHighlight(
+  ride: RideOption,
+  cheapest?: RideOption,
+  fastest?: RideOption,
+): RideHighlight {
+  if (
+    cheapest &&
+    ride.id === cheapest.id
+  ) {
+    return 'cheapest';
+  }
+
+  if (
+    fastest &&
+    ride.id === fastest.id
+  ) {
+    return 'fastest';
+  }
+
+  return 'balanced';
+}
+
+/*
+ * Cria mensagens simples que
+ * mostram ao usuário exatamente
+ * o que ele ganha ou perde
+ * escolhendo aquela opção.
+ */
+function getAdvantageText(
+  ride: RideOption,
+  cheapest?: RideOption,
+  fastest?: RideOption,
+): string | undefined {
+  if (
+    !cheapest ||
+    !fastest
+  ) {
+    return undefined;
+  }
+
+  const isCheapest =
+    ride.id ===
+    cheapest.id;
+
+  const isFastest =
+    ride.id ===
+    fastest.id;
+
+  /*
+   * Uma mesma opção pode,
+   * eventualmente, ser a mais
+   * barata e a mais rápida.
+   */
+  if (
+    isCheapest &&
+    isFastest
+  ) {
+    return 'Menor preço e menor tempo nesta viagem.';
+  }
+
+  /*
+   * MAIS ECONÔMICO
+   *
+   * Compara preço e tempo
+   * diretamente com a opção
+   * mais rápida.
+   */
+  if (isCheapest) {
+    const saving =
+      fastest.preco -
+      ride.preco;
+
+    const extraMinutes =
+      ride.tempo -
+      fastest.tempo;
+
+    if (
+      saving > 0 &&
+      extraMinutes > 0
+    ) {
+      return (
+        `Economize ${formatCurrency(
+          saving,
+        )} por ${extraMinutes} min a mais.`
+      );
+    }
+
+    if (saving > 0) {
+      return (
+        `Economize ${formatCurrency(
+          saving,
+        )} em relação à opção mais rápida.`
+      );
+    }
+
+    return 'Menor preço desta viagem.';
+  }
+
+  /*
+   * MAIS RÁPIDO
+   *
+   * Mostra quanto tempo o usuário
+   * ganha e quanto custa essa
+   * diferença.
+   */
+  if (isFastest) {
+    const minutesSaved =
+      cheapest.tempo -
+      ride.tempo;
+
+    const extraCost =
+      ride.preco -
+      cheapest.preco;
+
+    if (
+      minutesSaved > 0 &&
+      extraCost > 0
+    ) {
+      return (
+        `Chegue ${minutesSaved} min antes por ` +
+        `apenas ${formatCurrency(
+          extraCost,
+        )} a mais.`
+      );
+    }
+
+    if (minutesSaved > 0) {
+      return (
+        `Chegue ${minutesSaved} min antes que ` +
+        `a opção mais econômica.`
+      );
+    }
+
+    return 'Menor tempo desta viagem.';
+  }
+
+  /*
+   * EQUILÍBRIO
+   *
+   * A terceira opção não é tratada
+   * simplesmente como "outra".
+   *
+   * Mostramos por que ela pode ser
+   * interessante entre preço e tempo.
+   */
+
+  const savingVsFastest =
+    fastest.preco -
+    ride.preco;
+
+  const timeGainVsCheapest =
+    cheapest.tempo -
+    ride.tempo;
+
+  if (
+    savingVsFastest > 0 &&
+    timeGainVsCheapest > 0
+  ) {
+    return (
+      `Economize ${formatCurrency(
+        savingVsFastest,
+      )} e chegue ${timeGainVsCheapest} min antes ` +
+      `que a opção mais econômica.`
+    );
+  }
+
+  if (savingVsFastest > 0) {
+    return (
+      `Economize ${formatCurrency(
+        savingVsFastest,
+      )} em relação à opção mais rápida.`
+    );
+  }
+
+  if (timeGainVsCheapest > 0) {
+    return (
+      `${timeGainVsCheapest} min mais rápido que ` +
+      `a opção mais econômica.`
+    );
+  }
+
+  return 'Boa relação entre preço e tempo.';
+}
+
+/*
+ * Define a prioridade visual
+ * das alternativas.
+ *
+ * Opções com uma vantagem objetiva
+ * aparecem antes da opção de
+ * equilíbrio.
+ */
+function getAlternativePriority(
+  ride: RideOption,
+  cheapest?: RideOption,
+  fastest?: RideOption,
+): number {
+  if (
+    cheapest &&
+    ride.id === cheapest.id
+  ) {
+    return 1;
+  }
+
+  if (
+    fastest &&
+    ride.id === fastest.id
+  ) {
+    return 2;
+  }
+
+  return 3;
+}
 
 export default function HomeScreen() {
   const {
@@ -63,57 +416,47 @@ export default function HomeScreen() {
     routeCoordinates,
     comparisonMode,
     setComparisonMode,
-    routeComparison,
   } = useRideComparison();
 
-  const {
-    metrics: uberMetrics,
-    records: uberRecords,
-    refresh: refreshUberMetrics,
-  } = useCalibrationMetrics('uber');
+  const [
+    origem,
+    setOrigem,
+  ] = useState('');
 
-  const {
-    metrics: app99Metrics,
-    records: app99Records,
-    refresh: refreshApp99Metrics,
-  } = useCalibrationMetrics('99');
-
-  const {
-    metrics: inDriveMetrics,
-    records: inDriveRecords,
-    refresh: refreshInDriveMetrics,
-  } = useCalibrationMetrics('indrive');
-
-  const [origem, setOrigem] =
-    useState('');
-
-  const [destino, setDestino] =
-    useState('');
+  const [
+    destino,
+    setDestino,
+  ] = useState('');
 
   /*
-   * Preenche o campo de origem
-   * quando o endereço do GPS
-   * estiver disponível.
-   */
-  useEffect(() => {
-    if (address && !origem) {
-      setOrigem(address);
-    }
-  }, [address, origem]);
-
-  /*
-   * Sincroniza as coordenadas
-   * reais do GPS com o mapa.
-   *
-   * IMPORTANTE:
-   * setGpsOrigin não entra nas
-   * dependências para evitar
-   * loop de renderização.
+   * Origem obtida pelo GPS.
    */
   useEffect(() => {
     if (
-      Number.isFinite(latitude) &&
-      Number.isFinite(longitude) &&
+      address &&
+      !origem
+    ) {
+      setOrigem(
+        address,
+      );
+    }
+  }, [
+    address,
+    origem,
+  ]);
+
+  /*
+   * Envia as coordenadas reais
+   * para o motor CorridaX.
+   */
+  useEffect(() => {
+    if (
+      Number.isFinite(
+        latitude,
+      ) &&
+      Number.isFinite(
+        longitude,
+      ) &&
       !(
         latitude === 0 &&
         longitude === 0
@@ -129,110 +472,129 @@ export default function HomeScreen() {
     longitude,
   ]);
 
+  /*
+   * Melhor escolha CorridaX.
+   *
+   * O Score continua existindo
+   * somente no motor interno.
+   */
   const recommendation =
     useMemo(() => {
-      if (rides.length === 0) {
+      if (
+        rides.length === 0
+      ) {
         return null;
       }
 
-      return chooseBestRide(rides);
+      return chooseBestRide(
+        rides,
+      );
     }, [rides]);
 
-  const savingSummary =
+  /*
+   * Líderes reais daquela viagem.
+   */
+  const cheapestRide =
+    useMemo(
+      () =>
+        getCheapestRide(
+          rides,
+        ),
+      [rides],
+    );
+
+  const fastestRide =
+    useMemo(
+      () =>
+        getFastestRide(
+          rides,
+        ),
+      [rides],
+    );
+
+  /*
+   * Remove a Melhor escolha
+   * da lista de alternativas
+   * e organiza as demais.
+   *
+   * Ordem:
+   *
+   * 1. Mais econômico
+   * 2. Mais rápido
+   * 3. Equilíbrio
+   *
+   * Caso a Melhor escolha já seja
+   * uma dessas categorias, ela não
+   * será repetida.
+   */
+  const alternativeRides =
     useMemo(() => {
       if (!recommendation) {
-        return null;
+        return [];
       }
 
-      return {
-        appName:
-          recommendation.melhor.nome,
-
-        amount:
-          recommendation.melhor
-            .economia,
-      };
-    }, [recommendation]);
-
-  const dashboardData =
-    useMemo(() => {
-      const bestRide =
-        recommendation?.melhor;
-
-      return {
-        location: loading
-          ? 'Obtendo...'
-          : 'Ativa',
-
-        saving: bestRide
-          ? bestRide.economia.toLocaleString(
-              'pt-BR',
-              {
-                style: 'currency',
-                currency: 'BRL',
-              },
-            )
-          : 'R$ 0,00',
-
-        bestApp:
-          bestRide?.nome ?? '--',
-
-        estimatedTime: bestRide
-          ? `${bestRide.tempo} min`
-          : '--',
-      };
+      return rides
+        .filter(
+          (ride) =>
+            ride.id !==
+            recommendation.melhor.id,
+        )
+        .sort(
+          (a, b) =>
+            getAlternativePriority(
+              a,
+              cheapestRide,
+              fastestRide,
+            ) -
+            getAlternativePriority(
+              b,
+              cheapestRide,
+              fastestRide,
+            ),
+        );
     }, [
-      loading,
+      rides,
       recommendation,
+      cheapestRide,
+      fastestRide,
     ]);
 
-  const uberRide =
-    useMemo(() => {
-      return rides.find(
-        (ride) =>
-          ride.id === 'uber' ||
-          ride.nome
-            .toLowerCase()
-            .includes('uber'),
-      );
-    }, [rides]);
-
-  const app99Ride =
-    useMemo(() => {
-      return rides.find(
-        (ride) =>
-          ride.id === '99' ||
-          ride.nome
-            .toLowerCase()
-            .includes('99'),
-      );
-    }, [rides]);
-
-  const inDriveRide =
-    useMemo(() => {
-      return rides.find(
-        (ride) =>
-          ride.id === 'indrive' ||
-          ride.nome
-            .toLowerCase()
-            .includes('indrive'),
-      );
-    }, [rides]);
+  /*
+   * Nome amigável do destino.
+   *
+   * Se Google Places retornar
+   * "Shopping Grande Circular",
+   * esse será o texto mostrado.
+   *
+   * Para endereços residenciais,
+   * continuamos mostrando rua
+   * e número.
+   */
+  const displayedDestination =
+    destination
+      ? formatDestinationName(
+          destino,
+        )
+      : destino;
 
   async function compararCorridas() {
-    if (!origem.trim()) {
+    if (
+      !origem.trim()
+    ) {
       Alert.alert(
-        'Origem',
+        'Localização',
         'Não foi possível identificar sua localização.',
       );
 
       return;
     }
 
-    if (!destino.trim()) {
+    if (
+      !destino.trim()
+    ) {
       Alert.alert(
         'Destino',
-        'Informe o destino da corrida.',
+        'Informe para onde você deseja ir.',
       );
 
       return;
@@ -246,7 +608,9 @@ export default function HomeScreen() {
         longitude,
       );
 
-      setSuggestions([]);
+      setSuggestions(
+        [],
+      );
     } catch (error) {
       const message =
         error instanceof Error
@@ -254,71 +618,54 @@ export default function HomeScreen() {
           : 'Não foi possível comparar as corridas.';
 
       Alert.alert(
-        'Erro',
+        'Não foi possível comparar',
         message,
       );
     }
   }
 
+  const rideOrigin =
+    origin
+      ? {
+          latitude:
+            origin.latitude,
+
+          longitude:
+            origin.longitude,
+
+          address:
+            origem,
+        }
+      : undefined;
+
+  const rideDestination =
+    destination
+      ? {
+          latitude:
+            destination.latitude,
+
+          longitude:
+            destination.longitude,
+
+          address:
+            destino,
+        }
+      : undefined;
+
   return (
     <ScrollView
-      style={styles.container}
+      style={
+        styles.container
+      }
       contentContainerStyle={
         styles.content
       }
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={
+        false
+      }
     >
       <Header />
-
-      <View style={styles.dashboard}>
-        <View
-          style={
-            styles.dashboardRow
-          }
-        >
-          <DashboardCard
-            icon="📍"
-            title="Localização"
-            value={
-              dashboardData.location
-            }
-            color={COLORS.success}
-          />
-
-          <DashboardCard
-            icon="💰"
-            title="Economia"
-            value={
-              dashboardData.saving
-            }
-            color={COLORS.success}
-          />
-        </View>
-
-        <View
-          style={
-            styles.dashboardRow
-          }
-        >
-          <DashboardCard
-            icon="🚖"
-            title="Melhor opção"
-            value={
-              dashboardData.bestApp
-            }
-            color={COLORS.info}
-          />
-
-          <DashboardCard
-            icon="⏱️"
-            title="Tempo"
-            value={
-              dashboardData
-                .estimatedTime
-            }
-            color={COLORS.warning}
-          />
-        </View>
-      </View>
 
       {!loading && (
         <MapViewCard
@@ -326,291 +673,282 @@ export default function HomeScreen() {
             latitude,
             longitude,
           }}
-          origin={origin}
-          destination={
-            destination
-          }
-          route={routeCoordinates}
-        />
-      )}
-
-      <CurrentLocationCard
-        address={address}
-        loading={loading}
-      />
-
-      <LocationInput
-        label="Origem"
-        value={
-          origem
-            ? 'Minha localização'
-            : ''
-        }
-        onChangeText={() => {}}
-        icon="crosshairs-gps"
-        editable={false}
-      />
-
-      <LocationInput
-        label="Destino"
-        value={destino}
-        onChangeText={(text) => {
-          setDestino(text);
-
-          clearSelectedDestination();
-
-          search(
-            text,
-            latitude,
-            longitude,
-          );
-        }}
-        icon="flag-checkered"
-      />
-
-      <AddressSuggestions
-        data={suggestions}
-        onSelect={async (item) => {
-          try {
-            const selected =
-              await selectDestination(
-                item,
-              );
-
-            setDestino(
-              selected.displayName,
-            );
-
-            setSuggestions([]);
-          } catch (error) {
-            const message =
-              error instanceof Error
-                ? error.message
-                : 'Não foi possível selecionar o destino.';
-
-            Alert.alert(
-              'Destino',
-              message,
-            );
-          }
-        }}
-      />
-
-      <ComparisonModeSelector
-        value={comparisonMode}
-        onChange={setComparisonMode}
-      />
-
-      <CompareButton
-        onPress={compararCorridas}
-        loading={loadingCompare}
-      />
-
-      {routeComparison && (
-        <RouteComparisonCard
-          result={routeComparison}
-        />
-      )}
-
-      <LearningProgressCard
-        providers={[
-          {
-            name: 'Uber',
-            samples:
-              uberMetrics.sampleCount,
-          },
-          {
-            name: '99',
-            samples:
-              app99Metrics.sampleCount,
-          },
-          {
-            name: 'inDrive',
-            samples:
-              inDriveMetrics.sampleCount,
-          },
-        ]}
-      />
-
-      {recommendation && (
-        <DecisionSummaryCard
-          melhor={
-            recommendation.melhor
-          }
-          maisBarata={
-            recommendation.maisBarata
-          }
-          maisRapida={
-            recommendation.maisRapida
-          }
-        />
-      )}
-
-      {savingSummary && (
-        <SavingsSummaryCard
-          appName={
-            savingSummary.appName
-          }
-          amount={
-            savingSummary.amount
-          }
-        />
-      )}
-
-      {recommendation && (
-        <AIRecommendationCard
-          recommendation={
-            recommendation.motivo
-          }
-        />
-      )}
-
-      {rides.map((ride) => (
-        <RideCard
-          key={ride.id}
-          nome={ride.nome}
-          preco={ride.preco.toLocaleString(
-            'pt-BR',
-            {
-              style: 'currency',
-              currency: 'BRL',
-            },
-          )}
-          tempo={`${ride.tempo} min`}
-          distancia={`${ride.distancia.toFixed(
-            1,
-          )} km`}
-          economia={ride.economia.toLocaleString(
-            'pt-BR',
-            {
-              style: 'currency',
-              currency: 'BRL',
-            },
-          )}
-          score={ride.score}
-          destaque={ride.destaque}
           origin={
             origin
-              ? {
-                  latitude:
-                    origin.latitude,
-
-                  longitude:
-                    origin.longitude,
-
-                  address:
-                    origem,
-                }
-              : undefined
           }
           destination={
             destination
-              ? {
-                  latitude:
-                    destination.latitude,
-
-                  longitude:
-                    destination.longitude,
-
-                  address:
-                    destino,
-                }
-              : undefined
+          }
+          route={
+            routeCoordinates
           }
         />
-      ))}
-
-      {uberRide && (
-        <>
-          <CalibrationCard
-            provider="uber"
-            providerName="Uber"
-            estimatedPrice={
-              uberRide.preco
-            }
-            distanceKm={
-              uberRide.distancia
-            }
-            durationMinutes={
-              uberRide.tempo
-            }
-            onSaved={
-              refreshUberMetrics
-            }
-          />
-
-          <CalibrationMetricsCard
-            providerName="Uber"
-            metrics={uberMetrics}
-          />
-
-          <CalibrationHistoryCard
-            providerName="Uber"
-            records={uberRecords}
-          />
-        </>
       )}
 
-      {app99Ride && (
-        <>
-          <CalibrationCard
-            provider="99"
-            providerName="99"
-            estimatedPrice={
-              app99Ride.preco
+      <View
+        style={
+          styles.tripSection
+        }
+      >
+        <Text
+          style={
+            styles.sectionTitle
+          }
+        >
+          Para onde vamos?
+        </Text>
+
+        <LocationInput
+          label="Origem"
+          value={
+            origem
+              ? 'Minha localização'
+              : 'Obtendo localização...'
+          }
+          onChangeText={() => {}}
+          icon="crosshairs-gps"
+          editable={false}
+          compact
+        />
+
+        <LocationInput
+          label="Destino"
+          value={
+            displayedDestination
+          }
+          onChangeText={(
+            text,
+          ) => {
+            setDestino(
+              text,
+            );
+
+            clearSelectedDestination();
+
+            search(
+              text,
+              latitude,
+              longitude,
+            );
+          }}
+          icon="flag-checkered"
+        />
+
+        <AddressSuggestions
+          data={
+            suggestions
+          }
+          onSelect={async (
+            item,
+          ) => {
+            try {
+              const selected =
+                await selectDestination(
+                  item,
+                );
+
+              /*
+               * Agora o Google Places
+               * prioriza o nome do local.
+               *
+               * Exemplo:
+               * Shopping Grande Circular
+               */
+              setDestino(
+                selected.displayName,
+              );
+
+              setSuggestions(
+                [],
+              );
+            } catch (error) {
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : 'Não foi possível selecionar o destino.';
+
+              Alert.alert(
+                'Destino',
+                message,
+              );
             }
-            distanceKm={
-              app99Ride.distancia
+          }}
+        />
+      </View>
+
+      <View
+        style={
+          styles.prioritySection
+        }
+      >
+        <Text
+          style={
+            styles.sectionTitle
+          }
+        >
+          O que importa mais?
+        </Text>
+
+        <ComparisonModeSelector
+          value={
+            comparisonMode
+          }
+          onChange={
+            setComparisonMode
+          }
+        />
+      </View>
+
+      <View
+        style={
+          styles.compareSection
+        }
+      >
+        <CompareButton
+          onPress={
+            compararCorridas
+          }
+          loading={
+            loadingCompare
+          }
+        />
+      </View>
+
+      {recommendation && (
+        <View
+          style={
+            styles.resultsSection
+          }
+        >
+          <View
+            style={
+              styles.resultsHeader
             }
-            durationMinutes={
-              app99Ride.tempo
+          >
+            <Text
+              style={
+                styles.resultsTitle
+              }
+            >
+              Melhor corrida para você
+            </Text>
+
+            <Text
+              style={
+                styles.resultsSubtitle
+              }
+            >
+              Comparamos preço e tempo para facilitar sua escolha.
+            </Text>
+          </View>
+
+          {/*
+           * MELHOR ESCOLHA
+           *
+           * O Score não é exibido
+           * para o usuário.
+           */}
+          <AIRecommendationCard
+            ride={
+              recommendation.melhor
             }
-            onSaved={
-              refreshApp99Metrics
+            recommendation={
+              recommendation.motivo
+            }
+            origin={
+              rideOrigin
+            }
+            destination={
+              rideDestination
             }
           />
 
-          <CalibrationMetricsCard
-            providerName="99"
-            metrics={app99Metrics}
-          />
+          {alternativeRides.length >
+            0 && (
+            <>
+              <View
+                style={
+                  styles.optionsHeader
+                }
+              >
+                <Text
+                  style={
+                    styles.optionsTitle
+                  }
+                >
+                  Compare as opções
+                </Text>
 
-          <CalibrationHistoryCard
-            providerName="99"
-            records={app99Records}
-          />
-        </>
-      )}
+                <Text
+                  style={
+                    styles.optionsSubtitle
+                  }
+                >
+                  Veja o que você ganha em preço e tempo em cada alternativa.
+                </Text>
+              </View>
 
-      {inDriveRide && (
-        <>
-          <CalibrationCard
-            provider="indrive"
-            providerName="inDrive"
-            estimatedPrice={
-              inDriveRide.preco
-            }
-            distanceKm={
-              inDriveRide.distancia
-            }
-            durationMinutes={
-              inDriveRide.tempo
-            }
-            onSaved={
-              refreshInDriveMetrics
-            }
-          />
+              {alternativeRides.map(
+                (ride) => {
+                  const highlight =
+                    getRideHighlight(
+                      ride,
+                      cheapestRide,
+                      fastestRide,
+                    );
 
-          <CalibrationMetricsCard
-            providerName="inDrive"
-            metrics={inDriveMetrics}
-          />
+                  const advantageText =
+                    getAdvantageText(
+                      ride,
+                      cheapestRide,
+                      fastestRide,
+                    );
 
-          <CalibrationHistoryCard
-            providerName="inDrive"
-            records={inDriveRecords}
-          />
-        </>
+                  return (
+                    <RideCard
+                      key={
+                        ride.id
+                      }
+                      nome={
+                        ride.nome
+                      }
+                      preco={
+                        formatCurrency(
+                          ride.preco,
+                        )
+                      }
+                      tempo={
+                        `${ride.tempo} min`
+                      }
+                      distancia={
+                        `${ride.distancia.toFixed(
+                          1,
+                        )} km`
+                      }
+                      economia={
+                        formatCurrency(
+                          ride.economia,
+                        )
+                      }
+                      highlight={
+                        highlight
+                      }
+                      advantageText={
+                        advantageText
+                      }
+                      origin={
+                        rideOrigin
+                      }
+                      destination={
+                        rideDestination
+                      }
+                    />
+                  );
+                },
+              )}
+            </>
+          )}
+        </View>
       )}
     </ScrollView>
   );
@@ -626,20 +964,103 @@ const styles =
     },
 
     content: {
-      padding:
+      paddingHorizontal:
         SPACING.lg,
 
-      paddingBottom:
-        44,
+      paddingTop:
+        SPACING.sm,
+
+      paddingBottom: 36,
     },
 
-    dashboard: {
+    tripSection: {
+      marginTop:
+        SPACING.lg,
+    },
+
+    prioritySection: {
+      marginTop:
+        SPACING.md,
+    },
+
+    compareSection: {
+      marginTop:
+        SPACING.md,
+
       marginBottom:
+        SPACING.sm,
+    },
+
+    sectionTitle: {
+      marginBottom:
+        SPACING.sm,
+
+      color:
+        COLORS.text,
+
+      fontSize: 19,
+
+      fontWeight:
+        '700',
+    },
+
+    resultsSection: {
+      marginTop:
         SPACING.xl,
     },
 
-    dashboardRow: {
-      flexDirection:
-        'row',
+    resultsHeader: {
+      marginBottom:
+        SPACING.sm,
+    },
+
+    resultsTitle: {
+      color:
+        COLORS.text,
+
+      fontSize: 21,
+
+      fontWeight:
+        '800',
+    },
+
+    resultsSubtitle: {
+      marginTop: 3,
+
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 13,
+
+      lineHeight: 18,
+    },
+
+    optionsHeader: {
+      marginTop:
+        SPACING.lg,
+
+      marginBottom:
+        SPACING.sm,
+    },
+
+    optionsTitle: {
+      color:
+        COLORS.text,
+
+      fontSize: 19,
+
+      fontWeight:
+        '700',
+    },
+
+    optionsSubtitle: {
+      marginTop: 2,
+
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 13,
+
+      lineHeight: 18,
     },
   });

@@ -1,4 +1,6 @@
-import { RideOption } from './comparison';
+import {
+  RideOption,
+} from './comparison';
 
 export type Recommendation = {
   melhor: RideOption;
@@ -7,70 +9,101 @@ export type Recommendation = {
   motivo: string;
 };
 
-function formatCurrency(value: number): string {
-  return value.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
+function formatCurrency(
+  value: number,
+): string {
+  return value.toLocaleString(
+    'pt-BR',
+    {
+      style: 'currency',
+      currency: 'BRL',
+    },
+  );
 }
 
 function getCheapestRide(
   rides: RideOption[],
 ): RideOption {
-  return rides.reduce((current, ride) =>
-    ride.preco < current.preco
-      ? ride
-      : current,
+  return rides.reduce(
+    (current, ride) =>
+      ride.preco <
+      current.preco
+        ? ride
+        : current,
   );
 }
 
 function getFastestRide(
   rides: RideOption[],
 ): RideOption {
-  return rides.reduce((current, ride) =>
-    ride.tempo < current.tempo
-      ? ride
-      : current,
+  return rides.reduce(
+    (current, ride) =>
+      ride.tempo <
+      current.tempo
+        ? ride
+        : current,
   );
 }
 
 function getMostExpensiveRide(
   rides: RideOption[],
 ): RideOption {
-  return rides.reduce((current, ride) =>
-    ride.preco > current.preco
-      ? ride
-      : current,
+  return rides.reduce(
+    (current, ride) =>
+      ride.preco >
+      current.preco
+        ? ride
+        : current,
   );
 }
 
 function getBestRide(
   rides: RideOption[],
 ): RideOption {
-  return rides.reduce((current, ride) => {
-    if (ride.score > current.score) {
-      return ride;
-    }
+  return rides.reduce(
+    (current, ride) => {
+      if (
+        ride.score >
+        current.score
+      ) {
+        return ride;
+      }
 
-    if (
-      ride.score === current.score &&
-      ride.preco < current.preco
-    ) {
-      return ride;
-    }
+      if (
+        ride.score ===
+          current.score &&
+        ride.preco <
+          current.preco
+      ) {
+        return ride;
+      }
 
-    if (
-      ride.score === current.score &&
-      ride.preco === current.preco &&
-      ride.tempo < current.tempo
-    ) {
-      return ride;
-    }
+      if (
+        ride.score ===
+          current.score &&
+        ride.preco ===
+          current.preco &&
+        ride.tempo <
+          current.tempo
+      ) {
+        return ride;
+      }
 
-    return current;
-  });
+      return current;
+    },
+  );
 }
 
+/*
+ * Gera uma recomendação curta,
+ * direta e adequada para a
+ * interface comercial.
+ *
+ * Preço, tempo e aplicativo já
+ * aparecem visualmente no card,
+ * então evitamos repetir essas
+ * informações desnecessariamente.
+ */
 function buildReason(
   melhor: RideOption,
   maisBarata: RideOption,
@@ -78,10 +111,12 @@ function buildReason(
   maisCara: RideOption,
 ): string {
   const isCheapest =
-    melhor.id === maisBarata.id;
+    melhor.id ===
+    maisBarata.id;
 
   const isFastest =
-    melhor.id === maisRapida.id;
+    melhor.id ===
+    maisRapida.id;
 
   const saving = Number(
     (
@@ -90,67 +125,141 @@ function buildReason(
     ).toFixed(2),
   );
 
-  if (isCheapest && isFastest) {
+  /*
+   * Melhor opção também é
+   * a mais barata e rápida.
+   */
+  if (
+    isCheapest &&
+    isFastest
+  ) {
+    if (saving > 0) {
+      return (
+        `Melhor preço e menor tempo. ` +
+        `Economize até ${formatCurrency(
+          saving,
+        )}.`
+      );
+    }
+
     return (
-      `${melhor.nome} é a melhor escolha nesta viagem. ` +
-      `Além de ser a opção mais barata, também apresenta ` +
-      `o menor tempo estimado. Custa ` +
-      `${formatCurrency(melhor.preco)}, leva cerca de ` +
-      `${melhor.tempo} min e economiza até ` +
-      `${formatCurrency(saving)} em relação à opção mais cara.`
+      'Melhor preço e menor tempo para esta viagem.'
     );
   }
 
+  /*
+   * Melhor opção é a
+   * mais barata.
+   */
   if (isCheapest) {
     const timeDifference =
-      melhor.tempo - maisRapida.tempo;
+      Math.max(
+        0,
+        melhor.tempo -
+          maisRapida.tempo,
+      );
+
+    if (
+      saving > 0 &&
+      timeDifference > 0
+    ) {
+      return (
+        `Economize até ${formatCurrency(
+          saving,
+        )} por apenas ` +
+        `${timeDifference} min a mais.`
+      );
+    }
+
+    if (saving > 0) {
+      return (
+        `Economize até ${formatCurrency(
+          saving,
+        )}.`
+      );
+    }
 
     return (
-      `${melhor.nome} oferece o melhor custo-benefício e ` +
-      `também é a opção mais barata, por ` +
-      `${formatCurrency(melhor.preco)}. ` +
-      `A economia chega a ${formatCurrency(saving)}. ` +
-      `A opção mais rápida pode chegar cerca de ` +
-      `${timeDifference} min antes.`
+      'Melhor preço para esta viagem.'
     );
   }
 
+  /*
+   * Melhor opção é a
+   * mais rápida.
+   */
   if (isFastest) {
-    const priceDifference = Number(
+    const priceDifference =
+      Number(
+        (
+          melhor.preco -
+          maisBarata.preco
+        ).toFixed(2),
+      );
+
+    if (priceDifference > 0) {
+      return (
+        `Chegue mais rápido por apenas ` +
+        `${formatCurrency(
+          priceDifference,
+        )} a mais.`
+      );
+    }
+
+    return (
+      'Menor tempo para esta viagem.'
+    );
+  }
+
+  /*
+   * Melhor equilíbrio entre
+   * preço e tempo.
+   */
+  const priceDifference =
+    Number(
       (
         melhor.preco -
         maisBarata.preco
       ).toFixed(2),
     );
 
+  const timeDifference =
+    Math.max(
+      0,
+      melhor.tempo -
+        maisRapida.tempo,
+    );
+
+  if (
+    priceDifference > 0 &&
+    timeDifference > 0
+  ) {
     return (
-      `${melhor.nome} oferece o melhor custo-benefício e ` +
-      `também é a opção mais rápida, com cerca de ` +
-      `${melhor.tempo} min. Ela custa ` +
-      `${formatCurrency(priceDifference)} a mais que a ` +
-      `opção mais barata e recebeu Score CorridaX ` +
-      `${melhor.score}.`
+      `Melhor equilíbrio entre preço e tempo. ` +
+      `Apenas ${formatCurrency(
+        priceDifference,
+      )} acima da mais barata.`
     );
   }
 
   return (
-    `${melhor.nome} apresenta o melhor equilíbrio entre ` +
-    `preço e tempo, com Score CorridaX ${melhor.score}. ` +
-    `Custa ${formatCurrency(melhor.preco)} e tem tempo ` +
-    `estimado de ${melhor.tempo} min.`
+    'Melhor equilíbrio entre preço e tempo.'
   );
 }
 
 export function chooseBestRide(
   rides: RideOption[],
 ): Recommendation {
-  if (rides.length === 0) {
+  if (
+    rides.length === 0
+  ) {
     throw new Error(
       'Nenhuma corrida disponível.',
     );
   }
 
-  const melhor = getBestRide(rides);
+  const melhor =
+    getBestRide(rides);
 
   const maisBarata =
     getCheapestRide(rides);
@@ -159,14 +268,17 @@ export function chooseBestRide(
     getFastestRide(rides);
 
   const maisCara =
-    getMostExpensiveRide(rides);
+    getMostExpensiveRide(
+      rides,
+    );
 
-  const motivo = buildReason(
-    melhor,
-    maisBarata,
-    maisRapida,
-    maisCara,
-  );
+  const motivo =
+    buildReason(
+      melhor,
+      maisBarata,
+      maisRapida,
+      maisCara,
+    );
 
   return {
     melhor,

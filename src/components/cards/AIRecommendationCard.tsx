@@ -1,13 +1,27 @@
 import React from 'react';
+
 import {
   StyleSheet,
   View,
 } from 'react-native';
 
 import {
-  Card,
+  MaterialCommunityIcons,
+} from '@expo/vector-icons';
+
+import {
+  Button,
   Text,
 } from 'react-native-paper';
+
+import {
+  RideOption,
+} from '../../services/comparison';
+
+import {
+  openRideApp,
+  RideLocation,
+} from '../../services/deepLinks';
 
 import {
   COLORS,
@@ -18,140 +32,410 @@ import {
 } from '../../theme';
 
 type Props = {
+  ride: RideOption;
   recommendation: string;
+
+  origin?: RideLocation;
+  destination?: RideLocation;
 };
 
+function formatCurrency(
+  value: number,
+): string {
+  return value.toLocaleString(
+    'pt-BR',
+    {
+      style: 'currency',
+      currency: 'BRL',
+    },
+  );
+}
+
 export default function AIRecommendationCard({
+  ride,
   recommendation,
+  origin,
+  destination,
 }: Props) {
   if (!recommendation) {
     return null;
   }
 
+  const normalizedName =
+    ride.nome.toLowerCase();
+
+  const app =
+    normalizedName.includes(
+      'uber',
+    )
+      ? {
+          id: 'uber' as const,
+          label: 'Abrir Uber',
+        }
+      : normalizedName.includes(
+            '99',
+          )
+        ? {
+            id: '99' as const,
+            label: 'Abrir 99',
+          }
+        : {
+            id: 'indrive' as const,
+            label:
+              'Abrir inDrive',
+          };
+
+  async function handleOpenApp() {
+    await openRideApp(
+      app.id,
+      {
+        origin,
+        destination,
+      },
+    );
+  }
+
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Text style={styles.icon}>
-              🤖
-            </Text>
-          </View>
+    <View style={styles.card}>
+      <View style={styles.topRow}>
+        <View style={styles.badge}>
+          <MaterialCommunityIcons
+            name="star"
+            size={12}
+            color={
+              COLORS.background
+            }
+          />
 
-          <View style={styles.headerText}>
-            <Text style={styles.title}>
-              IA CorridaX
-            </Text>
-
-            <Text style={styles.subtitle}>
-              Recomendação inteligente
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.text}>
-          {recommendation}
-        </Text>
-
-        <View style={styles.footer}>
-          <View style={styles.statusDot} />
-
-          <Text style={styles.footerText}>
-            Análise CorridaX
+          <Text
+            style={
+              styles.badgeText
+            }
+          >
+            Melhor escolha
           </Text>
         </View>
-      </Card.Content>
-    </Card>
+
+        <MaterialCommunityIcons
+          name="check-decagram"
+          size={19}
+          color={
+            COLORS.success
+          }
+        />
+      </View>
+
+      <View style={styles.mainRow}>
+        <View
+          style={
+            styles.providerArea
+          }
+        >
+          <Text
+            style={
+              styles.providerName
+            }
+            numberOfLines={1}
+          >
+            {ride.nome}
+          </Text>
+
+          <View
+            style={
+              styles.tripRow
+            }
+          >
+            <MaterialCommunityIcons
+              name="clock-outline"
+              size={14}
+              color={
+                COLORS.textSecondary
+              }
+            />
+
+            <Text
+              style={
+                styles.tripInfo
+              }
+            >
+              {ride.tempo} min
+            </Text>
+
+            <View
+              style={
+                styles.dot
+              }
+            />
+
+            <MaterialCommunityIcons
+              name="map-marker-distance"
+              size={14}
+              color={
+                COLORS.textSecondary
+              }
+            />
+
+            <Text
+              style={
+                styles.tripInfo
+              }
+            >
+              {ride.distancia.toFixed(
+                1,
+              )}{' '}
+              km
+            </Text>
+          </View>
+        </View>
+
+        <Text
+          style={
+            styles.price
+          }
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {formatCurrency(
+            ride.preco,
+          )}
+        </Text>
+      </View>
+
+      <View
+        style={
+          styles.reasonRow
+        }
+      >
+        <MaterialCommunityIcons
+          name="lightbulb-outline"
+          size={16}
+          color={
+            COLORS.primaryLight
+          }
+        />
+
+        <Text
+          style={
+            styles.reason
+          }
+        >
+          {recommendation}
+        </Text>
+      </View>
+
+      <Button
+        mode="contained"
+        onPress={
+          handleOpenApp
+        }
+        style={
+          styles.button
+        }
+        contentStyle={
+          styles.buttonContent
+        }
+        labelStyle={
+          styles.buttonLabel
+        }
+      >
+        {app.label}
+      </Button>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginTop: SPACING.xl,
-    marginBottom: SPACING.xl,
+const styles =
+  StyleSheet.create({
+    card: {
+      padding:
+        SPACING.md,
 
-    borderRadius: RADIUS.xl,
+      backgroundColor:
+        COLORS.surfaceLight,
 
-    backgroundColor: COLORS.surface,
+      borderWidth: 1.5,
 
-    borderWidth: 1,
-    borderColor: COLORS.borderSoft,
+      borderColor:
+        COLORS.primary,
 
-    ...SHADOWS.md,
-  },
+      borderRadius:
+        RADIUS.xl,
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+      ...SHADOWS.sm,
+    },
 
-  iconContainer: {
-    width: 44,
-    height: 44,
+    topRow: {
+      flexDirection:
+        'row',
 
-    borderRadius: RADIUS.md,
+      alignItems:
+        'center',
 
-    justifyContent: 'center',
-    alignItems: 'center',
+      justifyContent:
+        'space-between',
 
-    backgroundColor: COLORS.primarySoft,
-  },
+      marginBottom:
+        SPACING.sm,
+    },
 
-  icon: {
-    fontSize: TYPOGRAPHY.size.xl,
-  },
+    badge: {
+      flexDirection:
+        'row',
 
-  headerText: {
-    flex: 1,
-    marginLeft: SPACING.md,
-  },
+      alignItems:
+        'center',
 
-  title: {
-    color: COLORS.primaryLight,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
 
-    fontSize: TYPOGRAPHY.size.lg,
-    fontWeight: TYPOGRAPHY.weight.bold,
-  },
+      borderRadius:
+        RADIUS.round,
 
-  subtitle: {
-    marginTop: SPACING.xs,
+      backgroundColor:
+        COLORS.success,
+    },
 
-    color: COLORS.textSecondary,
+    badgeText: {
+      marginLeft: 4,
 
-    fontSize: TYPOGRAPHY.size.sm,
-  },
+      color:
+        COLORS.background,
 
-  text: {
-    marginTop: SPACING.lg,
+      fontSize: 10,
 
-    color: COLORS.text,
+      fontWeight:
+        TYPOGRAPHY.weight.bold,
+    },
 
-    fontSize: TYPOGRAPHY.size.md,
-    lineHeight: TYPOGRAPHY.lineHeight.lg,
-  },
+    mainRow: {
+      flexDirection:
+        'row',
 
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+      alignItems:
+        'center',
 
-    marginTop: SPACING.lg,
-  },
+      justifyContent:
+        'space-between',
+    },
 
-  statusDot: {
-    width: 7,
-    height: 7,
+    providerArea: {
+      flex: 1,
 
-    borderRadius: RADIUS.round,
+      paddingRight:
+        SPACING.sm,
+    },
 
-    backgroundColor: COLORS.success,
+    providerName: {
+      color:
+        COLORS.white,
 
-    marginRight: SPACING.sm,
-  },
+      fontSize: 20,
 
-  footerText: {
-    color: COLORS.textMuted,
+      fontWeight:
+        TYPOGRAPHY.weight.extraBold,
+    },
 
-    fontSize: TYPOGRAPHY.size.xs,
-    fontWeight: TYPOGRAPHY.weight.medium,
-  },
-});
+    tripRow: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      marginTop: 3,
+    },
+
+    tripInfo: {
+      marginLeft: 4,
+
+      color:
+        COLORS.textSecondary,
+
+      fontSize:
+        TYPOGRAPHY.size.xs,
+    },
+
+    dot: {
+      width: 3,
+      height: 3,
+
+      marginHorizontal: 7,
+
+      borderRadius:
+        RADIUS.round,
+
+      backgroundColor:
+        COLORS.textMuted,
+    },
+
+    price: {
+      maxWidth: 130,
+
+      color:
+        COLORS.primaryLight,
+
+      fontSize: 21,
+
+      fontWeight:
+        TYPOGRAPHY.weight.extraBold,
+
+      textAlign: 'right',
+    },
+
+    reasonRow: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'flex-start',
+
+      marginTop:
+        SPACING.sm,
+
+      paddingTop:
+        SPACING.sm,
+
+      borderTopWidth: 1,
+
+      borderTopColor:
+        COLORS.borderSoft,
+    },
+
+    reason: {
+      flex: 1,
+
+      marginLeft:
+        SPACING.sm,
+
+      color:
+        COLORS.textSecondary,
+
+      fontSize:
+        TYPOGRAPHY.size.xs,
+
+      lineHeight: 17,
+    },
+
+    button: {
+      marginTop:
+        SPACING.md,
+
+      borderRadius:
+        RADIUS.lg,
+
+      backgroundColor:
+        COLORS.primary,
+    },
+
+    buttonContent: {
+      minHeight: 40,
+    },
+
+    buttonLabel: {
+      fontSize:
+        TYPOGRAPHY.size.sm,
+
+      fontWeight:
+        TYPOGRAPHY.weight.bold,
+    },
+  });
