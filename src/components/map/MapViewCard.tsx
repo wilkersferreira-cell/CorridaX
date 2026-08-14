@@ -208,20 +208,32 @@ export default function MapViewCard({
 
         {route.length >= 2 && (
           <>
+            {/*
+             * CONTORNO BRANCO
+             *
+             * Espessura reduzida
+             * para deixar a rota
+             * mais discreta.
+             */}
             <Polyline
               coordinates={route}
               strokeColor={
                 COLORS.white
               }
-              strokeWidth={7}
+              strokeWidth={4}
             />
 
+            {/*
+             * TRAJETO PRINCIPAL
+             *
+             * Linha azul mais fina.
+             */}
             <Polyline
               coordinates={route}
               strokeColor={
                 COLORS.primaryLight
               }
-              strokeWidth={4}
+              strokeWidth={2}
             />
           </>
         )}

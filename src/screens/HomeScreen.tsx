@@ -6,11 +6,14 @@ import React, {
 
 import {
   Alert,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import AddressSuggestions from '../components/inputs/AddressSuggestions';
 import AIRecommendationCard from '../components/cards/AIRecommendationCard';
@@ -25,7 +28,9 @@ import RideCard, {
 } from '../components/cards/RideCard';
 
 import useLocation from '../hooks/useLocation';
-import useRideComparison from '../hooks/useRideComparison';
+import useRideComparison, {
+  MobilityMode,
+} from '../hooks/useRideComparison';
 
 import {
   chooseBestRide,
@@ -40,23 +45,6 @@ import {
   SPACING,
 } from '../theme';
 
-/*
- * Exibe um endereço de forma
- * resumida quando o destino
- * não possuir um nome comercial.
- *
- * Exemplos:
- *
- * Shopping Grande Circular
- * continua:
- * Shopping Grande Circular
- *
- * Av. Coronel Teixeira,
- * 5705 - Ponta Negra
- *
- * vira:
- * Av. Coronel Teixeira, 5705
- */
 function formatDestinationName(
   value: string,
 ): string {
@@ -72,13 +60,6 @@ function formatDestinationName(
       )
       .filter(Boolean);
 
-  /*
-   * Nomes comerciais normalmente
-   * não possuem vírgula.
-   *
-   * Exemplo:
-   * Shopping Grande Circular
-   */
   if (parts.length <= 1) {
     return value;
   }
@@ -93,11 +74,6 @@ function formatDestinationName(
           .trim()
       : '';
 
-  /*
-   * Se o segundo trecho começar
-   * com número, provavelmente
-   * estamos diante de um endereço.
-   */
   const looksLikeAddress =
     /^\d/.test(
       secondPart,
@@ -110,10 +86,6 @@ function formatDestinationName(
   return `${firstPart}, ${secondPart}`;
 }
 
-/*
- * Localiza a opção
- * de menor preço.
- */
 function getCheapestRide(
   rides: RideOption[],
 ): RideOption | undefined {
@@ -130,10 +102,6 @@ function getCheapestRide(
   );
 }
 
-/*
- * Localiza a opção
- * de menor tempo.
- */
 function getFastestRide(
   rides: RideOption[],
 ): RideOption | undefined {
@@ -150,10 +118,6 @@ function getFastestRide(
   );
 }
 
-/*
- * Formatação monetária utilizada
- * nas mensagens comerciais.
- */
 function formatCurrency(
   value: number,
 ): string {
@@ -166,19 +130,6 @@ function formatCurrency(
   );
 }
 
-/*
- * Define a classificação comercial
- * de cada alternativa.
- *
- * A melhor escolha é apresentada
- * separadamente pelo CorridaX.
- *
- * Entre as demais:
- *
- * - menor preço = Mais econômico
- * - menor tempo = Mais rápido
- * - intermediária = Equilíbrio
- */
 function getRideHighlight(
   ride: RideOption,
   cheapest?: RideOption,
@@ -201,12 +152,6 @@ function getRideHighlight(
   return 'balanced';
 }
 
-/*
- * Cria mensagens simples que
- * mostram ao usuário exatamente
- * o que ele ganha ou perde
- * escolhendo aquela opção.
- */
 function getAdvantageText(
   ride: RideOption,
   cheapest?: RideOption,
@@ -227,11 +172,6 @@ function getAdvantageText(
     ride.id ===
     fastest.id;
 
-  /*
-   * Uma mesma opção pode,
-   * eventualmente, ser a mais
-   * barata e a mais rápida.
-   */
   if (
     isCheapest &&
     isFastest
@@ -239,13 +179,6 @@ function getAdvantageText(
     return 'Menor preço e menor tempo nesta viagem.';
   }
 
-  /*
-   * MAIS ECONÔMICO
-   *
-   * Compara preço e tempo
-   * diretamente com a opção
-   * mais rápida.
-   */
   if (isCheapest) {
     const saving =
       fastest.preco -
@@ -277,13 +210,6 @@ function getAdvantageText(
     return 'Menor preço desta viagem.';
   }
 
-  /*
-   * MAIS RÁPIDO
-   *
-   * Mostra quanto tempo o usuário
-   * ganha e quanto custa essa
-   * diferença.
-   */
   if (isFastest) {
     const minutesSaved =
       cheapest.tempo -
@@ -314,16 +240,6 @@ function getAdvantageText(
 
     return 'Menor tempo desta viagem.';
   }
-
-  /*
-   * EQUILÍBRIO
-   *
-   * A terceira opção não é tratada
-   * simplesmente como "outra".
-   *
-   * Mostramos por que ela pode ser
-   * interessante entre preço e tempo.
-   */
 
   const savingVsFastest =
     fastest.preco -
@@ -363,14 +279,6 @@ function getAdvantageText(
   return 'Boa relação entre preço e tempo.';
 }
 
-/*
- * Define a prioridade visual
- * das alternativas.
- *
- * Opções com uma vantagem objetiva
- * aparecem antes da opção de
- * equilíbrio.
- */
 function getAlternativePriority(
   ride: RideOption,
   cheapest?: RideOption,
@@ -391,6 +299,63 @@ function getAlternativePriority(
   }
 
   return 3;
+}
+
+function formatRouteDistance(
+  distance: number,
+): string {
+  return `${distance.toFixed(1)} km`;
+}
+
+function formatRouteDuration(
+  duration: number,
+): string {
+  const totalMinutes =
+    Math.max(
+      1,
+      Math.round(duration),
+    );
+
+  if (totalMinutes < 60) {
+    return `${totalMinutes} min`;
+  }
+
+  const hours =
+    Math.floor(
+      totalMinutes / 60,
+    );
+
+  const minutes =
+    totalMinutes % 60;
+
+  if (minutes === 0) {
+    return `${hours} h`;
+  }
+
+  return `${hours} h ${minutes} min`;
+}
+
+function getMobilityIcon(
+  mode: MobilityMode,
+):
+  | 'directions-car'
+  | 'two-wheeler'
+  | 'directions-bike'
+  | 'directions-walk' {
+  switch (mode) {
+    case 'motorcycle':
+      return 'two-wheeler';
+
+    case 'bicycle':
+      return 'directions-bike';
+
+    case 'walk':
+      return 'directions-walk';
+
+    case 'car':
+    default:
+      return 'directions-car';
+  }
 }
 
 export default function HomeScreen() {
@@ -414,6 +379,11 @@ export default function HomeScreen() {
     origin,
     destination,
     routeCoordinates,
+    routeInfo,
+    mobilityOptions,
+    loadingMobility,
+    selectedMobilityMode,
+    selectMobilityMode,
     comparisonMode,
     setComparisonMode,
   } = useRideComparison();
@@ -428,9 +398,6 @@ export default function HomeScreen() {
     setDestino,
   ] = useState('');
 
-  /*
-   * Origem obtida pelo GPS.
-   */
   useEffect(() => {
     if (
       address &&
@@ -445,10 +412,6 @@ export default function HomeScreen() {
     origem,
   ]);
 
-  /*
-   * Envia as coordenadas reais
-   * para o motor CorridaX.
-   */
   useEffect(() => {
     if (
       Number.isFinite(
@@ -472,12 +435,6 @@ export default function HomeScreen() {
     longitude,
   ]);
 
-  /*
-   * Melhor escolha CorridaX.
-   *
-   * O Score continua existindo
-   * somente no motor interno.
-   */
   const recommendation =
     useMemo(() => {
       if (
@@ -491,9 +448,6 @@ export default function HomeScreen() {
       );
     }, [rides]);
 
-  /*
-   * Líderes reais daquela viagem.
-   */
   const cheapestRide =
     useMemo(
       () =>
@@ -512,21 +466,6 @@ export default function HomeScreen() {
       [rides],
     );
 
-  /*
-   * Remove a Melhor escolha
-   * da lista de alternativas
-   * e organiza as demais.
-   *
-   * Ordem:
-   *
-   * 1. Mais econômico
-   * 2. Mais rápido
-   * 3. Equilíbrio
-   *
-   * Caso a Melhor escolha já seja
-   * uma dessas categorias, ela não
-   * será repetida.
-   */
   const alternativeRides =
     useMemo(() => {
       if (!recommendation) {
@@ -559,17 +498,6 @@ export default function HomeScreen() {
       fastestRide,
     ]);
 
-  /*
-   * Nome amigável do destino.
-   *
-   * Se Google Places retornar
-   * "Shopping Grande Circular",
-   * esse será o texto mostrado.
-   *
-   * Para endereços residenciais,
-   * continuamos mostrando rua
-   * e número.
-   */
   const displayedDestination =
     destination
       ? formatDestinationName(
@@ -608,9 +536,7 @@ export default function HomeScreen() {
         longitude,
       );
 
-      setSuggestions(
-        [],
-      );
+      setSuggestions([]);
     } catch (error) {
       const message =
         error instanceof Error
@@ -747,20 +673,11 @@ export default function HomeScreen() {
                   item,
                 );
 
-              /*
-               * Agora o Google Places
-               * prioriza o nome do local.
-               *
-               * Exemplo:
-               * Shopping Grande Circular
-               */
               setDestino(
                 selected.displayName,
               );
 
-              setSuggestions(
-                [],
-              );
+              setSuggestions([]);
             } catch (error) {
               const message =
                 error instanceof Error
@@ -774,6 +691,264 @@ export default function HomeScreen() {
             }
           }}
         />
+
+        {routeInfo && destination && (
+          <View
+            style={
+              styles.routeSummary
+            }
+          >
+            <View
+              style={
+                styles.routeSummaryHeader
+              }
+            >
+              <Text
+                style={
+                  styles.routeSummaryTitle
+                }
+              >
+                Rota estimada
+              </Text>
+
+              <Text
+                style={
+                  styles.routeSummaryStatus
+                }
+              >
+                Google Routes
+              </Text>
+            </View>
+
+            <View
+              style={
+                styles.routeMetrics
+              }
+            >
+              <View
+                style={
+                  styles.routeMetric
+                }
+              >
+                <Text
+                  style={
+                    styles.routeMetricLabel
+                  }
+                >
+                  Distância
+                </Text>
+
+                <Text
+                  style={
+                    styles.routeMetricValue
+                  }
+                >
+                  {formatRouteDistance(
+                    routeInfo.distance,
+                  )}
+                </Text>
+              </View>
+
+              <View
+                style={
+                  styles.routeDivider
+                }
+              />
+
+              <View
+                style={
+                  styles.routeMetric
+                }
+              >
+                <Text
+                  style={
+                    styles.routeMetricLabel
+                  }
+                >
+                  Tempo estimado
+                </Text>
+
+                <Text
+                  style={
+                    styles.routeMetricValue
+                  }
+                >
+                  {formatRouteDuration(
+                    routeInfo.duration,
+                  )}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {destination && (
+          <View
+            style={
+              styles.mobilitySection
+            }
+          >
+            <View
+              style={
+                styles.mobilityHeader
+              }
+            >
+              <View
+                style={
+                  styles.mobilityHeaderText
+                }
+              >
+                <Text
+                  style={
+                    styles.mobilityTitle
+                  }
+                >
+                  Como você quer ir?
+                </Text>
+
+                <Text
+                  style={
+                    styles.mobilitySubtitle
+                  }
+                >
+                  Toque em uma opção para visualizar a rota.
+                </Text>
+              </View>
+
+              {loadingMobility && (
+                <Text
+                  style={
+                    styles.mobilityLoading
+                  }
+                >
+                  Calculando...
+                </Text>
+              )}
+            </View>
+
+            {mobilityOptions.length >
+              0 && (
+              <View
+                style={
+                  styles.mobilityGrid
+                }
+              >
+                {mobilityOptions.map(
+                  (option) => {
+                    const selected =
+                      selectedMobilityMode ===
+                      option.id;
+
+                    return (
+                      <Pressable
+                        key={
+                          option.id
+                        }
+                        onPress={() =>
+                          selectMobilityMode(
+                            option.id,
+                          )
+                        }
+                        style={({ pressed }) => [
+                          styles.mobilityCard,
+
+                          selected &&
+                            styles.mobilityCardSelected,
+
+                          pressed &&
+                            styles.mobilityCardPressed,
+                        ]}
+                      >
+                        <View
+                          style={
+                            styles.mobilityTopRow
+                          }
+                        >
+                          <View
+                            style={[
+                              styles.mobilityIconContainer,
+
+                              selected &&
+                                styles.mobilityIconContainerSelected,
+                            ]}
+                          >
+                            <MaterialIcons
+                              name={
+                                getMobilityIcon(
+                                  option.id,
+                                )
+                              }
+                              size={19}
+                              color={
+                                COLORS.primary
+                              }
+                            />
+                          </View>
+
+                          {selected && (
+                            <MaterialIcons
+                              name="check-circle"
+                              size={17}
+                              color={
+                                COLORS.primary
+                              }
+                            />
+                          )}
+                        </View>
+
+                        <View
+                          style={
+                            styles.mobilityInfo
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.mobilityLabel
+                            }
+                          >
+                            {option.label}
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.mobilityDuration
+                            }
+                          >
+                            {formatRouteDuration(
+                              option.duration,
+                            )}
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.mobilityDistance
+                            }
+                          >
+                            {formatRouteDistance(
+                              option.distance,
+                            )}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  },
+                )}
+              </View>
+            )}
+
+            {!loadingMobility &&
+              mobilityOptions.length ===
+                0 && (
+                <Text
+                  style={
+                    styles.mobilityUnavailable
+                  }
+                >
+                  Não foi possível calcular outras formas de deslocamento para esta rota.
+                </Text>
+              )}
+          </View>
+        )}
       </View>
 
       <View
@@ -842,12 +1017,6 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          {/*
-           * MELHOR ESCOLHA
-           *
-           * O Score não é exibido
-           * para o usuário.
-           */}
           <AIRecommendationCard
             ride={
               recommendation.melhor
@@ -1002,6 +1171,284 @@ const styles =
 
       fontWeight:
         '700',
+    },
+
+    routeSummary: {
+      marginTop:
+        SPACING.md,
+
+      padding:
+        SPACING.md,
+
+      borderRadius: 16,
+
+      backgroundColor:
+        COLORS.surface,
+
+      borderWidth: 1,
+
+      borderColor:
+        COLORS.border,
+    },
+
+    routeSummaryHeader: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'space-between',
+
+      marginBottom:
+        SPACING.md,
+    },
+
+    routeSummaryTitle: {
+      color:
+        COLORS.text,
+
+      fontSize: 15,
+
+      fontWeight:
+        '700',
+    },
+
+    routeSummaryStatus: {
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 11,
+
+      fontWeight:
+        '600',
+    },
+
+    routeMetrics: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+    },
+
+    routeMetric: {
+      flex: 1,
+    },
+
+    routeMetricLabel: {
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 12,
+
+      marginBottom: 3,
+    },
+
+    routeMetricValue: {
+      color:
+        COLORS.text,
+
+      fontSize: 19,
+
+      fontWeight:
+        '800',
+    },
+
+    routeDivider: {
+      width: 1,
+
+      height: 34,
+
+      marginHorizontal:
+        SPACING.md,
+
+      backgroundColor:
+        COLORS.border,
+    },
+
+    /*
+     * MOBILIDADE
+     *
+     * Cards mais compactos.
+     */
+    mobilitySection: {
+      marginTop:
+        SPACING.md,
+    },
+
+    mobilityHeader: {
+      flexDirection:
+        'row',
+
+      justifyContent:
+        'space-between',
+
+      alignItems:
+        'flex-start',
+
+      marginBottom: 8,
+    },
+
+    mobilityHeaderText: {
+      flex: 1,
+
+      paddingRight:
+        SPACING.sm,
+    },
+
+    mobilityTitle: {
+      color:
+        COLORS.text,
+
+      fontSize: 17,
+
+      fontWeight:
+        '700',
+    },
+
+    mobilitySubtitle: {
+      marginTop: 1,
+
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 12,
+
+      lineHeight: 16,
+    },
+
+    mobilityLoading: {
+      color:
+        COLORS.primary,
+
+      fontSize: 11,
+
+      fontWeight:
+        '600',
+    },
+
+    mobilityGrid: {
+      flexDirection:
+        'row',
+
+      flexWrap:
+        'wrap',
+
+      justifyContent:
+        'space-between',
+    },
+
+    mobilityCard: {
+      width: '48.7%',
+
+      minHeight: 94,
+
+      marginBottom: 8,
+
+      paddingHorizontal: 11,
+
+      paddingVertical: 9,
+
+      borderRadius: 14,
+
+      borderWidth: 1,
+
+      borderColor:
+        COLORS.border,
+
+      backgroundColor:
+        COLORS.surface,
+    },
+
+    mobilityCardSelected: {
+      borderWidth: 1.5,
+
+      borderColor:
+        COLORS.primary,
+    },
+
+    mobilityCardPressed: {
+      opacity: 0.78,
+    },
+
+    mobilityTopRow: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'space-between',
+    },
+
+    mobilityIconContainer: {
+      width: 30,
+      height: 30,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      borderRadius: 9,
+
+      backgroundColor:
+        COLORS.background,
+    },
+
+    mobilityIconContainerSelected: {
+      borderWidth: 1,
+
+      borderColor:
+        COLORS.primary,
+    },
+
+    mobilityInfo: {
+      marginTop: 5,
+    },
+
+    mobilityLabel: {
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 11,
+
+      fontWeight:
+        '600',
+    },
+
+    mobilityDuration: {
+      marginTop: 1,
+
+      color:
+        COLORS.text,
+
+      fontSize: 16,
+
+      fontWeight:
+        '800',
+    },
+
+    mobilityDistance: {
+      marginTop: 1,
+
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 11,
+    },
+
+    mobilityUnavailable: {
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 12,
+
+      lineHeight: 17,
     },
 
     resultsSection: {

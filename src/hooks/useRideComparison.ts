@@ -15,6 +15,7 @@ import {
 
 import {
   calculateGoogleRoute,
+  GoogleTravelMode,
 } from '../api/googleRoutes';
 
 import {
@@ -27,6 +28,58 @@ import {
   compareRouteEngines,
   RouteComparisonResult,
 } from '../services/routeComparison';
+
+export type MobilityMode =
+  | 'car'
+  | 'motorcycle'
+  | 'bicycle'
+  | 'walk';
+
+export type MobilityOption = {
+  id: MobilityMode;
+  label: string;
+  travelMode: GoogleTravelMode;
+  distance: number;
+  duration: number;
+
+  /*
+   * NOVO
+   *
+   * Cada modalidade guarda
+   * sua própria geometria.
+   */
+  coordinates: Coordinate[];
+};
+
+const MOBILITY_MODES: Array<{
+  id: MobilityMode;
+  label: string;
+  travelMode: GoogleTravelMode;
+}> = [
+  {
+    id: 'car',
+    label: 'Carro',
+    travelMode: 'DRIVE',
+  },
+
+  {
+    id: 'motorcycle',
+    label: 'Moto',
+    travelMode: 'TWO_WHEELER',
+  },
+
+  {
+    id: 'bicycle',
+    label: 'Bicicleta',
+    travelMode: 'BICYCLE',
+  },
+
+  {
+    id: 'walk',
+    label: 'A pé',
+    travelMode: 'WALK',
+  },
+];
 
 export default function useRideComparison() {
   const [loading, setLoading] =
@@ -59,6 +112,37 @@ export default function useRideComparison() {
   ] = useState<Coordinate[]>([]);
 
   const [
+    routeInfo,
+    setRouteInfo,
+  ] = useState<{
+    distance: number;
+    duration: number;
+  } | null>(null);
+
+  const [
+    mobilityOptions,
+    setMobilityOptions,
+  ] = useState<MobilityOption[]>([]);
+
+  const [
+    loadingMobility,
+    setLoadingMobility,
+  ] = useState(false);
+
+  /*
+   * Modalidade atualmente
+   * selecionada no CorridaX.
+   *
+   * Carro é o padrão.
+   */
+  const [
+    selectedMobilityMode,
+    setSelectedMobilityMode,
+  ] = useState<MobilityMode>(
+    'car',
+  );
+
+  const [
     comparisonMode,
     setComparisonMode,
   ] = useState<ComparisonMode>(
@@ -73,14 +157,6 @@ export default function useRideComparison() {
       RouteComparisonResult | null
     >(null);
 
-  /**
-   * Define a origem diretamente
-   * a partir do GPS do aparelho.
-   *
-   * Isso permite que o mapa conheça
-   * a origem antes de o usuário
-   * clicar em Comparar.
-   */
   function setGpsOrigin(
     latitude: number,
     longitude: number,
@@ -102,10 +178,6 @@ export default function useRideComparison() {
     });
   }
 
-  /**
-   * Pesquisa destinos utilizando
-   * Google Places.
-   */
   async function search(
     query: string,
     latitude?: number,
@@ -135,10 +207,282 @@ export default function useRideComparison() {
     }
   }
 
-  /**
-   * Resolve o destino escolhido
-   * para coordenadas exatas.
+  /*
+   * Troca a modalidade ativa
+   * e imediatamente atualiza
+   * o trajeto do mapa.
    */
+  function selectMobilityMode(
+    mode: MobilityMode,
+  ) {
+    const option =
+      mobilityOptions.find(
+        (item) =>
+          item.id === mode,
+      );
+
+    if (!option) {
+      return;
+    }
+
+    setSelectedMobilityMode(
+      mode,
+    );
+
+    setRouteInfo({
+      distance:
+        option.distance,
+
+      duration:
+        option.duration,
+    });
+
+    /*
+     * O mapa passa a utilizar
+     * a geometria específica
+     * daquela modalidade.
+     */
+    if (
+      option.coordinates.length >= 2
+    ) {
+      setRouteCoordinates(
+        option.coordinates,
+      );
+    }
+  }
+
+  async function calculateMobilityOptions(
+    originCoordinate: Coordinate,
+    destinationCoordinate: Coordinate,
+  ): Promise<MobilityOption[]> {
+    setLoadingMobility(true);
+
+    try {
+      const results =
+        await Promise.allSettled(
+          MOBILITY_MODES.map(
+            async (mode) => {
+              const route =
+                await calculateGoogleRoute(
+                  originCoordinate.latitude,
+                  originCoordinate.longitude,
+                  destinationCoordinate.latitude,
+                  destinationCoordinate.longitude,
+                  mode.travelMode,
+                );
+
+              const option:
+                MobilityOption = {
+                id:
+                  mode.id,
+
+                label:
+                  mode.label,
+
+                travelMode:
+                  mode.travelMode,
+
+                distance:
+                  route.distance,
+
+                duration:
+                  route.duration,
+
+                coordinates:
+                  route.coordinates,
+              };
+
+              return option;
+            },
+          ),
+        );
+
+      const availableOptions:
+        MobilityOption[] = [];
+
+      results.forEach(
+        (result, index) => {
+          if (
+            result.status ===
+            'fulfilled'
+          ) {
+            availableOptions.push(
+              result.value,
+            );
+
+            return;
+          }
+
+          console.warn(
+            `Modo ${MOBILITY_MODES[index].label} indisponível:`,
+            result.reason,
+          );
+        },
+      );
+
+      setMobilityOptions(
+        availableOptions,
+      );
+
+      return availableOptions;
+    } catch (error) {
+      console.warn(
+        'Falha ao calcular opções de mobilidade:',
+        error,
+      );
+
+      setMobilityOptions([]);
+
+      return [];
+    } finally {
+      setLoadingMobility(false);
+    }
+  }
+
+  async function previewRoute(
+    destinationCoordinate: Coordinate,
+  ) {
+    if (!origin) {
+      console.warn(
+        'Origem ainda não disponível para pré-visualizar a rota.',
+      );
+
+      return;
+    }
+
+    try {
+      let routeDistance: number;
+      let routeDuration: number;
+
+      let coordinates:
+        Coordinate[];
+
+      try {
+        const googleRoute =
+          await calculateGoogleRoute(
+            origin.latitude,
+            origin.longitude,
+            destinationCoordinate.latitude,
+            destinationCoordinate.longitude,
+            'DRIVE',
+          );
+
+        routeDistance =
+          googleRoute.distance;
+
+        routeDuration =
+          googleRoute.duration;
+
+        coordinates =
+          googleRoute.coordinates;
+
+        if (
+          coordinates.length === 0
+        ) {
+          const osrmGeometry =
+            await calculateRoute(
+              origin.latitude,
+              origin.longitude,
+              destinationCoordinate.latitude,
+              destinationCoordinate.longitude,
+            );
+
+          coordinates =
+            osrmGeometry.coordinates;
+        }
+      } catch (googleError) {
+        console.warn(
+          'Google Routes indisponível no preview. Usando OSRM.',
+          googleError,
+        );
+
+        const osrmRoute =
+          await calculateRoute(
+            origin.latitude,
+            origin.longitude,
+            destinationCoordinate.latitude,
+            destinationCoordinate.longitude,
+          );
+
+        routeDistance =
+          osrmRoute.distance;
+
+        routeDuration =
+          osrmRoute.duration;
+
+        coordinates =
+          osrmRoute.coordinates;
+      }
+
+      /*
+       * Carro continua sendo
+       * a modalidade inicial.
+       */
+      setSelectedMobilityMode(
+        'car',
+      );
+
+      setRouteCoordinates(
+        coordinates,
+      );
+
+      setRouteInfo({
+        distance:
+          routeDistance,
+
+        duration:
+          routeDuration,
+      });
+
+      const options =
+        await calculateMobilityOptions(
+          origin,
+          destinationCoordinate,
+        );
+
+      /*
+       * Sincroniza a rota inicial
+       * com o resultado DRIVE
+       * retornado na lista.
+       */
+      const carOption =
+        options.find(
+          (option) =>
+            option.id === 'car',
+        );
+
+      if (carOption) {
+        setRouteInfo({
+          distance:
+            carOption.distance,
+
+          duration:
+            carOption.duration,
+        });
+
+        if (
+          carOption.coordinates.length >=
+          2
+        ) {
+          setRouteCoordinates(
+            carOption.coordinates,
+          );
+        }
+      }
+    } catch (error) {
+      console.warn(
+        'Não foi possível pré-visualizar a rota:',
+        error,
+      );
+
+      setRouteCoordinates([]);
+
+      setRouteInfo(null);
+
+      setMobilityOptions([]);
+    }
+  }
+
   async function selectDestination(
     suggestion: GooglePlaceSuggestion,
   ) {
@@ -168,20 +512,19 @@ export default function useRideComparison() {
       coordinate,
     });
 
-    /*
-     * O destino entra imediatamente
-     * no estado do mapa.
-     */
     setDestination(
       coordinate,
     );
 
-    /*
-     * Remove a rota anterior.
-     * Assim o mapa mostra somente
-     * origem + novo destino.
-     */
     setRouteCoordinates([]);
+
+    setRouteInfo(null);
+
+    setMobilityOptions([]);
+
+    setSelectedMobilityMode(
+      'car',
+    );
 
     setRouteComparison(
       null,
@@ -191,17 +534,16 @@ export default function useRideComparison() {
 
     setSuggestions([]);
 
+    await previewRoute(
+      coordinate,
+    );
+
     return {
       displayName,
       coordinate,
     };
   }
 
-  /**
-   * Quando o usuário começa a
-   * digitar um novo destino,
-   * invalida a seleção anterior.
-   */
   function clearSelectedDestination() {
     setSelectedDestination(
       null,
@@ -212,6 +554,14 @@ export default function useRideComparison() {
     );
 
     setRouteCoordinates([]);
+
+    setRouteInfo(null);
+
+    setMobilityOptions([]);
+
+    setSelectedMobilityMode(
+      'car',
+    );
 
     setRouteComparison(
       null,
@@ -229,11 +579,6 @@ export default function useRideComparison() {
     setLoading(true);
 
     try {
-      /*
-       * ORIGEM
-       *
-       * GPS real do aparelho.
-       */
       if (
         !Number.isFinite(
           originLatitude,
@@ -260,12 +605,6 @@ export default function useRideComparison() {
           originLongitude,
       };
 
-      /*
-       * DESTINO
-       *
-       * Prioridade para o destino
-       * escolhido na lista do Google.
-       */
       let destinationCoordinate:
         Coordinate;
 
@@ -273,11 +612,6 @@ export default function useRideComparison() {
         destinationCoordinate =
           selectedDestination.coordinate;
       } else {
-        /*
-         * Caso o usuário não selecione
-         * uma sugestão, pesquisamos o
-         * texto informado no Google.
-         */
         const results =
           await searchGooglePlaces(
             destino,
@@ -328,14 +662,20 @@ export default function useRideComparison() {
       );
 
       /*
-       * GOOGLE ROUTES
+       * IMPORTANTE
        *
-       * Motor principal.
+       * A comparação de Uber,
+       * 99 e inDrive continua
+       * utilizando a rota de carro.
+       *
+       * Selecionar caminhada ou
+       * bicicleta no mapa não
+       * altera o cálculo dos apps.
        */
       let routeDistance: number;
       let routeDuration: number;
 
-      let coordinates:
+      let carCoordinates:
         Coordinate[];
 
       try {
@@ -345,6 +685,7 @@ export default function useRideComparison() {
             originCoordinate.longitude,
             destinationCoordinate.latitude,
             destinationCoordinate.longitude,
+            'DRIVE',
           );
 
         routeDistance =
@@ -353,16 +694,11 @@ export default function useRideComparison() {
         routeDuration =
           googleRoute.duration;
 
-        coordinates =
+        carCoordinates =
           googleRoute.coordinates;
 
-        /*
-         * Se o Google não fornecer
-         * geometria, OSRM desenha
-         * o percurso.
-         */
         if (
-          coordinates.length === 0
+          carCoordinates.length === 0
         ) {
           const osrmGeometry =
             await calculateRoute(
@@ -372,13 +708,10 @@ export default function useRideComparison() {
               destinationCoordinate.longitude,
             );
 
-          coordinates =
+          carCoordinates =
             osrmGeometry.coordinates;
         }
       } catch (googleError) {
-        /*
-         * FALLBACK OSRM
-         */
         console.warn(
           'Google Routes indisponível. Usando OSRM.',
           googleError,
@@ -398,21 +731,82 @@ export default function useRideComparison() {
         routeDuration =
           osrmRoute.duration;
 
-        coordinates =
+        carCoordinates =
           osrmRoute.coordinates;
       }
 
       /*
-       * A partir daqui o mapa recebe
-       * a geometria completa da rota.
+       * Só voltamos o mapa para
+       * carro se carro estiver
+       * selecionado.
        */
-      setRouteCoordinates(
-        coordinates,
-      );
+      if (
+        selectedMobilityMode ===
+        'car'
+      ) {
+        setRouteCoordinates(
+          carCoordinates,
+        );
+
+        setRouteInfo({
+          distance:
+            routeDistance,
+
+          duration:
+            routeDuration,
+        });
+      }
+
+      let options =
+        mobilityOptions;
+
+      if (
+        options.length === 0
+      ) {
+        options =
+          await calculateMobilityOptions(
+            originCoordinate,
+            destinationCoordinate,
+          );
+      }
 
       /*
-       * MOTOR DE PREÇOS CORRIDAX
+       * Se outro modo estiver
+       * selecionado, preservamos
+       * sua rota após comparar
+       * os aplicativos.
        */
+      if (
+        selectedMobilityMode !==
+        'car'
+      ) {
+        const selectedOption =
+          options.find(
+            (option) =>
+              option.id ===
+              selectedMobilityMode,
+          );
+
+        if (selectedOption) {
+          setRouteInfo({
+            distance:
+              selectedOption.distance,
+
+            duration:
+              selectedOption.duration,
+          });
+
+          if (
+            selectedOption.coordinates.length >=
+            2
+          ) {
+            setRouteCoordinates(
+              selectedOption.coordinates,
+            );
+          }
+        }
+      }
+
       const resultado =
         await compareRides(
           routeDistance,
@@ -424,10 +818,6 @@ export default function useRideComparison() {
         resultado,
       );
 
-      /*
-       * DIAGNÓSTICO TEMPORÁRIO
-       * Google × OSRM.
-       */
       try {
         const comparison =
           await compareRouteEngines(
@@ -479,6 +869,19 @@ export default function useRideComparison() {
     destination,
 
     routeCoordinates,
+
+    routeInfo,
+
+    mobilityOptions,
+
+    loadingMobility,
+
+    /*
+     * NOVO
+     */
+    selectedMobilityMode,
+
+    selectMobilityMode,
 
     comparisonMode,
 

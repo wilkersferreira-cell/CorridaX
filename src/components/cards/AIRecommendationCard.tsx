@@ -39,6 +39,17 @@ type Props = {
   destination?: RideLocation;
 };
 
+type AppType =
+  | 'uber'
+  | '99'
+  | 'indrive';
+
+type AppData = {
+  id: AppType;
+  buttonLabel: string;
+  type: AppType;
+};
+
 function formatCurrency(
   value: number,
 ): string {
@@ -64,26 +75,49 @@ export default function AIRecommendationCard({
   const normalizedName =
     ride.nome.toLowerCase();
 
+  function getAppData(): AppData {
+    if (
+      normalizedName.includes(
+        'uber',
+      )
+    ) {
+      return {
+        id: 'uber',
+
+        buttonLabel:
+          'Abrir Uber',
+
+        type: 'uber',
+      };
+    }
+
+    if (
+      normalizedName.includes(
+        '99',
+      )
+    ) {
+      return {
+        id: '99',
+
+        buttonLabel:
+          'Abrir 99',
+
+        type: '99',
+      };
+    }
+
+    return {
+      id: 'indrive',
+
+      buttonLabel:
+        'Abrir inDrive',
+
+      type: 'indrive',
+    };
+  }
+
   const app =
-    normalizedName.includes(
-      'uber',
-    )
-      ? {
-          id: 'uber' as const,
-          label: 'Abrir Uber',
-        }
-      : normalizedName.includes(
-            '99',
-          )
-        ? {
-            id: '99' as const,
-            label: 'Abrir 99',
-          }
-        : {
-            id: 'indrive' as const,
-            label:
-              'Abrir inDrive',
-          };
+    getAppData();
 
   async function handleOpenApp() {
     await openRideApp(
@@ -95,10 +129,84 @@ export default function AIRecommendationCard({
     );
   }
 
+  /*
+   * Mesmo padrão visual
+   * utilizado no RideCard.
+   *
+   * Todos os logos possuem
+   * exatamente 48 x 48.
+   */
+  function Logo() {
+    switch (app.type) {
+      case '99':
+        return (
+          <View
+            style={
+              styles.logo99
+            }
+          >
+            <Text
+              style={
+                styles.logo99Text
+              }
+            >
+              99
+            </Text>
+          </View>
+        );
+
+      case 'uber':
+        return (
+          <View
+            style={
+              styles.logoUber
+            }
+          >
+            <Text
+              style={
+                styles.logoUberText
+              }
+            >
+              Uber
+            </Text>
+          </View>
+        );
+
+      default:
+        return (
+          <View
+            style={
+              styles.logoIndrive
+            }
+          >
+            <Text
+              style={
+                styles.logoIndriveText
+              }
+            >
+              iD
+            </Text>
+          </View>
+        );
+    }
+  }
+
   return (
-    <View style={styles.card}>
-      <View style={styles.topRow}>
-        <View style={styles.badge}>
+    <View
+      style={
+        styles.card
+      }
+    >
+      <View
+        style={
+          styles.topRow
+        }
+      >
+        <View
+          style={
+            styles.badge
+          }
+        >
           <MaterialCommunityIcons
             name="star"
             size={12}
@@ -125,41 +233,49 @@ export default function AIRecommendationCard({
         />
       </View>
 
-      <View style={styles.mainRow}>
+      <View
+        style={
+          styles.mainRow
+        }
+      >
+        {/*
+         * Logo exatamente no
+         * mesmo padrão dos cards
+         * das outras opções.
+         */}
+        <Logo />
+
         <View
           style={
-            styles.providerArea
+            styles.details
           }
         >
-          <Text
-            style={
-              styles.providerName
-            }
-            numberOfLines={1}
-          >
-            {ride.nome}
-          </Text>
-
           <View
             style={
               styles.tripRow
             }
           >
-            <MaterialCommunityIcons
-              name="clock-outline"
-              size={14}
-              color={
-                COLORS.textSecondary
-              }
-            />
-
-            <Text
+            <View
               style={
-                styles.tripInfo
+                styles.tripItem
               }
             >
-              {ride.tempo} min
-            </Text>
+              <MaterialCommunityIcons
+                name="clock-outline"
+                size={15}
+                color={
+                  COLORS.textSecondary
+                }
+              />
+
+              <Text
+                style={
+                  styles.tripText
+                }
+              >
+                {ride.tempo} min
+              </Text>
+            </View>
 
             <View
               style={
@@ -167,24 +283,30 @@ export default function AIRecommendationCard({
               }
             />
 
-            <MaterialCommunityIcons
-              name="map-marker-distance"
-              size={14}
-              color={
-                COLORS.textSecondary
-              }
-            />
-
-            <Text
+            <View
               style={
-                styles.tripInfo
+                styles.tripItem
               }
             >
-              {ride.distancia.toFixed(
-                1,
-              )}{' '}
-              km
-            </Text>
+              <MaterialCommunityIcons
+                name="map-marker-distance"
+                size={15}
+                color={
+                  COLORS.textSecondary
+                }
+              />
+
+              <Text
+                style={
+                  styles.tripText
+                }
+              >
+                {ride.distancia.toFixed(
+                  1,
+                )}{' '}
+                km
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -224,7 +346,7 @@ export default function AIRecommendationCard({
       </View>
 
       <Button
-        mode="contained"
+        mode="outlined"
         onPress={
           handleOpenApp
         }
@@ -237,8 +359,11 @@ export default function AIRecommendationCard({
         labelStyle={
           styles.buttonLabel
         }
+        textColor={
+          COLORS.primaryLight
+        }
       >
-        {app.label}
+        {app.buttonLabel}
       </Button>
     </View>
   );
@@ -286,6 +411,7 @@ const styles =
         'center',
 
       paddingHorizontal: 8,
+
       paddingVertical: 3,
 
       borderRadius:
@@ -313,26 +439,16 @@ const styles =
 
       alignItems:
         'center',
-
-      justifyContent:
-        'space-between',
     },
 
-    providerArea: {
+    details: {
       flex: 1,
 
-      paddingRight:
+      marginLeft:
+        SPACING.md,
+
+      marginRight:
         SPACING.sm,
-    },
-
-    providerName: {
-      color:
-        COLORS.white,
-
-      fontSize: 20,
-
-      fontWeight:
-        TYPOGRAPHY.weight.extraBold,
     },
 
     tripRow: {
@@ -342,10 +458,19 @@ const styles =
       alignItems:
         'center',
 
-      marginTop: 3,
+      flexWrap:
+        'wrap',
     },
 
-    tripInfo: {
+    tripItem: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+    },
+
+    tripText: {
       marginLeft: 4,
 
       color:
@@ -357,9 +482,11 @@ const styles =
 
     dot: {
       width: 3,
+
       height: 3,
 
-      marginHorizontal: 7,
+      marginHorizontal:
+        SPACING.sm,
 
       borderRadius:
         RADIUS.round,
@@ -369,7 +496,7 @@ const styles =
     },
 
     price: {
-      maxWidth: 130,
+      maxWidth: 115,
 
       color:
         COLORS.primaryLight,
@@ -379,7 +506,8 @@ const styles =
       fontWeight:
         TYPOGRAPHY.weight.extraBold,
 
-      textAlign: 'right',
+      textAlign:
+        'right',
     },
 
     reasonRow: {
@@ -390,7 +518,7 @@ const styles =
         'flex-start',
 
       marginTop:
-        SPACING.sm,
+        SPACING.md,
 
       paddingTop:
         SPACING.sm,
@@ -405,7 +533,7 @@ const styles =
       flex: 1,
 
       marginLeft:
-        SPACING.sm,
+        SPACING.xs,
 
       color:
         COLORS.textSecondary,
@@ -413,7 +541,7 @@ const styles =
       fontSize:
         TYPOGRAPHY.size.xs,
 
-      lineHeight: 17,
+      lineHeight: 18,
     },
 
     button: {
@@ -423,12 +551,12 @@ const styles =
       borderRadius:
         RADIUS.lg,
 
-      backgroundColor:
+      borderColor:
         COLORS.primary,
     },
 
     buttonContent: {
-      minHeight: 40,
+      minHeight: 42,
     },
 
     buttonLabel: {
@@ -437,5 +565,95 @@ const styles =
 
       fontWeight:
         TYPOGRAPHY.weight.bold,
+    },
+
+    /*
+     * A PARTIR DAQUI OS LOGOS
+     * SÃO EXATAMENTE DO MESMO
+     * MODELO DO RIDECARD.
+     */
+
+    logo99: {
+      width: 48,
+
+      height: 48,
+
+      borderRadius:
+        RADIUS.md,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        '#FFD400',
+    },
+
+    logo99Text: {
+      color:
+        '#000000',
+
+      fontSize: 22,
+
+      fontWeight:
+        '800',
+    },
+
+    logoUber: {
+      width: 48,
+
+      height: 48,
+
+      borderRadius:
+        RADIUS.md,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        '#000000',
+    },
+
+    logoUberText: {
+      color:
+        '#FFFFFF',
+
+      fontSize: 15,
+
+      fontWeight:
+        '700',
+    },
+
+    logoIndrive: {
+      width: 48,
+
+      height: 48,
+
+      borderRadius:
+        RADIUS.md,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        '#B8FF1A',
+    },
+
+    logoIndriveText: {
+      color:
+        '#000000',
+
+      fontSize: 20,
+
+      fontWeight:
+        '800',
     },
   });

@@ -1,5 +1,20 @@
 import polyline from '@mapbox/polyline';
 
+/*
+ * Modos de deslocamento
+ * suportados pelo CorridaX.
+ *
+ * Mantemos os mesmos nomes
+ * utilizados pelo Google Routes
+ * para evitar conversões
+ * desnecessárias.
+ */
+export type GoogleTravelMode =
+  | 'DRIVE'
+  | 'TWO_WHEELER'
+  | 'BICYCLE'
+  | 'WALK';
+
 export interface GoogleRouteCoordinate {
   latitude: number;
   longitude: number;
@@ -42,14 +57,79 @@ function getRoutesApiKey(): string {
   return apiKey;
 }
 
+/*
+ * Define as opções adicionais
+ * adequadas para cada modalidade.
+ *
+ * TRAFFIC_AWARE faz sentido
+ * para veículos motorizados.
+ *
+ * Para caminhada e bicicleta,
+ * não enviamos routingPreference.
+ */
+function getRoutingOptions(
+  travelMode: GoogleTravelMode,
+) {
+  if (
+    travelMode === 'DRIVE' ||
+    travelMode === 'TWO_WHEELER'
+  ) {
+    return {
+      routingPreference:
+        'TRAFFIC_AWARE',
+    };
+  }
+
+  return {};
+}
+
+/**
+ * Calcula uma rota utilizando
+ * Google Routes API.
+ *
+ * O modo padrão continua sendo
+ * DRIVE.
+ *
+ * Isso é importante porque todo
+ * o código atual do CorridaX
+ * continua funcionando sem
+ * precisar ser alterado.
+ *
+ * Exemplos:
+ *
+ * calculateGoogleRoute(
+ *   origemLat,
+ *   origemLon,
+ *   destinoLat,
+ *   destinoLon,
+ * )
+ *
+ * = carro
+ *
+ * calculateGoogleRoute(
+ *   origemLat,
+ *   origemLon,
+ *   destinoLat,
+ *   destinoLon,
+ *   'WALK',
+ * )
+ *
+ * = caminhada
+ */
 export async function calculateGoogleRoute(
   originLat: number,
   originLon: number,
   destinationLat: number,
   destinationLon: number,
+  travelMode: GoogleTravelMode = 'DRIVE',
 ): Promise<GoogleRouteResult> {
   const apiKey =
     getRoutesApiKey();
+
+  const routingOptions =
+    getRoutingOptions(
+      travelMode,
+    );
 
   const response = await fetch(
     'https://routes.googleapis.com/directions/v2:computeRoutes',
@@ -102,11 +182,20 @@ export async function calculateGoogleRoute(
           },
         },
 
-        travelMode:
-          'DRIVE',
+        /*
+         * NOVO
+         *
+         * Agora o modo de transporte
+         * pode ser escolhido pelo
+         * CorridaX.
+         */
+        travelMode,
 
-        routingPreference:
-          'TRAFFIC_AWARE',
+        /*
+         * Opções específicas
+         * da modalidade.
+         */
+        ...routingOptions,
 
         polylineQuality:
           'HIGH_QUALITY',
@@ -122,7 +211,8 @@ export async function calculateGoogleRoute(
       await response.text();
 
     throw new Error(
-      `Google Routes: ${response.status} ${errorText}`,
+      `Google Routes (${travelMode}): ` +
+        `${response.status} ${errorText}`,
     );
   }
 
@@ -140,10 +230,16 @@ export async function calculateGoogleRoute(
     !route.duration
   ) {
     throw new Error(
-      'Google Routes não retornou uma rota válida.',
+      `Google Routes não retornou uma rota válida para ${travelMode}.`,
     );
   }
 
+  /*
+   * O Google retorna duração
+   * normalmente no formato:
+   *
+   * "1234s"
+   */
   const durationSeconds =
     Number(
       route.duration.replace(
@@ -185,10 +281,16 @@ export async function calculateGoogleRoute(
       : [];
 
   return {
+    /*
+     * metros → quilômetros
+     */
     distance:
       route.distanceMeters /
       1000,
 
+    /*
+     * segundos → minutos
+     */
     duration:
       durationSeconds /
       60,
