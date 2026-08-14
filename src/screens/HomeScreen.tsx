@@ -28,6 +28,7 @@ import RideCard, {
 } from '../components/cards/RideCard';
 
 import useLocation from '../hooks/useLocation';
+
 import useRideComparison, {
   MobilityMode,
 } from '../hooks/useRideComparison';
@@ -39,6 +40,10 @@ import {
 import {
   RideOption,
 } from '../services/comparison';
+
+import {
+  startNavigation,
+} from '../services/navigation';
 
 import {
   COLORS,
@@ -358,6 +363,25 @@ function getMobilityIcon(
   }
 }
 
+function getMobilityLabel(
+  mode: MobilityMode,
+): string {
+  switch (mode) {
+    case 'motorcycle':
+      return 'Moto';
+
+    case 'bicycle':
+      return 'Bicicleta';
+
+    case 'walk':
+      return 'A pé';
+
+    case 'car':
+    default:
+      return 'Carro';
+  }
+}
+
 export default function HomeScreen() {
   const {
     loading,
@@ -550,6 +574,24 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleStartNavigation() {
+    if (!destination) {
+      Alert.alert(
+        'Navegação',
+        'Selecione um destino antes de iniciar a rota.',
+      );
+
+      return;
+    }
+
+    await startNavigation({
+      origin,
+      destination,
+      mode:
+        selectedMobilityMode,
+    });
+  }
+
   const rideOrigin =
     origin
       ? {
@@ -668,9 +710,23 @@ export default function HomeScreen() {
             item,
           ) => {
             try {
+              /*
+               * IMPORTANTE:
+               *
+               * Agora enviamos o GPS
+               * atual diretamente para
+               * selectDestination.
+               *
+               * Assim a pré-visualização
+               * não precisa esperar a
+               * atualização assíncrona
+               * do estado origin.
+               */
               const selected =
                 await selectDestination(
                   item,
+                  latitude,
+                  longitude,
                 );
 
               setDestino(
@@ -828,112 +884,174 @@ export default function HomeScreen() {
 
             {mobilityOptions.length >
               0 && (
-              <View
-                style={
-                  styles.mobilityGrid
-                }
-              >
-                {mobilityOptions.map(
-                  (option) => {
-                    const selected =
-                      selectedMobilityMode ===
-                      option.id;
+              <>
+                <View
+                  style={
+                    styles.mobilityGrid
+                  }
+                >
+                  {mobilityOptions.map(
+                    (option) => {
+                      const selected =
+                        selectedMobilityMode ===
+                        option.id;
 
-                    return (
-                      <Pressable
-                        key={
-                          option.id
-                        }
-                        onPress={() =>
-                          selectMobilityMode(
-                            option.id,
-                          )
-                        }
-                        style={({ pressed }) => [
-                          styles.mobilityCard,
-
-                          selected &&
-                            styles.mobilityCardSelected,
-
-                          pressed &&
-                            styles.mobilityCardPressed,
-                        ]}
-                      >
-                        <View
-                          style={
-                            styles.mobilityTopRow
+                      return (
+                        <Pressable
+                          key={
+                            option.id
                           }
+                          onPress={() =>
+                            selectMobilityMode(
+                              option.id,
+                            )
+                          }
+                          style={({ pressed }) => [
+                            styles.mobilityCard,
+
+                            selected &&
+                              styles.mobilityCardSelected,
+
+                            pressed &&
+                              styles.mobilityCardPressed,
+                          ]}
                         >
                           <View
-                            style={[
-                              styles.mobilityIconContainer,
-
-                              selected &&
-                                styles.mobilityIconContainerSelected,
-                            ]}
+                            style={
+                              styles.mobilityTopRow
+                            }
                           >
-                            <MaterialIcons
-                              name={
-                                getMobilityIcon(
-                                  option.id,
-                                )
-                              }
-                              size={19}
-                              color={
-                                COLORS.primary
-                              }
-                            />
+                            <View
+                              style={[
+                                styles.mobilityIconContainer,
+
+                                selected &&
+                                  styles.mobilityIconContainerSelected,
+                              ]}
+                            >
+                              <MaterialIcons
+                                name={
+                                  getMobilityIcon(
+                                    option.id,
+                                  )
+                                }
+                                size={19}
+                                color={
+                                  COLORS.primary
+                                }
+                              />
+                            </View>
+
+                            {selected && (
+                              <MaterialIcons
+                                name="check-circle"
+                                size={17}
+                                color={
+                                  COLORS.primary
+                                }
+                              />
+                            )}
                           </View>
 
-                          {selected && (
-                            <MaterialIcons
-                              name="check-circle"
-                              size={17}
-                              color={
-                                COLORS.primary
+                          <View
+                            style={
+                              styles.mobilityInfo
+                            }
+                          >
+                            <Text
+                              style={
+                                styles.mobilityLabel
                               }
-                            />
-                          )}
-                        </View>
+                            >
+                              {option.label}
+                            </Text>
 
-                        <View
-                          style={
-                            styles.mobilityInfo
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.mobilityLabel
-                            }
-                          >
-                            {option.label}
-                          </Text>
+                            <Text
+                              style={
+                                styles.mobilityDuration
+                              }
+                            >
+                              {formatRouteDuration(
+                                option.duration,
+                              )}
+                            </Text>
 
-                          <Text
-                            style={
-                              styles.mobilityDuration
-                            }
-                          >
-                            {formatRouteDuration(
-                              option.duration,
-                            )}
-                          </Text>
+                            <Text
+                              style={
+                                styles.mobilityDistance
+                              }
+                            >
+                              {formatRouteDistance(
+                                option.distance,
+                              )}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      );
+                    },
+                  )}
+                </View>
 
-                          <Text
-                            style={
-                              styles.mobilityDistance
-                            }
-                          >
-                            {formatRouteDistance(
-                              option.distance,
-                            )}
-                          </Text>
-                        </View>
-                      </Pressable>
-                    );
-                  },
-                )}
-              </View>
+                <Pressable
+                  onPress={
+                    handleStartNavigation
+                  }
+                  style={({ pressed }) => [
+                    styles.navigationButton,
+
+                    pressed &&
+                      styles.navigationButtonPressed,
+                  ]}
+                >
+                  <View
+                    style={
+                      styles.navigationButtonIcon
+                    }
+                  >
+                    <MaterialIcons
+                      name="navigation"
+                      size={20}
+                      color={
+                        COLORS.white
+                      }
+                    />
+                  </View>
+
+                  <View
+                    style={
+                      styles.navigationButtonTextArea
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.navigationButtonTitle
+                      }
+                    >
+                      Iniciar rota
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.navigationButtonSubtitle
+                      }
+                    >
+                      Navegar de{' '}
+                      {getMobilityLabel(
+                        selectedMobilityMode,
+                      )}{' '}
+                      com Google Maps
+                    </Text>
+                  </View>
+
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={22}
+                    color={
+                      COLORS.white
+                    }
+                  />
+                </Pressable>
+              </>
             )}
 
             {!loadingMobility &&
@@ -1268,11 +1386,6 @@ const styles =
         COLORS.border,
     },
 
-    /*
-     * MOBILIDADE
-     *
-     * Cards mais compactos.
-     */
     mobilitySection: {
       marginTop:
         SPACING.md,
@@ -1386,6 +1499,7 @@ const styles =
 
     mobilityIconContainer: {
       width: 30,
+
       height: 30,
 
       alignItems:
@@ -1449,6 +1563,75 @@ const styles =
       fontSize: 12,
 
       lineHeight: 17,
+    },
+
+    navigationButton: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      marginTop: 4,
+
+      paddingHorizontal: 14,
+
+      paddingVertical: 11,
+
+      borderRadius: 14,
+
+      backgroundColor:
+        COLORS.primary,
+    },
+
+    navigationButtonPressed: {
+      opacity: 0.82,
+    },
+
+    navigationButtonIcon: {
+      width: 34,
+
+      height: 34,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      borderRadius: 10,
+
+      backgroundColor:
+        'rgba(255,255,255,0.12)',
+    },
+
+    navigationButtonTextArea: {
+      flex: 1,
+
+      marginLeft:
+        SPACING.sm,
+    },
+
+    navigationButtonTitle: {
+      color:
+        COLORS.white,
+
+      fontSize: 15,
+
+      fontWeight:
+        '800',
+    },
+
+    navigationButtonSubtitle: {
+      marginTop: 1,
+
+      color:
+        'rgba(255,255,255,0.76)',
+
+      fontSize: 11,
+
+      fontWeight:
+        '500',
     },
 
     resultsSection: {

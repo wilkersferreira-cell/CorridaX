@@ -41,13 +41,6 @@ export type MobilityOption = {
   travelMode: GoogleTravelMode;
   distance: number;
   duration: number;
-
-  /*
-   * NOVO
-   *
-   * Cada modalidade guarda
-   * sua própria geometria.
-   */
   coordinates: Coordinate[];
 };
 
@@ -80,6 +73,20 @@ const MOBILITY_MODES: Array<{
     travelMode: 'WALK',
   },
 ];
+
+function isValidCoordinate(
+  latitude?: number,
+  longitude?: number,
+): boolean {
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    !(
+      latitude === 0 &&
+      longitude === 0
+    )
+  );
+}
 
 export default function useRideComparison() {
   const [loading, setLoading] =
@@ -129,12 +136,6 @@ export default function useRideComparison() {
     setLoadingMobility,
   ] = useState(false);
 
-  /*
-   * Modalidade atualmente
-   * selecionada no CorridaX.
-   *
-   * Carro é o padrão.
-   */
   const [
     selectedMobilityMode,
     setSelectedMobilityMode,
@@ -162,11 +163,9 @@ export default function useRideComparison() {
     longitude: number,
   ) {
     if (
-      !Number.isFinite(latitude) ||
-      !Number.isFinite(longitude) ||
-      (
-        latitude === 0 &&
-        longitude === 0
+      !isValidCoordinate(
+        latitude,
+        longitude,
       )
     ) {
       return;
@@ -207,11 +206,6 @@ export default function useRideComparison() {
     }
   }
 
-  /*
-   * Troca a modalidade ativa
-   * e imediatamente atualiza
-   * o trajeto do mapa.
-   */
   function selectMobilityMode(
     mode: MobilityMode,
   ) {
@@ -237,11 +231,6 @@ export default function useRideComparison() {
         option.duration,
     });
 
-    /*
-     * O mapa passa a utilizar
-     * a geometria específica
-     * daquela modalidade.
-     */
     if (
       option.coordinates.length >= 2
     ) {
@@ -339,17 +328,18 @@ export default function useRideComparison() {
     }
   }
 
+  /*
+   * PRÉ-VISUALIZAÇÃO DA ROTA
+   *
+   * Agora recebe a origem explicitamente.
+   *
+   * Isso elimina a dependência exclusiva
+   * do estado assíncrono do React.
+   */
   async function previewRoute(
+    originCoordinate: Coordinate,
     destinationCoordinate: Coordinate,
   ) {
-    if (!origin) {
-      console.warn(
-        'Origem ainda não disponível para pré-visualizar a rota.',
-      );
-
-      return;
-    }
-
     try {
       let routeDistance: number;
       let routeDuration: number;
@@ -360,8 +350,8 @@ export default function useRideComparison() {
       try {
         const googleRoute =
           await calculateGoogleRoute(
-            origin.latitude,
-            origin.longitude,
+            originCoordinate.latitude,
+            originCoordinate.longitude,
             destinationCoordinate.latitude,
             destinationCoordinate.longitude,
             'DRIVE',
@@ -381,8 +371,8 @@ export default function useRideComparison() {
         ) {
           const osrmGeometry =
             await calculateRoute(
-              origin.latitude,
-              origin.longitude,
+              originCoordinate.latitude,
+              originCoordinate.longitude,
               destinationCoordinate.latitude,
               destinationCoordinate.longitude,
             );
@@ -398,8 +388,8 @@ export default function useRideComparison() {
 
         const osrmRoute =
           await calculateRoute(
-            origin.latitude,
-            origin.longitude,
+            originCoordinate.latitude,
+            originCoordinate.longitude,
             destinationCoordinate.latitude,
             destinationCoordinate.longitude,
           );
@@ -414,14 +404,20 @@ export default function useRideComparison() {
           osrmRoute.coordinates;
       }
 
-      /*
-       * Carro continua sendo
-       * a modalidade inicial.
-       */
+      setOrigin(
+        originCoordinate,
+      );
+
       setSelectedMobilityMode(
         'car',
       );
 
+      /*
+       * IMPORTANTE:
+       *
+       * A rota de carro aparece
+       * imediatamente.
+       */
       setRouteCoordinates(
         coordinates,
       );
@@ -434,17 +430,16 @@ export default function useRideComparison() {
           routeDuration,
       });
 
+      /*
+       * Depois calculamos as quatro
+       * modalidades.
+       */
       const options =
         await calculateMobilityOptions(
-          origin,
+          originCoordinate,
           destinationCoordinate,
         );
 
-      /*
-       * Sincroniza a rota inicial
-       * com o resultado DRIVE
-       * retornado na lista.
-       */
       const carOption =
         options.find(
           (option) =>
@@ -483,8 +478,17 @@ export default function useRideComparison() {
     }
   }
 
+  /*
+   * SELEÇÃO DO DESTINO
+   *
+   * Agora pode receber diretamente
+   * latitude e longitude atuais
+   * fornecidas pela Home.
+   */
   async function selectDestination(
     suggestion: GooglePlaceSuggestion,
+    originLatitude?: number,
+    originLongitude?: number,
   ) {
     const place =
       await getGooglePlaceCoordinate(
@@ -534,7 +538,48 @@ export default function useRideComparison() {
 
     setSuggestions([]);
 
+    /*
+     * PRIORIDADE:
+     *
+     * 1. GPS fornecido diretamente
+     *    pela Home.
+     *
+     * 2. Estado origin já existente.
+     */
+    let previewOrigin:
+      Coordinate | undefined;
+
+    if (
+      isValidCoordinate(
+        originLatitude,
+        originLongitude,
+      )
+    ) {
+      previewOrigin = {
+        latitude:
+          originLatitude as number,
+
+        longitude:
+          originLongitude as number,
+      };
+    } else if (origin) {
+      previewOrigin =
+        origin;
+    }
+
+    if (!previewOrigin) {
+      console.warn(
+        'GPS ainda não disponível para calcular a rota.',
+      );
+
+      return {
+        displayName,
+        coordinate,
+      };
+    }
+
     await previewRoute(
+      previewOrigin,
       coordinate,
     );
 
@@ -580,15 +625,9 @@ export default function useRideComparison() {
 
     try {
       if (
-        !Number.isFinite(
+        !isValidCoordinate(
           originLatitude,
-        ) ||
-        !Number.isFinite(
           originLongitude,
-        ) ||
-        (
-          originLatitude === 0 &&
-          originLongitude === 0
         )
       ) {
         throw new Error(
@@ -661,17 +700,6 @@ export default function useRideComparison() {
         destinationCoordinate,
       );
 
-      /*
-       * IMPORTANTE
-       *
-       * A comparação de Uber,
-       * 99 e inDrive continua
-       * utilizando a rota de carro.
-       *
-       * Selecionar caminhada ou
-       * bicicleta no mapa não
-       * altera o cálculo dos apps.
-       */
       let routeDistance: number;
       let routeDuration: number;
 
@@ -735,11 +763,6 @@ export default function useRideComparison() {
           osrmRoute.coordinates;
       }
 
-      /*
-       * Só voltamos o mapa para
-       * carro se carro estiver
-       * selecionado.
-       */
       if (
         selectedMobilityMode ===
         'car'
@@ -770,12 +793,6 @@ export default function useRideComparison() {
           );
       }
 
-      /*
-       * Se outro modo estiver
-       * selecionado, preservamos
-       * sua rota após comparar
-       * os aplicativos.
-       */
       if (
         selectedMobilityMode !==
         'car'
@@ -876,9 +893,6 @@ export default function useRideComparison() {
 
     loadingMobility,
 
-    /*
-     * NOVO
-     */
     selectedMobilityMode,
 
     selectMobilityMode,

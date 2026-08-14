@@ -1,20 +1,20 @@
 import React from 'react';
 
 import {
+  Pressable,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from 'react-native';
 
 import {
-  Card,
   Text,
 } from 'react-native-paper';
+
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import {
   COLORS,
   RADIUS,
-  SHADOWS,
   SPACING,
   TYPOGRAPHY,
 } from '../../theme';
@@ -26,8 +26,61 @@ export interface Suggestion {
 
 type Props = {
   data: Suggestion[];
-  onSelect: (item: Suggestion) => void;
+  onSelect: (
+    item: Suggestion,
+  ) => void;
 };
+
+/*
+ * Separa o nome principal
+ * do restante da descrição.
+ *
+ * Exemplo:
+ *
+ * Shopping Grande Circular,
+ * Avenida Autaz Mirim...
+ *
+ * vira:
+ *
+ * Shopping Grande Circular
+ * Avenida Autaz Mirim...
+ */
+function splitDisplayName(
+  displayName: string,
+): {
+  title: string;
+  subtitle?: string;
+} {
+  const parts =
+    displayName
+      .split(',')
+      .map((part) =>
+        part.trim(),
+      )
+      .filter(Boolean);
+
+  if (parts.length === 0) {
+    return {
+      title:
+        displayName,
+    };
+  }
+
+  const [
+    title,
+    ...rest
+  ] = parts;
+
+  const subtitle =
+    rest.length > 0
+      ? rest.join(', ')
+      : undefined;
+
+  return {
+    title,
+    subtitle,
+  };
+}
 
 export default function AddressSuggestions({
   data,
@@ -38,139 +91,210 @@ export default function AddressSuggestions({
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.sectionLabel}>
-        Sugestões de destino
+    <View
+      style={
+        styles.container
+      }
+    >
+      <Text
+        style={
+          styles.sectionLabel
+        }
+      >
+        Sugestões
       </Text>
 
-      {data.map((item) => (
-        <TouchableOpacity
-          key={item.placeId}
-          activeOpacity={0.75}
-          onPress={() => onSelect(item)}
-        >
-          <Card style={styles.card}>
-            <Card.Content
-              style={styles.cardContent}
-            >
-              <View
-                style={styles.iconContainer}
-              >
-                <Text style={styles.icon}>
-                  📍
-                </Text>
-              </View>
+      <View
+        style={
+          styles.list
+        }
+      >
+        {data.map(
+          (item, index) => {
+            const {
+              title,
+              subtitle,
+            } =
+              splitDisplayName(
+                item.displayName,
+              );
 
-              <View
-                style={styles.textContainer}
+            const isLast =
+              index ===
+              data.length - 1;
+
+            return (
+              <Pressable
+                key={
+                  item.placeId
+                }
+                onPress={() =>
+                  onSelect(
+                    item,
+                  )
+                }
+                style={({
+                  pressed,
+                }) => [
+                  styles.item,
+
+                  !isLast &&
+                    styles.itemBorder,
+
+                  pressed &&
+                    styles.itemPressed,
+                ]}
               >
-                <Text
-                  style={styles.address}
-                  numberOfLines={2}
+                <View
+                  style={
+                    styles.textContainer
+                  }
                 >
-                  {item.displayName}
-                </Text>
+                  <Text
+                    style={
+                      styles.title
+                    }
+                    numberOfLines={
+                      1
+                    }
+                  >
+                    {title}
+                  </Text>
 
-                <Text style={styles.helper}>
-                  Toque para selecionar
-                </Text>
-              </View>
+                  {subtitle && (
+                    <Text
+                      style={
+                        styles.subtitle
+                      }
+                      numberOfLines={
+                        1
+                      }
+                    >
+                      {subtitle}
+                    </Text>
+                  )}
+                </View>
 
-              <Text style={styles.arrow}>
-                ›
-              </Text>
-            </Card.Content>
-          </Card>
-        </TouchableOpacity>
-      ))}
+                <MaterialIcons
+                  name="chevron-right"
+                  size={20}
+                  color={
+                    COLORS.textMuted
+                  }
+                />
+              </Pressable>
+            );
+          },
+        )}
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: SPACING.md,
-  },
+const styles =
+  StyleSheet.create({
+    container: {
+      marginTop: 2,
 
-  sectionLabel: {
-    marginBottom: SPACING.sm,
-    marginLeft: SPACING.xs,
+      marginBottom:
+        SPACING.md,
+    },
 
-    color: COLORS.textMuted,
+    sectionLabel: {
+      marginLeft:
+        SPACING.xs,
 
-    fontSize: TYPOGRAPHY.size.xs,
-    fontWeight:
-      TYPOGRAPHY.weight.semiBold,
-  },
+      marginBottom: 6,
 
-  card: {
-    marginBottom: SPACING.sm,
+      color:
+        COLORS.textMuted,
 
-    borderRadius: RADIUS.md,
+      fontSize: 11,
 
-    backgroundColor:
-      COLORS.surfaceLight,
+      fontWeight:
+        TYPOGRAPHY.weight.semiBold,
 
-    borderWidth: 1,
-    borderColor: COLORS.borderSoft,
+      letterSpacing: 0.2,
+    },
 
-    ...SHADOWS.sm,
-  },
+    /*
+     * Um único painel para
+     * todas as sugestões.
+     *
+     * Mais limpo que vários
+     * cards independentes.
+     */
+    list: {
+      overflow:
+        'hidden',
 
-  cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+      borderRadius:
+        RADIUS.lg,
 
-    paddingVertical: SPACING.md,
-  },
+      borderWidth: 1,
 
-  iconContainer: {
-    width: 38,
-    height: 38,
+      borderColor:
+        COLORS.borderSoft,
 
-    alignItems: 'center',
-    justifyContent: 'center',
+      backgroundColor:
+        COLORS.surfaceLight,
+    },
 
-    borderRadius: RADIUS.round,
+    item: {
+      minHeight: 58,
 
-    backgroundColor:
-      COLORS.primarySoft,
-  },
+      flexDirection:
+        'row',
 
-  icon: {
-    fontSize: TYPOGRAPHY.size.lg,
-  },
+      alignItems:
+        'center',
 
-  textContainer: {
-    flex: 1,
+      paddingHorizontal:
+        SPACING.md,
 
-    marginLeft: SPACING.md,
-    marginRight: SPACING.sm,
-  },
+      paddingVertical: 10,
+    },
 
-  address: {
-    color: COLORS.text,
+    itemBorder: {
+      borderBottomWidth:
+        StyleSheet.hairlineWidth,
 
-    fontSize: TYPOGRAPHY.size.sm,
-    lineHeight:
-      TYPOGRAPHY.lineHeight.md,
-    fontWeight:
-      TYPOGRAPHY.weight.medium,
-  },
+      borderBottomColor:
+        COLORS.borderSoft,
+    },
 
-  helper: {
-    marginTop: SPACING.xs,
+    itemPressed: {
+      backgroundColor:
+        COLORS.primarySoft,
+    },
 
-    color: COLORS.textMuted,
+    textContainer: {
+      flex: 1,
 
-    fontSize: TYPOGRAPHY.size.xs,
-  },
+      paddingRight:
+        SPACING.sm,
+    },
 
-  arrow: {
-    color: COLORS.primaryLight,
+    title: {
+      color:
+        COLORS.text,
 
-    fontSize: TYPOGRAPHY.size.xxl,
-    fontWeight:
-      TYPOGRAPHY.weight.medium,
-  },
-});
+      fontSize:
+        TYPOGRAPHY.size.sm,
+
+      fontWeight:
+        TYPOGRAPHY.weight.semiBold,
+    },
+
+    subtitle: {
+      marginTop: 3,
+
+      color:
+        COLORS.textMuted,
+
+      fontSize:
+        TYPOGRAPHY.size.xs,
+
+      lineHeight: 16,
+    },
+  });
