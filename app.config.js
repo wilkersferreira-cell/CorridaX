@@ -5,7 +5,11 @@ module.exports = {
 
   android: {
     ...appJson.expo.android,
+
     package: 'com.corridax.app',
+
+    googleServicesFile:
+      './google-services.json',
   },
 
   plugins: [
@@ -14,6 +18,10 @@ module.exports = {
     'expo-dev-client',
 
     'expo-font',
+
+    '@react-native-firebase/app',
+
+    '@react-native-firebase/auth',
 
     [
       'react-native-maps',

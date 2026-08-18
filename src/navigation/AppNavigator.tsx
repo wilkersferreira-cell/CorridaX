@@ -1,6 +1,13 @@
 import React, {
+  useEffect,
   useState,
 } from 'react';
+
+import {
+  ActivityIndicator,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import {
   DarkTheme,
@@ -18,6 +25,12 @@ import {
 import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
+
+import {
+  getAuth,
+  onAuthStateChanged,
+  type User,
+} from '@react-native-firebase/auth';
 
 import HomeScreen from '../screens/HomeScreen';
 import HistoryScreen from '../screens/HistoryScreen';
@@ -233,72 +246,97 @@ function MainTabs() {
 
 type AuthScreen =
   | 'welcome'
-  | 'signup'
-  | 'app';
+  | 'signup';
 
 export default function AppNavigator() {
   const [
-    screen,
-    setScreen,
+    authScreen,
+    setAuthScreen,
   ] =
     useState<AuthScreen>(
       'welcome',
     );
 
-  /*
-   * TEMPORÁRIO:
-   *
-   * enquanto a autenticação real
-   * ainda não foi conectada,
-   * controlamos as telas localmente.
-   *
-   * Depois este estado será
-   * substituído pela sessão real
-   * do usuário.
-   */
+  const [
+    user,
+    setUser,
+  ] =
+    useState<User | null>(
+      null,
+    );
 
-  if (screen === 'welcome') {
+  const [
+    initializing,
+    setInitializing,
+  ] = useState(true);
+
+  useEffect(() => {
+    const auth =
+      getAuth();
+
+    const unsubscribe =
+      onAuthStateChanged(
+        auth,
+        (
+          firebaseUser,
+        ) => {
+          setUser(
+            firebaseUser,
+          );
+
+          setInitializing(
+            false,
+          );
+        },
+      );
+
+    return unsubscribe;
+  }, []);
+
+  if (initializing) {
     return (
-      <LoginScreen
-        onContinue={() => {
-          /*
-           * Google será conectado
-           * posteriormente.
-           */
-        }}
-        onCreateAccount={() =>
-          setScreen(
-            'signup',
-          )
+      <View
+        style={
+          styles.loadingContainer
         }
-        onLogin={() => {
-          /*
-           * Próximo passo:
-           * tela Entrar.
-           */
-        }}
-      />
+      >
+        <ActivityIndicator
+          size="large"
+          color={
+            COLORS.primaryLight
+          }
+        />
+      </View>
     );
   }
 
-  if (screen === 'signup') {
+  if (user) {
+    return (
+      <NavigationContainer
+        theme={
+          navigationTheme
+        }
+      >
+        <MainTabs />
+      </NavigationContainer>
+    );
+  }
+
+  if (
+    authScreen ===
+    'signup'
+  ) {
     return (
       <SignUpScreen
         onBack={() =>
-          setScreen(
+          setAuthScreen(
             'welcome',
           )
         }
         onLogin={() => {
           /*
-           * Próximo passo:
-           * tela Entrar.
-           */
-        }}
-        onCreateAccount={() => {
-          /*
-           * Cadastro real será
-           * conectado posteriormente.
+           * Tela Entrar será
+           * implementada em seguida.
            */
         }}
       />
@@ -306,12 +344,40 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer
-      theme={
-        navigationTheme
+    <LoginScreen
+      onContinue={() => {
+        /*
+         * Login Google será
+         * implementado depois.
+         */
+      }}
+      onCreateAccount={() =>
+        setAuthScreen(
+          'signup',
+        )
       }
-    >
-      <MainTabs />
-    </NavigationContainer>
+      onLogin={() => {
+        /*
+         * Tela Entrar será
+         * implementada em seguida.
+         */
+      }}
+    />
   );
 }
+
+const styles =
+  StyleSheet.create({
+    loadingContainer: {
+      flex: 1,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      backgroundColor:
+        COLORS.background,
+    },
+  });

@@ -20,6 +20,7 @@ import {
 } from '@expo/vector-icons';
 
 import {
+  ActivityIndicator,
   Text,
   TextInput,
 } from 'react-native-paper';
@@ -27,6 +28,12 @@ import {
 import {
   SafeAreaView,
 } from 'react-native-safe-area-context';
+
+import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  updateProfile,
+} from '@react-native-firebase/auth';
 
 import LogoCX from '../components/layout/LogoCX';
 
@@ -52,6 +59,41 @@ function isValidEmail(
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
     email,
   );
+}
+
+function getFirebaseErrorMessage(
+  error: unknown,
+): string {
+  const code =
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof error.code === 'string'
+      ? error.code
+      : '';
+
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'Já existe uma conta cadastrada com este e-mail.';
+
+    case 'auth/invalid-email':
+      return 'O endereço de e-mail informado não é válido.';
+
+    case 'auth/weak-password':
+      return 'Escolha uma senha mais forte.';
+
+    case 'auth/network-request-failed':
+      return 'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.';
+
+    case 'auth/too-many-requests':
+      return 'Muitas tentativas foram realizadas. Aguarde um pouco e tente novamente.';
+
+    case 'auth/operation-not-allowed':
+      return 'O cadastro por e-mail ainda não está disponível.';
+
+    default:
+      return 'Não foi possível criar sua conta agora. Tente novamente.';
+  }
 }
 
 export default function SignUpScreen({
@@ -109,6 +151,16 @@ export default function SignUpScreen({
     setTouchedConfirmPassword,
   ] = useState(false);
 
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+  const [
+    firebaseError,
+    setFirebaseError,
+  ] = useState('');
+
   const scrollRef =
     useRef<ScrollView>(null);
 
@@ -141,7 +193,8 @@ export default function SignUpScreen({
     nameValid &&
     emailValid &&
     passwordValid &&
-    confirmPasswordValid;
+    confirmPasswordValid &&
+    !loading;
 
   const nameError =
     touchedName &&
@@ -201,19 +254,67 @@ export default function SignUpScreen({
     }, 180);
   }
 
-  function handleCreateAccount() {
+  async function handleCreateAccount() {
     setTouchedName(true);
     setTouchedEmail(true);
     setTouchedPassword(true);
     setTouchedConfirmPassword(true);
+    setFirebaseError('');
 
     if (
-      !canCreateAccount
+      !nameValid ||
+      !emailValid ||
+      !passwordValid ||
+      !confirmPasswordValid ||
+      loading
     ) {
       return;
     }
 
-    onCreateAccount?.();
+    try {
+      setLoading(true);
+
+      const auth =
+        getAuth();
+
+      const credential =
+        await createUserWithEmailAndPassword(
+          auth,
+          email.trim().toLowerCase(),
+          password,
+        );
+
+      await updateProfile(
+        credential.user,
+        {
+          displayName:
+            name.trim(),
+        },
+      );
+
+      /*
+       * O Firebase já deixa o usuário
+       * autenticado após criar a conta.
+       *
+       * O AppNavigator ouvirá essa mudança
+       * e abrirá automaticamente a Home.
+       */
+      onCreateAccount?.();
+    } catch (error) {
+      setFirebaseError(
+        getFirebaseErrorMessage(
+          error,
+        ),
+      );
+
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({
+          animated: true,
+        });
+      }, 150);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -264,6 +365,7 @@ export default function SignUpScreen({
           >
             <Pressable
               onPress={onBack}
+              disabled={loading}
               hitSlop={12}
               style={({ pressed }) => [
                 styles.backButton,
@@ -343,6 +445,7 @@ export default function SignUpScreen({
               mode="outlined"
               label="Nome"
               value={name}
+              editable={!loading}
               onChangeText={(
                 value,
               ) => {
@@ -350,13 +453,7 @@ export default function SignUpScreen({
                   value,
                 );
 
-                if (
-                  touchedName
-                ) {
-                  setTouchedName(
-                    true,
-                  );
-                }
+                setFirebaseError('');
               }}
               onBlur={() =>
                 setTouchedName(
@@ -425,12 +522,15 @@ export default function SignUpScreen({
               mode="outlined"
               label="E-mail"
               value={email}
+              editable={!loading}
               onChangeText={(
                 value,
               ) => {
                 setEmail(
                   value,
                 );
+
+                setFirebaseError('');
               }}
               onBlur={() =>
                 setTouchedEmail(
@@ -500,12 +600,15 @@ export default function SignUpScreen({
               mode="outlined"
               label="Senha"
               value={password}
+              editable={!loading}
               onChangeText={(
                 value,
               ) => {
                 setPassword(
                   value,
                 );
+
+                setFirebaseError('');
               }}
               onBlur={() =>
                 setTouchedPassword(
@@ -602,12 +705,15 @@ export default function SignUpScreen({
               value={
                 confirmPassword
               }
+              editable={!loading}
               onChangeText={(
                 value,
               ) => {
                 setConfirmPassword(
                   value,
                 );
+
+                setFirebaseError('');
               }}
               onBlur={() =>
                 setTouchedConfirmPassword(
@@ -720,6 +826,30 @@ export default function SignUpScreen({
                 </View>
               )}
 
+            {!!firebaseError && (
+              <View
+                style={
+                  styles.firebaseErrorBox
+                }
+              >
+                <MaterialCommunityIcons
+                  name="alert-circle-outline"
+                  size={17}
+                  color={
+                    COLORS.error
+                  }
+                />
+
+                <Text
+                  style={
+                    styles.firebaseErrorText
+                  }
+                >
+                  {firebaseError}
+                </Text>
+              </View>
+            )}
+
             <Pressable
               disabled={
                 !canCreateAccount
@@ -738,26 +868,44 @@ export default function SignUpScreen({
                   styles.pressed,
               ]}
             >
-              <Text
-                style={[
-                  styles.createButtonText,
+              {loading ? (
+                <>
+                  <ActivityIndicator
+                    size={18}
+                    color={
+                      COLORS.white
+                    }
+                  />
 
-                  !canCreateAccount &&
-                    styles.createButtonTextDisabled,
-                ]}
-              >
-                Criar minha conta
-              </Text>
+                  <Text
+                    style={
+                      styles.createButtonText
+                    }
+                  >
+                    Criando conta...
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text
+                    style={
+                      styles.createButtonText
+                    }
+                  >
+                    Criar minha conta
+                  </Text>
 
-              <MaterialCommunityIcons
-                name="arrow-right"
-                size={19}
-                color={
-                  canCreateAccount
-                    ? COLORS.white
-                    : COLORS.textMuted
-                }
-              />
+                  <MaterialCommunityIcons
+                    name="arrow-right"
+                    size={19}
+                    color={
+                      canCreateAccount
+                        ? COLORS.white
+                        : COLORS.textMuted
+                    }
+                  />
+                </>
+              )}
             </Pressable>
           </View>
 
@@ -776,6 +924,7 @@ export default function SignUpScreen({
 
             <Pressable
               onPress={onLogin}
+              disabled={loading}
               hitSlop={10}
             >
               {({ pressed }) => (
@@ -1017,6 +1166,45 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
 
+  firebaseErrorBox: {
+    flexDirection: 'row',
+
+    alignItems: 'flex-start',
+
+    marginBottom: 14,
+
+    paddingHorizontal: 11,
+
+    paddingVertical: 10,
+
+    borderWidth: 1,
+
+    borderColor:
+      COLORS.error,
+
+    borderRadius:
+      RADIUS.lg,
+
+    backgroundColor:
+      COLORS.surface,
+  },
+
+  firebaseErrorText: {
+    flex: 1,
+
+    marginLeft: 7,
+
+    color:
+      COLORS.error,
+
+    fontSize: 11,
+
+    lineHeight: 16,
+
+    fontWeight:
+      TYPOGRAPHY.weight.medium,
+  },
+
   createButton: {
     minHeight: 52,
 
@@ -1053,11 +1241,6 @@ const styles = StyleSheet.create({
 
     fontWeight:
       TYPOGRAPHY.weight.bold,
-  },
-
-  createButtonTextDisabled: {
-    color:
-      COLORS.textMuted,
   },
 
   pressed: {
