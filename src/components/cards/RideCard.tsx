@@ -70,10 +70,7 @@ export default function RideCard({
     ) {
       return {
         id: 'uber' as const,
-
-        buttonLabel:
-          'Abrir Uber',
-
+        buttonLabel: 'Abrir Uber',
         type: 'uber' as const,
       };
     }
@@ -85,20 +82,14 @@ export default function RideCard({
     ) {
       return {
         id: '99' as const,
-
-        buttonLabel:
-          'Abrir 99',
-
+        buttonLabel: 'Abrir 99',
         type: '99' as const,
       };
     }
 
     return {
       id: 'indrive' as const,
-
-      buttonLabel:
-        'Abrir inDrive',
-
+      buttonLabel: 'Abrir inDrive',
       type: 'indrive' as const,
     };
   }
@@ -235,15 +226,6 @@ export default function RideCard({
   const highlightData =
     getHighlightData();
 
-  /*
-   * Converte a economia
-   * formatada para número.
-   *
-   * Exemplos:
-   *
-   * R$ 2,18 -> 2.18
-   * R$ 0,00 -> 0
-   */
   const savingValue =
     economia
       ? Number(
@@ -263,11 +245,6 @@ export default function RideCard({
         )
       : 0;
 
-  /*
-   * Só mostra economia
-   * quando o valor for
-   * realmente maior que zero.
-   */
   const hasSaving =
     Number.isFinite(
       savingValue,
@@ -502,6 +479,9 @@ export default function RideCard({
         onPress={
           handleOpenApp
         }
+        textColor={
+          COLORS.primaryLight
+        }
         style={
           styles.button
         }
@@ -510,9 +490,6 @@ export default function RideCard({
         }
         labelStyle={
           styles.buttonLabel
-        }
-        textColor={
-          COLORS.primaryLight
         }
       >
         {app.buttonLabel}
@@ -544,12 +521,6 @@ const styles =
       ...SHADOWS.sm,
     },
 
-    /*
-     * Bordas discretas para
-     * comunicar a função de
-     * cada opção sem poluir
-     * visualmente o card.
-     */
     cheapestCard: {
       borderColor:
         COLORS.economy,
@@ -728,14 +699,18 @@ const styles =
     },
 
     button: {
-      marginTop:
-        SPACING.md,
+      marginTop: 12,
 
       borderRadius:
         RADIUS.lg,
 
+      borderWidth: 1,
+
       borderColor:
-        COLORS.primary,
+        COLORS.border,
+
+      backgroundColor:
+        COLORS.surface,
     },
 
     buttonContent: {

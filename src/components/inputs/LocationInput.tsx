@@ -11,7 +11,6 @@ import {
 import {
   COLORS,
   RADIUS,
-  SPACING,
   TYPOGRAPHY,
 } from '../../theme';
 
@@ -24,6 +23,8 @@ type Props = {
   icon: string;
   editable?: boolean;
   compact?: boolean;
+
+  position?: 'top' | 'bottom';
 };
 
 export default function LocationInput({
@@ -33,7 +34,11 @@ export default function LocationInput({
   icon,
   editable = true,
   compact = false,
+  position,
 }: Props) {
+  const grouped =
+    position !== undefined;
+
   return (
     <TextInput
       mode="outlined"
@@ -53,8 +58,8 @@ export default function LocationInput({
           }
           size={
             compact
-              ? 20
-              : 24
+              ? 18
+              : 20
           }
         />
       }
@@ -64,6 +69,15 @@ export default function LocationInput({
         compact &&
           styles.inputCompact,
 
+        grouped &&
+          styles.inputGrouped,
+
+        position === 'top' &&
+          styles.inputTop,
+
+        position === 'bottom' &&
+          styles.inputBottom,
+
         !editable &&
           styles.inputDisabled,
       ]}
@@ -72,12 +86,21 @@ export default function LocationInput({
 
         compact &&
           styles.contentCompact,
+
+        grouped &&
+          styles.contentGrouped,
       ]}
       outlineStyle={[
         styles.outline,
 
         compact &&
           styles.outlineCompact,
+
+        position === 'top' &&
+          styles.outlineTop,
+
+        position === 'bottom' &&
+          styles.outlineBottom,
       ]}
       textColor={
         compact
@@ -87,17 +110,21 @@ export default function LocationInput({
       theme={{
         colors: {
           background:
-            compact
+            grouped
               ? COLORS.surface
-              : COLORS.surfaceLight,
+              : compact
+                ? COLORS.surface
+                : COLORS.surfaceLight,
 
           primary:
             COLORS.primary,
 
           outline:
-            compact
+            grouped
               ? COLORS.borderSoft
-              : COLORS.border,
+              : compact
+                ? COLORS.borderSoft
+                : COLORS.border,
 
           onSurfaceVariant:
             COLORS.textSecondary,
@@ -115,19 +142,34 @@ export default function LocationInput({
 const styles =
   StyleSheet.create({
     input: {
-      marginBottom:
-        SPACING.md,
+      marginBottom: 8,
 
       backgroundColor:
         COLORS.surfaceLight,
     },
 
     inputCompact: {
+      marginBottom: 6,
+
       backgroundColor:
         COLORS.surface,
+    },
 
-      marginBottom:
-        SPACING.sm,
+    inputGrouped: {
+      marginBottom: 0,
+
+      backgroundColor:
+        COLORS.surface,
+    },
+
+    inputTop: {
+      zIndex: 2,
+    },
+
+    inputBottom: {
+      marginTop: -1,
+
+      zIndex: 1,
     },
 
     inputDisabled: {
@@ -135,22 +177,27 @@ const styles =
     },
 
     content: {
-      fontSize:
-        TYPOGRAPHY.size.lg,
+      minHeight: 50,
 
-      minHeight: 58,
+      fontSize: 16,
     },
 
     contentCompact: {
+      minHeight: 42,
+
       fontSize:
         TYPOGRAPHY.size.md,
+    },
 
-      minHeight: 44,
+    contentGrouped: {
+      minHeight: 48,
+
+      fontSize: 16,
     },
 
     outline: {
       borderRadius:
-        RADIUS.xl,
+        RADIUS.lg,
 
       borderWidth: 1.5,
     },
@@ -158,6 +205,22 @@ const styles =
     outlineCompact: {
       borderRadius:
         RADIUS.lg,
+
+      borderWidth: 1,
+    },
+
+    outlineTop: {
+      borderBottomLeftRadius: 0,
+
+      borderBottomRightRadius: 0,
+
+      borderWidth: 1,
+    },
+
+    outlineBottom: {
+      borderTopLeftRadius: 0,
+
+      borderTopRightRadius: 0,
 
       borderWidth: 1,
     },

@@ -208,13 +208,6 @@ export default function MapViewCard({
 
         {route.length >= 2 && (
           <>
-            {/*
-             * CONTORNO BRANCO
-             *
-             * Espessura reduzida
-             * para deixar a rota
-             * mais discreta.
-             */}
             <Polyline
               coordinates={route}
               strokeColor={
@@ -223,11 +216,6 @@ export default function MapViewCard({
               strokeWidth={4}
             />
 
-            {/*
-             * TRAJETO PRINCIPAL
-             *
-             * Linha azul mais fina.
-             */}
             <Polyline
               coordinates={route}
               strokeColor={
@@ -245,7 +233,7 @@ export default function MapViewCard({
 const styles =
   StyleSheet.create({
     container: {
-      height: 240,
+      height: 252,
 
       borderRadius:
         RADIUS.xxl,

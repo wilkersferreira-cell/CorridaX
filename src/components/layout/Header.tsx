@@ -31,14 +31,14 @@ export default function Header() {
         styles.container,
         {
           paddingTop:
-            statusBarHeight > 0
-              ? SPACING.xs + 6
-              : SPACING.sm + 6,
+  statusBarHeight > 0
+    ? SPACING.sm + 20
+    : SPACING.md + 18,
         },
       ]}
     >
       <View style={styles.brandRow}>
-        <LogoCX size={46} />
+        <LogoCX size={42} />
 
         <View style={styles.textContainer}>
           <Text
@@ -62,11 +62,11 @@ export default function Header() {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: SPACING.md,
+    marginBottom: 10,
   },
 
   brandRow: {
-    minHeight: 56,
+    minHeight: 50,
 
     flexDirection: 'row',
     alignItems: 'center',
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   textContainer: {
     flex: 1,
 
-    marginLeft: SPACING.md,
+    marginLeft: 11,
 
     justifyContent: 'center',
   },
@@ -83,13 +83,13 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.white,
 
-    fontSize: 25,
-    lineHeight: 29,
+    fontSize: 23,
+    lineHeight: 26,
 
     fontWeight:
       TYPOGRAPHY.weight.extraBold,
 
-    letterSpacing: -0.5,
+    letterSpacing: -0.45,
   },
 
   subtitle: {
@@ -98,14 +98,12 @@ const styles = StyleSheet.create({
     color:
       COLORS.textSecondary,
 
-    fontSize:
-      TYPOGRAPHY.size.sm,
-
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
 
     fontWeight:
       TYPOGRAPHY.weight.medium,
 
-    letterSpacing: 0.1,
+    letterSpacing: 0.05,
   },
 });

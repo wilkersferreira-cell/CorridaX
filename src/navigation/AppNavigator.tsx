@@ -1,4 +1,6 @@
-import React from 'react';
+import React, {
+  useState,
+} from 'react';
 
 import {
   DarkTheme,
@@ -21,6 +23,9 @@ import HomeScreen from '../screens/HomeScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+
+import LoginScreen from '../screens/LoginScreen';
+import SignUpScreen from '../screens/SignUpScreen';
 
 import {
   COLORS,
@@ -226,7 +231,80 @@ function MainTabs() {
   );
 }
 
+type AuthScreen =
+  | 'welcome'
+  | 'signup'
+  | 'app';
+
 export default function AppNavigator() {
+  const [
+    screen,
+    setScreen,
+  ] =
+    useState<AuthScreen>(
+      'welcome',
+    );
+
+  /*
+   * TEMPORÁRIO:
+   *
+   * enquanto a autenticação real
+   * ainda não foi conectada,
+   * controlamos as telas localmente.
+   *
+   * Depois este estado será
+   * substituído pela sessão real
+   * do usuário.
+   */
+
+  if (screen === 'welcome') {
+    return (
+      <LoginScreen
+        onContinue={() => {
+          /*
+           * Google será conectado
+           * posteriormente.
+           */
+        }}
+        onCreateAccount={() =>
+          setScreen(
+            'signup',
+          )
+        }
+        onLogin={() => {
+          /*
+           * Próximo passo:
+           * tela Entrar.
+           */
+        }}
+      />
+    );
+  }
+
+  if (screen === 'signup') {
+    return (
+      <SignUpScreen
+        onBack={() =>
+          setScreen(
+            'welcome',
+          )
+        }
+        onLogin={() => {
+          /*
+           * Próximo passo:
+           * tela Entrar.
+           */
+        }}
+        onCreateAccount={() => {
+          /*
+           * Cadastro real será
+           * conectado posteriormente.
+           */
+        }}
+      />
+    );
+  }
+
   return (
     <NavigationContainer
       theme={

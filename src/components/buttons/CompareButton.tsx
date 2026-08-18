@@ -1,13 +1,17 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
 
-import { Button } from 'react-native-paper';
+import {
+  StyleSheet,
+} from 'react-native';
+
+import {
+  Button,
+} from 'react-native-paper';
 
 import {
   COLORS,
   RADIUS,
   SHADOWS,
-  SPACING,
   TYPOGRAPHY,
 } from '../../theme';
 
@@ -23,39 +27,64 @@ export default function CompareButton({
   return (
     <Button
       mode="contained"
-      icon={loading ? undefined : 'car-search'}
-      onPress={onPress}
-      loading={loading}
-      disabled={loading}
-      buttonColor={COLORS.primary}
-      textColor={COLORS.white}
+      icon={
+        loading
+          ? undefined
+          : 'car-search'
+      }
+      onPress={
+        onPress
+      }
+      loading={
+        loading
+      }
+      disabled={
+        loading
+      }
+      buttonColor={
+        COLORS.primary
+      }
+      textColor={
+        COLORS.white
+      }
       style={[
         styles.button,
-        !loading && SHADOWS.primary,
+
+        !loading &&
+          SHADOWS.primary,
       ]}
-      contentStyle={styles.content}
-      labelStyle={styles.label}
+      contentStyle={
+        styles.content
+      }
+      labelStyle={
+        styles.label
+      }
     >
-      {loading ? 'Comparando...' : 'Comparar Corridas'}
+      {loading
+        ? 'Comparando...'
+        : 'Comparar Corridas'}
     </Button>
   );
 }
 
-const styles = StyleSheet.create({
-  button: {
-    marginTop: SPACING.xl,
-    marginBottom: SPACING.xl,
+const styles =
+  StyleSheet.create({
+    button: {
+      borderRadius:
+        RADIUS.lg,
+    },
 
-    borderRadius: RADIUS.lg,
-  },
+    content: {
+      height: 50,
+    },
 
-  content: {
-    height: 58,
-  },
+    label: {
+      fontSize: 16,
 
-  label: {
-    fontSize: TYPOGRAPHY.size.lg,
-    fontWeight: TYPOGRAPHY.weight.bold,
-    letterSpacing: TYPOGRAPHY.letterSpacing.normal,
-  },
-});
+      fontWeight:
+        TYPOGRAPHY.weight.bold,
+
+      letterSpacing:
+        TYPOGRAPHY.letterSpacing.normal,
+    },
+  });

@@ -1,15 +1,9 @@
 import React from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
 
 import {
-  COLORS,
-  SHADOWS,
-  TYPOGRAPHY,
-} from '../../theme';
+  Image,
+  StyleSheet,
+} from 'react-native';
 
 type Props = {
   size?: number;
@@ -18,71 +12,24 @@ type Props = {
 export default function LogoCX({
   size = 60,
 }: Props) {
-  const radius = size * 0.28;
-
   return (
-    <View
+    <Image
+      source={require('../../../assets/corridax-logo.png')}
       style={[
-        styles.container,
+        styles.logo,
         {
           width: size,
           height: size,
-          borderRadius: radius,
+          borderRadius: size * 0.22,
         },
       ]}
-    >
-      <Text
-        style={[
-          styles.c,
-          {
-            fontSize: size * 0.62,
-          },
-        ]}
-      >
-        C
-      </Text>
-
-      <Text
-        style={[
-          styles.x,
-          {
-            fontSize: size * 0.56,
-          },
-        ]}
-      >
-        X
-      </Text>
-    </View>
+      resizeMode="contain"
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.primary,
-
-    justifyContent: 'center',
-    alignItems: 'center',
-
-    ...SHADOWS.primary,
-  },
-
-  c: {
-    position: 'absolute',
-
-    left: '18%',
-
-    color: COLORS.white,
-
-    fontWeight: TYPOGRAPHY.weight.black,
-  },
-
-  x: {
-    position: 'absolute',
-
-    right: '15%',
-
-    color: COLORS.primaryLight,
-
-    fontWeight: TYPOGRAPHY.weight.black,
+  logo: {
+    overflow: 'hidden',
   },
 });

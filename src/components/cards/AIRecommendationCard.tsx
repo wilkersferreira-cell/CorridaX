@@ -83,10 +83,7 @@ export default function AIRecommendationCard({
     ) {
       return {
         id: 'uber',
-
-        buttonLabel:
-          'Abrir Uber',
-
+        buttonLabel: 'Abrir Uber',
         type: 'uber',
       };
     }
@@ -98,20 +95,14 @@ export default function AIRecommendationCard({
     ) {
       return {
         id: '99',
-
-        buttonLabel:
-          'Abrir 99',
-
+        buttonLabel: 'Abrir 99',
         type: '99',
       };
     }
 
     return {
       id: 'indrive',
-
-      buttonLabel:
-        'Abrir inDrive',
-
+      buttonLabel: 'Abrir inDrive',
       type: 'indrive',
     };
   }
@@ -129,13 +120,6 @@ export default function AIRecommendationCard({
     );
   }
 
-  /*
-   * Mesmo padrão visual
-   * utilizado no RideCard.
-   *
-   * Todos os logos possuem
-   * exatamente 48 x 48.
-   */
   function Logo() {
     switch (app.type) {
       case '99':
@@ -199,7 +183,13 @@ export default function AIRecommendationCard({
     >
       <View
         style={
-          styles.topRow
+          styles.accent
+        }
+      />
+
+      <View
+        style={
+          styles.header
         }
       >
         <View
@@ -209,9 +199,9 @@ export default function AIRecommendationCard({
         >
           <MaterialCommunityIcons
             name="star"
-            size={12}
+            size={13}
             color={
-              COLORS.background
+              COLORS.primaryLight
             }
           />
 
@@ -224,13 +214,27 @@ export default function AIRecommendationCard({
           </Text>
         </View>
 
-        <MaterialCommunityIcons
-          name="check-decagram"
-          size={19}
-          color={
-            COLORS.success
+        <View
+          style={
+            styles.recommended
           }
-        />
+        >
+          <MaterialCommunityIcons
+            name="check-circle"
+            size={15}
+            color={
+              COLORS.success
+            }
+          />
+
+          <Text
+            style={
+              styles.recommendedText
+            }
+          >
+            Recomendado
+          </Text>
+        </View>
       </View>
 
       <View
@@ -238,18 +242,21 @@ export default function AIRecommendationCard({
           styles.mainRow
         }
       >
-        {/*
-         * Logo exatamente no
-         * mesmo padrão dos cards
-         * das outras opções.
-         */}
         <Logo />
 
         <View
           style={
-            styles.details
+            styles.rideInfo
           }
         >
+          <Text
+            style={
+              styles.providerLabel
+            }
+          >
+            Melhor opção agora
+          </Text>
+
           <View
             style={
               styles.tripRow
@@ -262,7 +269,7 @@ export default function AIRecommendationCard({
             >
               <MaterialCommunityIcons
                 name="clock-outline"
-                size={15}
+                size={14}
                 color={
                   COLORS.textSecondary
                 }
@@ -290,7 +297,7 @@ export default function AIRecommendationCard({
             >
               <MaterialCommunityIcons
                 name="map-marker-distance"
-                size={15}
+                size={14}
                 color={
                   COLORS.textSecondary
                 }
@@ -310,31 +317,51 @@ export default function AIRecommendationCard({
           </View>
         </View>
 
-        <Text
+        <View
           style={
-            styles.price
+            styles.priceArea
           }
-          numberOfLines={1}
-          adjustsFontSizeToFit
         >
-          {formatCurrency(
-            ride.preco,
-          )}
-        </Text>
+          <Text
+            style={
+              styles.priceLabel
+            }
+          >
+            Estimado
+          </Text>
+
+          <Text
+            style={
+              styles.price
+            }
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
+            {formatCurrency(
+              ride.preco,
+            )}
+          </Text>
+        </View>
       </View>
 
       <View
         style={
-          styles.reasonRow
+          styles.insight
         }
       >
-        <MaterialCommunityIcons
-          name="lightbulb-outline"
-          size={16}
-          color={
-            COLORS.primaryLight
+        <View
+          style={
+            styles.insightIcon
           }
-        />
+        >
+          <MaterialCommunityIcons
+            name="lightbulb-on-outline"
+            size={17}
+            color={
+              COLORS.primaryLight
+            }
+          />
+        </View>
 
         <Text
           style={
@@ -347,8 +374,12 @@ export default function AIRecommendationCard({
 
       <Button
         mode="outlined"
+        icon="open-in-new"
         onPress={
           handleOpenApp
+        }
+        textColor={
+          COLORS.primaryLight
         }
         style={
           styles.button
@@ -358,9 +389,6 @@ export default function AIRecommendationCard({
         }
         labelStyle={
           styles.buttonLabel
-        }
-        textColor={
-          COLORS.primaryLight
         }
       >
         {app.buttonLabel}
@@ -372,16 +400,22 @@ export default function AIRecommendationCard({
 const styles =
   StyleSheet.create({
     card: {
+      position: 'relative',
+
+      overflow: 'hidden',
+
       padding:
         SPACING.md,
+
+      paddingTop: 14,
 
       backgroundColor:
         COLORS.surfaceLight,
 
-      borderWidth: 1.5,
+      borderWidth: 1,
 
       borderColor:
-        COLORS.primary,
+        COLORS.border,
 
       borderRadius:
         RADIUS.xl,
@@ -389,7 +423,20 @@ const styles =
       ...SHADOWS.sm,
     },
 
-    topRow: {
+    accent: {
+      position: 'absolute',
+
+      top: 0,
+      left: 0,
+      right: 0,
+
+      height: 3,
+
+      backgroundColor:
+        COLORS.primary,
+    },
+
+    header: {
       flexDirection:
         'row',
 
@@ -399,8 +446,7 @@ const styles =
       justifyContent:
         'space-between',
 
-      marginBottom:
-        SPACING.sm,
+      marginBottom: 13,
     },
 
     badge: {
@@ -410,27 +456,47 @@ const styles =
       alignItems:
         'center',
 
-      paddingHorizontal: 8,
+      paddingHorizontal: 9,
 
-      paddingVertical: 3,
+      paddingVertical: 5,
 
       borderRadius:
         RADIUS.round,
 
       backgroundColor:
-        COLORS.success,
+        COLORS.primarySoft,
     },
 
     badgeText: {
-      marginLeft: 4,
+      marginLeft: 5,
 
       color:
-        COLORS.background,
+        COLORS.primaryLight,
 
       fontSize: 10,
 
       fontWeight:
         TYPOGRAPHY.weight.bold,
+    },
+
+    recommended: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+    },
+
+    recommendedText: {
+      marginLeft: 4,
+
+      color:
+        COLORS.success,
+
+      fontSize: 10,
+
+      fontWeight:
+        TYPOGRAPHY.weight.semiBold,
     },
 
     mainRow: {
@@ -441,14 +507,24 @@ const styles =
         'center',
     },
 
-    details: {
+    rideInfo: {
       flex: 1,
 
-      marginLeft:
-        SPACING.md,
+      marginLeft: 12,
 
-      marginRight:
-        SPACING.sm,
+      marginRight: 8,
+    },
+
+    providerLabel: {
+      marginBottom: 5,
+
+      color:
+        COLORS.text,
+
+      fontSize: 13,
+
+      fontWeight:
+        TYPOGRAPHY.weight.bold,
     },
 
     tripRow: {
@@ -478,6 +554,9 @@ const styles =
 
       fontSize:
         TYPOGRAPHY.size.xs,
+
+      fontWeight:
+        TYPOGRAPHY.weight.medium,
     },
 
     dot: {
@@ -485,8 +564,7 @@ const styles =
 
       height: 3,
 
-      marginHorizontal:
-        SPACING.sm,
+      marginHorizontal: 7,
 
       borderRadius:
         RADIUS.round,
@@ -495,45 +573,82 @@ const styles =
         COLORS.textMuted,
     },
 
-    price: {
-      maxWidth: 115,
+    priceArea: {
+      alignItems:
+        'flex-end',
+    },
+
+    priceLabel: {
+      marginBottom: 1,
 
       color:
-        COLORS.primaryLight,
+        COLORS.textMuted,
 
-      fontSize: 21,
+      fontSize: 9,
+
+      fontWeight:
+        TYPOGRAPHY.weight.medium,
+    },
+
+    price: {
+      maxWidth: 120,
+
+      color:
+        COLORS.white,
+
+      fontSize: 22,
 
       fontWeight:
         TYPOGRAPHY.weight.extraBold,
+
+      letterSpacing: -0.4,
 
       textAlign:
         'right',
     },
 
-    reasonRow: {
+    insight: {
       flexDirection:
         'row',
 
       alignItems:
         'flex-start',
 
-      marginTop:
-        SPACING.md,
+      marginTop: 14,
 
-      paddingTop:
-        SPACING.sm,
+      paddingHorizontal: 11,
 
-      borderTopWidth: 1,
+      paddingVertical: 10,
 
-      borderTopColor:
-        COLORS.borderSoft,
+      borderRadius:
+        RADIUS.lg,
+
+      backgroundColor:
+        COLORS.primarySoft,
+    },
+
+    insightIcon: {
+      width: 25,
+
+      height: 25,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      marginRight: 7,
+
+      borderRadius:
+        RADIUS.round,
+
+      backgroundColor:
+        COLORS.background,
     },
 
     reason: {
       flex: 1,
-
-      marginLeft:
-        SPACING.xs,
 
       color:
         COLORS.textSecondary,
@@ -541,18 +656,22 @@ const styles =
       fontSize:
         TYPOGRAPHY.size.xs,
 
-      lineHeight: 18,
+      lineHeight: 17,
     },
 
     button: {
-      marginTop:
-        SPACING.md,
+      marginTop: 12,
 
       borderRadius:
         RADIUS.lg,
 
+      borderWidth: 1,
+
       borderColor:
-        COLORS.primary,
+        COLORS.border,
+
+      backgroundColor:
+        COLORS.surface,
     },
 
     buttonContent: {
@@ -566,12 +685,6 @@ const styles =
       fontWeight:
         TYPOGRAPHY.weight.bold,
     },
-
-    /*
-     * A PARTIR DAQUI OS LOGOS
-     * SÃO EXATAMENTE DO MESMO
-     * MODELO DO RIDECARD.
-     */
 
     logo99: {
       width: 48,

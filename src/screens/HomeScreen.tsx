@@ -620,14 +620,22 @@ export default function HomeScreen() {
         }
       : undefined;
 
+  const initialState =
+    !destination &&
+    !routeInfo &&
+    rides.length === 0;
+
   return (
     <ScrollView
       style={
         styles.container
       }
-      contentContainerStyle={
-        styles.content
-      }
+      contentContainerStyle={[
+        styles.content,
+
+        initialState &&
+          styles.contentInitial,
+      ]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={
         false
@@ -654,9 +662,12 @@ export default function HomeScreen() {
       )}
 
       <View
-        style={
-          styles.tripSection
-        }
+        style={[
+          styles.tripSection,
+
+          initialState &&
+            styles.tripSectionInitial,
+        ]}
       >
         <Text
           style={
@@ -666,41 +677,49 @@ export default function HomeScreen() {
           Para onde vamos?
         </Text>
 
-        <LocationInput
-          label="Origem"
-          value={
-            origem
-              ? 'Minha localização'
-              : 'Obtendo localização...'
+        <View
+          style={
+            styles.locationGroup
           }
-          onChangeText={() => {}}
-          icon="crosshairs-gps"
-          editable={false}
-          compact
-        />
+        >
+          <LocationInput
+            label="Origem"
+            value={
+              origem
+                ? 'Minha localização'
+                : 'Obtendo localização...'
+            }
+            onChangeText={() => {}}
+            icon="crosshairs-gps"
+            editable={false}
+            compact
+            position="top"
+          />
 
-        <LocationInput
-          label="Destino"
-          value={
-            displayedDestination
-          }
-          onChangeText={(
-            text,
-          ) => {
-            setDestino(
+          <LocationInput
+            label="Destino"
+            value={
+              displayedDestination
+            }
+            onChangeText={(
               text,
-            );
+            ) => {
+              setDestino(
+                text,
+              );
 
-            clearSelectedDestination();
+              clearSelectedDestination();
 
-            search(
-              text,
-              latitude,
-              longitude,
-            );
-          }}
-          icon="flag-checkered"
-        />
+              search(
+                text,
+                latitude,
+                longitude,
+              );
+            }}
+            icon="flag-checkered"
+            position="bottom"
+          />
+        </View>
 
         <AddressSuggestions
           data={
@@ -710,18 +729,6 @@ export default function HomeScreen() {
             item,
           ) => {
             try {
-              /*
-               * IMPORTANTE:
-               *
-               * Agora enviamos o GPS
-               * atual diretamente para
-               * selectDestination.
-               *
-               * Assim a pré-visualização
-               * não precisa esperar a
-               * atualização assíncrona
-               * do estado origin.
-               */
               const selected =
                 await selectDestination(
                   item,
@@ -935,7 +942,7 @@ export default function HomeScreen() {
                                     option.id,
                                   )
                                 }
-                                size={19}
+                                size={18}
                                 color={
                                   COLORS.primary
                                 }
@@ -945,7 +952,7 @@ export default function HomeScreen() {
                             {selected && (
                               <MaterialIcons
                                 name="check-circle"
-                                size={17}
+                                size={16}
                                 color={
                                   COLORS.primary
                                 }
@@ -1010,7 +1017,7 @@ export default function HomeScreen() {
                   >
                     <MaterialIcons
                       name="navigation"
-                      size={20}
+                      size={19}
                       color={
                         COLORS.white
                       }
@@ -1045,7 +1052,7 @@ export default function HomeScreen() {
 
                   <MaterialIcons
                     name="chevron-right"
-                    size={22}
+                    size={21}
                     color={
                       COLORS.white
                     }
@@ -1070,41 +1077,50 @@ export default function HomeScreen() {
       </View>
 
       <View
-        style={
-          styles.prioritySection
-        }
+        style={[
+          styles.decisionArea,
+
+          initialState &&
+            styles.decisionAreaInitial,
+        ]}
       >
-        <Text
+        <View
           style={
-            styles.sectionTitle
+            styles.prioritySection
           }
         >
-          O que importa mais?
-        </Text>
+          <Text
+            style={
+              styles.sectionTitle
+            }
+          >
+            O que importa mais?
+          </Text>
 
-        <ComparisonModeSelector
-          value={
-            comparisonMode
-          }
-          onChange={
-            setComparisonMode
-          }
-        />
-      </View>
+          <ComparisonModeSelector
+            value={
+              comparisonMode
+            }
+            onChange={
+              setComparisonMode
+            }
+          />
+        </View>
 
-      <View
-        style={
-          styles.compareSection
-        }
-      >
-        <CompareButton
-          onPress={
-            compararCorridas
+        <View
+          style={
+            styles.compareSection
           }
-          loading={
-            loadingCompare
-          }
-        />
+        >
+          <CompareButton
+            onPress={
+              compararCorridas
+            }
+            loading={
+              loadingCompare
+            }
+          />
+        </View>
       </View>
 
       {recommendation && (
@@ -1251,54 +1267,76 @@ const styles =
     },
 
     content: {
+      flexGrow: 1,
+
       paddingHorizontal:
         SPACING.lg,
 
-      paddingTop:
-        SPACING.sm,
+      paddingTop: 2,
 
-      paddingBottom: 36,
+      paddingBottom: 18,
+    },
+
+    contentInitial: {
+      flexGrow: 1,
     },
 
     tripSection: {
-      marginTop:
-        SPACING.lg,
+      marginTop: 10,
+    },
+
+    tripSectionInitial: {
+      marginTop: 12,
+    },
+
+    locationGroup: {
+      marginBottom: 8,
+    },
+
+    decisionArea: {
+      marginTop: 0,
+    },
+
+    decisionAreaInitial: {
+      flexGrow: 1,
+
+      justifyContent:
+        'flex-end',
+
+      paddingTop: 12,
     },
 
     prioritySection: {
-      marginTop:
-        SPACING.md,
+      marginTop: 10,
     },
 
     compareSection: {
-      marginTop:
-        SPACING.md,
+      marginTop: 8,
 
-      marginBottom:
-        SPACING.sm,
+      marginBottom: 2,
     },
 
     sectionTitle: {
-      marginBottom:
-        SPACING.sm,
+      marginBottom: 7,
 
       color:
         COLORS.text,
 
-      fontSize: 19,
+      fontSize: 18,
 
-      fontWeight:
-        '700',
+      fontWeight: '800',
+
+      letterSpacing: -0.25,
     },
 
     routeSummary: {
-      marginTop:
-        SPACING.md,
+      marginTop: 8,
 
-      padding:
-        SPACING.md,
+      paddingHorizontal: 14,
 
-      borderRadius: 16,
+      paddingVertical: 11,
+
+      borderRadius: 14,
 
       backgroundColor:
         COLORS.surface,
@@ -1310,45 +1348,38 @@ const styles =
     },
 
     routeSummaryHeader: {
-      flexDirection:
-        'row',
+      flexDirection: 'row',
 
-      alignItems:
-        'center',
+      alignItems: 'center',
 
       justifyContent:
         'space-between',
 
-      marginBottom:
-        SPACING.md,
+      marginBottom: 7,
     },
 
     routeSummaryTitle: {
       color:
         COLORS.text,
 
-      fontSize: 15,
+      fontSize: 14,
 
-      fontWeight:
-        '700',
+      fontWeight: '700',
     },
 
     routeSummaryStatus: {
       color:
         COLORS.textSecondary,
 
-      fontSize: 11,
+      fontSize: 10,
 
-      fontWeight:
-        '600',
+      fontWeight: '600',
     },
 
     routeMetrics: {
-      flexDirection:
-        'row',
+      flexDirection: 'row',
 
-      alignItems:
-        'center',
+      alignItems: 'center',
     },
 
     routeMetric: {
@@ -1359,66 +1390,63 @@ const styles =
       color:
         COLORS.textSecondary,
 
-      fontSize: 12,
+      fontSize: 11,
 
-      marginBottom: 3,
+      marginBottom: 1,
     },
 
     routeMetricValue: {
       color:
         COLORS.text,
 
-      fontSize: 19,
+      fontSize: 18,
 
-      fontWeight:
-        '800',
+      fontWeight: '800',
+
+      letterSpacing: -0.2,
     },
 
     routeDivider: {
       width: 1,
 
-      height: 34,
+      height: 28,
 
-      marginHorizontal:
-        SPACING.md,
+      marginHorizontal: 12,
 
       backgroundColor:
         COLORS.border,
     },
 
     mobilitySection: {
-      marginTop:
-        SPACING.md,
+      marginTop: 10,
     },
 
     mobilityHeader: {
-      flexDirection:
-        'row',
+      flexDirection: 'row',
 
       justifyContent:
         'space-between',
 
-      alignItems:
-        'flex-start',
+      alignItems: 'flex-start',
 
-      marginBottom: 8,
+      marginBottom: 7,
     },
 
     mobilityHeaderText: {
       flex: 1,
 
-      paddingRight:
-        SPACING.sm,
+      paddingRight: 8,
     },
 
     mobilityTitle: {
       color:
         COLORS.text,
 
-      fontSize: 17,
+      fontSize: 16,
 
-      fontWeight:
-        '700',
+      fontWeight: '800',
+
+      letterSpacing: -0.2,
     },
 
     mobilitySubtitle: {
@@ -1427,44 +1455,41 @@ const styles =
       color:
         COLORS.textSecondary,
 
-      fontSize: 12,
+      fontSize: 11,
 
-      lineHeight: 16,
+      lineHeight: 15,
     },
 
     mobilityLoading: {
       color:
         COLORS.primary,
 
-      fontSize: 11,
+      fontSize: 10,
 
-      fontWeight:
-        '600',
+      fontWeight: '700',
     },
 
     mobilityGrid: {
-      flexDirection:
-        'row',
+      flexDirection: 'row',
 
-      flexWrap:
-        'wrap',
+      flexWrap: 'wrap',
 
       justifyContent:
         'space-between',
     },
 
     mobilityCard: {
-      width: '48.7%',
+      width: '48.8%',
 
-      minHeight: 94,
+      minHeight: 88,
 
-      marginBottom: 8,
+      marginBottom: 6,
 
       paddingHorizontal: 11,
 
       paddingVertical: 9,
 
-      borderRadius: 14,
+      borderRadius: 13,
 
       borderWidth: 1,
 
@@ -1487,28 +1512,24 @@ const styles =
     },
 
     mobilityTopRow: {
-      flexDirection:
-        'row',
+      flexDirection: 'row',
 
-      alignItems:
-        'center',
+      alignItems: 'center',
 
       justifyContent:
         'space-between',
     },
 
     mobilityIconContainer: {
-      width: 30,
+      width: 28,
 
-      height: 30,
+      height: 28,
 
-      alignItems:
-        'center',
+      alignItems: 'center',
 
-      justifyContent:
-        'center',
+      justifyContent: 'center',
 
-      borderRadius: 9,
+      borderRadius: 8,
 
       backgroundColor:
         COLORS.background,
@@ -1522,17 +1543,16 @@ const styles =
     },
 
     mobilityInfo: {
-      marginTop: 5,
+      marginTop: 3,
     },
 
     mobilityLabel: {
       color:
         COLORS.textSecondary,
 
-      fontSize: 11,
+      fontSize: 10,
 
-      fontWeight:
-        '600',
+      fontWeight: '600',
     },
 
     mobilityDuration: {
@@ -1543,8 +1563,9 @@ const styles =
 
       fontSize: 16,
 
-      fontWeight:
-        '800',
+      fontWeight: '800',
+
+      letterSpacing: -0.15,
     },
 
     mobilityDistance: {
@@ -1553,7 +1574,7 @@ const styles =
       color:
         COLORS.textSecondary,
 
-      fontSize: 11,
+      fontSize: 10,
     },
 
     mobilityUnavailable: {
@@ -1566,19 +1587,17 @@ const styles =
     },
 
     navigationButton: {
-      flexDirection:
-        'row',
+      flexDirection: 'row',
 
-      alignItems:
-        'center',
+      alignItems: 'center',
 
-      marginTop: 4,
+      marginTop: 2,
 
       paddingHorizontal: 14,
 
-      paddingVertical: 11,
+      paddingVertical: 10,
 
-      borderRadius: 14,
+      borderRadius: 13,
 
       backgroundColor:
         COLORS.primary,
@@ -1589,17 +1608,15 @@ const styles =
     },
 
     navigationButtonIcon: {
-      width: 34,
+      width: 32,
 
-      height: 34,
+      height: 32,
 
-      alignItems:
-        'center',
+      alignItems: 'center',
 
-      justifyContent:
-        'center',
+      justifyContent: 'center',
 
-      borderRadius: 10,
+      borderRadius: 9,
 
       backgroundColor:
         'rgba(255,255,255,0.12)',
@@ -1608,18 +1625,16 @@ const styles =
     navigationButtonTextArea: {
       flex: 1,
 
-      marginLeft:
-        SPACING.sm,
+      marginLeft: 10,
     },
 
     navigationButtonTitle: {
       color:
         COLORS.white,
 
-      fontSize: 15,
+      fontSize: 14,
 
-      fontWeight:
-        '800',
+      fontWeight: '800',
     },
 
     navigationButtonSubtitle: {
@@ -1628,59 +1643,56 @@ const styles =
       color:
         'rgba(255,255,255,0.76)',
 
-      fontSize: 11,
+      fontSize: 10,
 
-      fontWeight:
-        '500',
+      fontWeight: '500',
     },
 
     resultsSection: {
-      marginTop:
-        SPACING.xl,
+      marginTop: 14,
     },
 
     resultsHeader: {
-      marginBottom:
-        SPACING.sm,
+      marginBottom: 8,
     },
 
     resultsTitle: {
       color:
         COLORS.text,
 
-      fontSize: 21,
+      fontSize: 20,
 
-      fontWeight:
-        '800',
+      fontWeight: '800',
+
+      letterSpacing: -0.3,
     },
 
     resultsSubtitle: {
-      marginTop: 3,
+      marginTop: 2,
 
       color:
         COLORS.textSecondary,
 
-      fontSize: 13,
+      fontSize: 12,
 
-      lineHeight: 18,
+      lineHeight: 17,
     },
 
     optionsHeader: {
-      marginTop:
-        SPACING.lg,
+      marginTop: 14,
 
-      marginBottom:
-        SPACING.sm,
+      marginBottom: 7,
     },
 
     optionsTitle: {
       color:
         COLORS.text,
 
-      fontSize: 19,
+      fontSize: 18,
 
-      fontWeight:
-        '700',
+      fontWeight: '800',
+
+      letterSpacing: -0.2,
     },
 
     optionsSubtitle: {
@@ -1689,8 +1701,8 @@ const styles =
       color:
         COLORS.textSecondary,
 
-      fontSize: 13,
+      fontSize: 12,
 
-      lineHeight: 18,
+      lineHeight: 17,
     },
   });

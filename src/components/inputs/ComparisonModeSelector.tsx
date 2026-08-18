@@ -21,7 +21,6 @@ import {
 import {
   COLORS,
   RADIUS,
-  SPACING,
   TYPOGRAPHY,
 } from '../../theme';
 
@@ -106,7 +105,11 @@ export default function ComparisonModeSelector({
                 name={
                   mode.icon
                 }
-                size={20}
+                size={
+                  selected
+                    ? 18
+                    : 17
+                }
                 color={
                   selected
                     ? COLORS.primaryLight
@@ -141,7 +144,7 @@ const styles =
       flexDirection:
         'row',
 
-      padding: 4,
+      padding: 3,
 
       backgroundColor:
         COLORS.surface,
@@ -152,13 +155,13 @@ const styles =
         COLORS.borderSoft,
 
       borderRadius:
-        RADIUS.xl,
+        RADIUS.lg,
     },
 
     option: {
       flex: 1,
 
-      minHeight: 48,
+      minHeight: 40,
 
       flexDirection:
         'row',
@@ -169,10 +172,9 @@ const styles =
       justifyContent:
         'center',
 
-      gap: 5,
+      gap: 4,
 
-      paddingHorizontal:
-        SPACING.xs,
+      paddingHorizontal: 4,
 
       borderRadius:
         RADIUS.lg,
@@ -206,5 +208,8 @@ const styles =
     labelSelected: {
       color:
         COLORS.primaryLight,
+
+      fontWeight:
+        TYPOGRAPHY.weight.semiBold,
     },
   });
