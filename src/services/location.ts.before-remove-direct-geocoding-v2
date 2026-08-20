@@ -1,0 +1,145 @@
+import * as Location from 'expo-location';
+
+const GOOGLE_GEOCODING_API_KEY =
+  process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY ||
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  '';
+
+type GoogleGeocodingResponse = {
+  status?: string;
+  results?: Array<{
+    formatted_address?: string;
+  }>;
+  error_message?: string;
+};
+
+async function getGoogleAddress(
+  latitude: number,
+  longitude: number,
+): Promise<string | null> {
+  if (!GOOGLE_GEOCODING_API_KEY) {
+    return null;
+  }
+
+  try {
+    const url =
+      'https://maps.googleapis.com/maps/api/geocode/json' +
+      `?latlng=${latitude},${longitude}` +
+      '&language=pt-BR' +
+      '&region=br' +
+      `&key=${encodeURIComponent(
+        GOOGLE_GEOCODING_API_KEY,
+      )}`;
+
+    const response =
+      await fetch(url);
+
+    const data =
+      (await response.json()) as GoogleGeocodingResponse;
+
+    if (
+      response.ok &&
+      data.status === 'OK'
+    ) {
+      return (
+        data.results?.[0]?.formatted_address?.trim() ||
+        null
+      );
+    }
+
+    console.warn(
+      'Google Geocoding não retornou um endereço.',
+      data.status,
+      data.error_message,
+    );
+  } catch (error) {
+    console.warn(
+      'Falha ao consultar Google Geocoding.',
+      error,
+    );
+  }
+
+  return null;
+}
+
+
+export interface LocationData {
+  address: string;
+  latitude: number;
+  longitude: number;
+}
+
+export async function getCurrentLocation(): Promise<LocationData> {
+  const { status } =
+    await Location.requestForegroundPermissionsAsync();
+
+  if (status !== 'granted') {
+    throw new Error('Permissão negada.');
+  }
+
+  const currentLocation =
+    await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+
+  const googleAddress =
+
+
+    await getGoogleAddress(
+
+
+      currentLocation.coords.latitude,
+
+
+      currentLocation.coords.longitude,
+
+
+    );
+
+
+
+  if (googleAddress) {
+
+
+    return {
+
+
+      address: googleAddress,
+
+
+      latitude: currentLocation.coords.latitude,
+
+
+      longitude: currentLocation.coords.longitude,
+
+
+    };
+
+
+  }
+
+
+
+  const reverse =
+    await Location.reverseGeocodeAsync({
+      latitude: currentLocation.coords.latitude,
+      longitude: currentLocation.coords.longitude,
+    });
+
+  const first = reverse[0];
+
+  const address = [
+    first.street,
+    first.district,
+    first.city,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  return {
+    address:
+      address || 'Localização encontrada',
+    latitude: currentLocation.coords.latitude,
+    longitude: currentLocation.coords.longitude,
+  };
+}

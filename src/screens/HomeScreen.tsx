@@ -814,9 +814,7 @@ export default function HomeScreen({
           <LocationInput
             label="Origem"
             value={
-              origem
-                ? 'Minha localização'
-                : 'Obtendo localização...'
+              origem || 'Obtendo localização...'
             }
             onChangeText={() => {}}
             icon="crosshairs-gps"
