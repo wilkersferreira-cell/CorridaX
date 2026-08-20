@@ -1,4 +1,4 @@
-﻿import {
+import {
   useState,
 } from 'react';
 
@@ -69,7 +69,7 @@ const MOBILITY_MODES: Array<{
 
   {
     id: 'walk',
-    label: 'A pÃ©',
+    label: 'A pé',
     travelMode: 'WALK',
   },
 ];
@@ -303,7 +303,7 @@ export default function useRideComparison() {
           }
 
           console.warn(
-            `Modo ${MOBILITY_MODES[index].label} indisponÃ­vel:`,
+            `Modo ${MOBILITY_MODES[index].label} indisponível:`,
             result.reason,
           );
         },
@@ -316,7 +316,7 @@ export default function useRideComparison() {
       return availableOptions;
     } catch (error) {
       console.warn(
-        'Falha ao calcular opÃ§Ãµes de mobilidade:',
+        'Falha ao calcular opções de mobilidade:',
         error,
       );
 
@@ -329,12 +329,12 @@ export default function useRideComparison() {
   }
 
   /*
-   * PRÃ‰-VISUALIZAÃ‡ÃƒO DA ROTA
+   * PRÉ-VISUALIZAÇÃO DA ROTA
    *
    * Agora recebe a origem explicitamente.
    *
-   * Isso elimina a dependÃªncia exclusiva
-   * do estado assÃ­ncrono do React.
+   * Isso elimina a dependência exclusiva
+   * do estado assíncrono do React.
    */
   async function previewRoute(
     originCoordinate: Coordinate,
@@ -382,7 +382,7 @@ export default function useRideComparison() {
         }
       } catch (googleError) {
         console.warn(
-          'Google Routes indisponÃ­vel no preview. Usando OSRM.',
+          'Google Routes indisponível no preview. Usando OSRM.',
           googleError,
         );
 
@@ -466,7 +466,7 @@ export default function useRideComparison() {
       }
     } catch (error) {
       console.warn(
-        'NÃ£o foi possÃ­vel prÃ©-visualizar a rota:',
+        'Não foi possível pré-visualizar a rota:',
         error,
       );
 
@@ -479,7 +479,7 @@ export default function useRideComparison() {
   }
 
   /*
-   * SELEÃ‡ÃƒO DO DESTINO
+   * SELEÇÃO DO DESTINO
    *
    * Agora pode receber diretamente
    * latitude e longitude atuais
@@ -544,7 +544,7 @@ export default function useRideComparison() {
      * 1. GPS fornecido diretamente
      *    pela Home.
      *
-     * 2. Estado origin jÃ¡ existente.
+     * 2. Estado origin já existente.
      */
     let previewOrigin:
       Coordinate | undefined;
@@ -569,7 +569,7 @@ export default function useRideComparison() {
 
     if (!previewOrigin) {
       console.warn(
-        'GPS ainda nÃ£o disponÃ­vel para calcular a rota.',
+        'GPS ainda não disponível para calcular a rota.',
       );
 
       return {
@@ -631,7 +631,7 @@ export default function useRideComparison() {
         )
       ) {
         throw new Error(
-          'LocalizaÃ§Ã£o GPS ainda nÃ£o disponÃ­vel.',
+          'Localização GPS ainda não disponível.',
         );
       }
 
@@ -662,7 +662,7 @@ export default function useRideComparison() {
           results.length === 0
         ) {
           throw new Error(
-            'Destino nÃ£o encontrado.',
+            'Destino não encontrado.',
           );
         }
 
@@ -741,7 +741,7 @@ export default function useRideComparison() {
         }
       } catch (googleError) {
         console.warn(
-          'Google Routes indisponÃ­vel. Usando OSRM.',
+          'Google Routes indisponível. Usando OSRM.',
           googleError,
         );
 
@@ -835,17 +835,6 @@ export default function useRideComparison() {
         resultado,
       );
 
-      const comparisonResult = {
-        distance:
-          routeDistance,
-
-        duration:
-          routeDuration,
-
-        rides:
-          resultado,
-      };
-
       try {
         const comparison =
           await compareRouteEngines(
@@ -858,7 +847,7 @@ export default function useRideComparison() {
         );
       } catch (error) {
         console.warn(
-          'Falha no diagnÃ³stico Google Ã— OSRM:',
+          'Falha no diagnóstico Google × OSRM:',
           error,
         );
 
@@ -866,8 +855,6 @@ export default function useRideComparison() {
           null,
         );
       }
-
-      return comparisonResult;
     } finally {
       setLoading(false);
     }

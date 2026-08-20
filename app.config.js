@@ -23,6 +23,8 @@ module.exports = {
 
     '@react-native-firebase/auth',
 
+    '@react-native-google-signin/google-signin',
+
     [
       'react-native-maps',
       {

@@ -39,6 +39,11 @@ import SettingsScreen from '../screens/SettingsScreen';
 
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
+import SignInScreen from '../screens/SignInScreen';
+
+import {
+  signInWithGoogle,
+} from '../services/authService';
 
 import {
   COLORS,
@@ -246,7 +251,8 @@ function MainTabs() {
 
 type AuthScreen =
   | 'welcome'
-  | 'signup';
+  | 'signup'
+  | 'signin';
 
 export default function AppNavigator() {
   const [
@@ -333,35 +339,60 @@ export default function AppNavigator() {
             'welcome',
           )
         }
-        onLogin={() => {
-          /*
-           * Tela Entrar será
-           * implementada em seguida.
-           */
-        }}
+        onLogin={() =>
+          setAuthScreen(
+            'signin',
+          )
+        }
+      />
+    );
+  }
+
+  if (
+    authScreen ===
+    'signin'
+  ) {
+    return (
+      <SignInScreen
+        onBack={() =>
+          setAuthScreen(
+            'welcome',
+          )
+        }
+        onCreateAccount={() =>
+          setAuthScreen(
+            'signup',
+          )
+        }
       />
     );
   }
 
   return (
     <LoginScreen
-      onContinue={() => {
-        /*
-         * Login Google será
-         * implementado depois.
-         */
+      onContinue={async () => {
+        const result =
+          await signInWithGoogle();
+
+        if (
+          !result.success &&
+          !result.cancelled
+        ) {
+          console.warn(
+            result.message,
+          );
+        }
       }}
       onCreateAccount={() =>
         setAuthScreen(
           'signup',
         )
       }
-      onLogin={() => {
-        /*
-         * Tela Entrar será
-         * implementada em seguida.
-         */
-      }}
+      onLogin={() =>
+        setAuthScreen(
+          'signin',
+        )
+      }
     />
   );
 }
