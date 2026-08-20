@@ -246,42 +246,6 @@ export async function openRideApp(
     }
   }
 
-
-  /*
-   * inDrive / ANDROID
-   *
-   * Abrimos o aplicativo pela Activity principal
-   * validada no Galaxy S21+.
-   */
-  if (
-    app === 'indrive' &&
-    Platform.OS === 'android'
-  ) {
-    try {
-      await IntentLauncher.startActivityAsync(
-        'android.intent.action.MAIN',
-        {
-          packageName:
-            'sinet.startup.inDriver',
-
-          className:
-            'sinet.startup.inDriver.ui.splash.SplashActivity',
-
-          category:
-            'android.intent.category.LAUNCHER',
-        },
-      );
-
-      return;
-    } catch {
-      await Linking.openURL(
-        getStoreUrl(app),
-      );
-
-      return;
-    }
-  }
-
   try {
     const canOpen =
       await Linking.canOpenURL(
