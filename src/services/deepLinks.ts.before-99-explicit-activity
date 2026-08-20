@@ -178,18 +178,8 @@ export async function openRideApp(
     Platform.OS === 'android'
   ) {
     try {
-      await IntentLauncher.startActivityAsync(
-        'android.intent.action.MAIN',
-        {
-          packageName:
-            'com.taxis99',
-
-          className:
-            'com.didi.sdk.splash.SplashActivity',
-
-          category:
-            'android.intent.category.LAUNCHER',
-        },
+      IntentLauncher.openApplication(
+        'com.taxis99',
       );
 
       return;

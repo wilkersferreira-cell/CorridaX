@@ -4,8 +4,6 @@ import {
   Platform,
 } from 'react-native';
 
-import * as IntentLauncher from 'expo-intent-launcher';
-
 export type RideApp =
   | 'uber'
   | '99'
@@ -167,43 +165,6 @@ export async function openRideApp(
     );
 
   /*
-   * 99 / ANDROID
-   *
-   * O esquema 99:// não abre corretamente
-   * no Android testado. Abrimos a 99 pelo
-   * package name oficial validado no aparelho.
-   */
-  if (
-    app === '99' &&
-    Platform.OS === 'android'
-  ) {
-    try {
-      await IntentLauncher.startActivityAsync(
-        'android.intent.action.MAIN',
-        {
-          packageName:
-            'com.taxis99',
-
-          className:
-            'com.didi.sdk.splash.SplashActivity',
-
-          category:
-            'android.intent.category.LAUNCHER',
-        },
-      );
-
-      return;
-    } catch {
-      await Linking.openURL(
-        getStoreUrl(app),
-      );
-
-      return;
-    }
-  }
-
-
-  /*
    * UBER E 99 / ANDROID
    *
    * No Android 11+ o canOpenURL pode falhar
@@ -214,7 +175,10 @@ export async function openRideApp(
    * Por isso tentamos abrir Uber e 99
    * diretamente e usamos a loja como fallback.
    */
-  if (app === 'uber') {
+  if (
+    app === 'uber' ||
+    app === '99'
+  ) {
     try {
       await Linking.openURL(
         url,
