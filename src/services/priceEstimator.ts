@@ -24,19 +24,45 @@ type PriceModel = {
   upperVariation: number;
 };
 
+type DistanceProfile =
+  | 'short'
+  | 'medium'
+  | 'long';
+
+type TrafficProfile =
+  | 'slow'
+  | 'normal'
+  | 'flowing';
+
+type RouteAdjustment = {
+  distance: Record<
+    DistanceProfile,
+    number
+  >;
+
+  traffic: Record<
+    TrafficProfile,
+    number
+  >;
+};
+
 /*
- * MODELO DE PREÇO CORRIDAX v2
+ * MOTOR DE PREÇOS CORRIDAX v2.1
  *
- * Estes valores NÃO representam
+ * O modelo NÃO tenta reproduzir
  * tarifas oficiais das plataformas.
  *
- * O CorridaX calcula um preço de
- * referência e, a partir dele, uma
- * faixa provável de preço.
+ * Primeiro calculamos um preço
+ * estrutural com distância e tempo.
  *
- * A faixa representa incerteza de
- * mercado e será calibrada com
- * observações reais ao longo do tempo.
+ * Depois aplicamos ajustes
+ * determinísticos conforme:
+ *
+ * - distância da viagem;
+ * - velocidade média da rota;
+ * - sensibilidade de cada plataforma.
+ *
+ * Não há aleatoriedade.
  */
 const PRICE_MODELS: Record<
   ProviderPriceId,
@@ -62,11 +88,75 @@ const PRICE_MODELS: Record<
 
   indrive: {
     baseFare: 3.75,
-    pricePerKm: 1.7,
+    pricePerKm: 1.70,
     pricePerMinute: 0.30,
     minimumFare: 8.5,
     lowerVariation: 0.15,
     upperVariation: 0.20,
+  },
+};
+
+/*
+ * Ajustes internos do CorridaX.
+ *
+ * A intenção é impedir que a ordem
+ * de preços seja fixa em toda rota.
+ *
+ * Exemplo:
+ * - 99 tende a ser competitiva em
+ *   viagens curtas e médias;
+ * - Uber ganha eficiência relativa
+ *   em rotas longas/fluídas;
+ * - inDrive recebe maior vantagem
+ *   estrutural em viagens longas.
+ *
+ * Estes parâmetros serão calibrados
+ * com observações reais futuras.
+ */
+const ROUTE_ADJUSTMENTS: Record<
+  ProviderPriceId,
+  RouteAdjustment
+> = {
+  '99': {
+    distance: {
+      short: -0.02,
+      medium: 0,
+      long: 0.01,
+    },
+
+    traffic: {
+      slow: 0.03,
+      normal: 0,
+      flowing: -0.01,
+    },
+  },
+
+  uber: {
+    distance: {
+      short: -0.04,
+      medium: 0,
+      long: -0.03,
+    },
+
+    traffic: {
+      slow: 0.04,
+      normal: 0,
+      flowing: -0.03,
+    },
+  },
+
+  indrive: {
+    distance: {
+      short: 0.02,
+      medium: -0.01,
+      long: -0.07,
+    },
+
+    traffic: {
+      slow: -0.01,
+      normal: 0,
+      flowing: -0.02,
+    },
   },
 };
 
@@ -78,7 +168,48 @@ function roundCurrency(
   );
 }
 
-function calculateReferencePrice(
+function getDistanceProfile(
+  distanceKm: number,
+): DistanceProfile {
+  if (distanceKm <= 5) {
+    return 'short';
+  }
+
+  if (distanceKm <= 15) {
+    return 'medium';
+  }
+
+  return 'long';
+}
+
+function getTrafficProfile(
+  distanceKm: number,
+  durationMinutes: number,
+): TrafficProfile {
+  if (
+    distanceKm <= 0 ||
+    durationMinutes <= 0
+  ) {
+    return 'normal';
+  }
+
+  const averageSpeedKmh =
+    distanceKm /
+    durationMinutes *
+    60;
+
+  if (averageSpeedKmh < 20) {
+    return 'slow';
+  }
+
+  if (averageSpeedKmh > 35) {
+    return 'flowing';
+  }
+
+  return 'normal';
+}
+
+function calculateStructuralPrice(
   model: PriceModel,
   distanceKm: number,
   durationMinutes: number,
@@ -93,6 +224,45 @@ function calculateReferencePrice(
   return Math.max(
     model.minimumFare,
     calculatedPrice,
+  );
+}
+
+function applyRouteAdjustment(
+  provider: ProviderPriceId,
+  structuralPrice: number,
+  distanceKm: number,
+  durationMinutes: number,
+  minimumFare: number,
+): number {
+  const distanceProfile =
+    getDistanceProfile(
+      distanceKm,
+    );
+
+  const trafficProfile =
+    getTrafficProfile(
+      distanceKm,
+      durationMinutes,
+    );
+
+  const adjustment =
+    ROUTE_ADJUSTMENTS[
+      provider
+    ];
+
+  const multiplier =
+    1 +
+    adjustment.distance[
+      distanceProfile
+    ] +
+    adjustment.traffic[
+      trafficProfile
+    ];
+
+  return Math.max(
+    minimumFare,
+    structuralPrice *
+      multiplier,
   );
 }
 
@@ -116,11 +286,20 @@ export function estimateRidePriceRange({
       durationMinutes,
     );
 
-  const reference =
-    calculateReferencePrice(
+  const structuralPrice =
+    calculateStructuralPrice(
       model,
       safeDistance,
       safeDuration,
+    );
+
+  const reference =
+    applyRouteAdjustment(
+      provider,
+      structuralPrice,
+      safeDistance,
+      safeDuration,
+      model.minimumFare,
     );
 
   const estimatedMin =
@@ -163,8 +342,7 @@ export function estimateRidePriceRange({
 
 /*
  * Compatibilidade com partes antigas
- * do aplicativo que ainda esperem
- * somente um valor numérico.
+ * que ainda esperem um único valor.
  */
 export function estimateRidePrice(
   input: PriceEstimateInput,
