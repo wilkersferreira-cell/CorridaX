@@ -46,6 +46,10 @@ import {
 } from '../services/navigation';
 
 import {
+  saveFavorite,
+} from '../services/favoritesStorage';
+
+import {
   COLORS,
   SPACING,
 } from '../theme';
@@ -574,6 +578,47 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleSaveFavorite() {
+    if (!destination) {
+      Alert.alert(
+        'Favoritos',
+        'Selecione um destino antes de salvar.',
+      );
+
+      return;
+    }
+
+    try {
+      const result =
+        await saveFavorite({
+          name:
+            displayedDestination.trim() ||
+            destino.trim(),
+
+          address:
+            destino.trim(),
+
+          latitude:
+            destination.latitude,
+
+          longitude:
+            destination.longitude,
+        });
+
+      Alert.alert(
+        'Favoritos',
+        result.created
+          ? 'Destino salvo nos favoritos.'
+          : 'Este destino já está nos seus favoritos.',
+      );
+    } catch {
+      Alert.alert(
+        'Favoritos',
+        'Não foi possível salvar este destino.',
+      );
+    }
+  }
+
   async function handleStartNavigation() {
     if (!destination) {
       Alert.alert(
@@ -851,6 +896,56 @@ export default function HomeScreen() {
               styles.mobilitySection
             }
           >
+            <Pressable
+              onPress={
+                handleSaveFavorite
+              }
+              style={({ pressed }) => [
+                styles.favoriteButton,
+
+                pressed &&
+                  styles.mobilityCardPressed,
+              ]}
+            >
+              <MaterialIcons
+                name="favorite-border"
+                size={19}
+                color={
+                  COLORS.primary
+                }
+              />
+
+              <View
+                style={
+                  styles.favoriteButtonText
+                }
+              >
+                <Text
+                  style={
+                    styles.favoriteButtonTitle
+                  }
+                >
+                  Salvar nos favoritos
+                </Text>
+
+                <Text
+                  style={
+                    styles.favoriteButtonSubtitle
+                  }
+                >
+                  Guardar este destino para usar depois
+                </Text>
+              </View>
+
+              <MaterialIcons
+                name="chevron-right"
+                size={20}
+                color={
+                  COLORS.textSecondary
+                }
+              />
+            </Pressable>
+
             <View
               style={
                 styles.mobilityHeader
@@ -1419,6 +1514,52 @@ const styles =
 
     mobilitySection: {
       marginTop: 10,
+    },
+
+    favoriteButton: {
+      flexDirection: 'row',
+
+      alignItems: 'center',
+
+      marginBottom: 10,
+
+      paddingHorizontal: 13,
+
+      paddingVertical: 10,
+
+      borderRadius: 13,
+
+      borderWidth: 1,
+
+      borderColor:
+        COLORS.border,
+
+      backgroundColor:
+        COLORS.surface,
+    },
+
+    favoriteButtonText: {
+      flex: 1,
+
+      marginLeft: 10,
+    },
+
+    favoriteButtonTitle: {
+      color:
+        COLORS.text,
+
+      fontSize: 13,
+
+      fontWeight: '800',
+    },
+
+    favoriteButtonSubtitle: {
+      marginTop: 1,
+
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 10,
     },
 
     mobilityHeader: {
