@@ -1428,6 +1428,28 @@ export default function HomeScreen({
               )}
             </>
           )}
+
+          <View
+            style={
+              styles.estimateNotice
+            }
+          >
+            <MaterialIcons
+              name="info-outline"
+              size={15}
+              color={
+                COLORS.textMuted
+              }
+            />
+
+            <Text
+              style={
+                styles.estimateNoticeText
+              }
+            >
+              Valores estimados pelo CorridaX. O preço final pode variar e é definido por cada plataforma.
+            </Text>
+          </View>
         </View>
       )}
     </ScrollView>
@@ -1928,4 +1950,25 @@ const styles =
 
       lineHeight: 17,
     },
+    estimateNotice: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginTop: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      borderRadius: 10,
+      backgroundColor:
+        COLORS.surfaceLight,
+    },
+
+    estimateNoticeText: {
+      flex: 1,
+      marginLeft: 7,
+      color:
+        COLORS.textMuted,
+      fontSize: 11,
+      lineHeight: 16,
+    },
+
+
   });
