@@ -22,6 +22,7 @@ import {
 
 import {
   useFocusEffect,
+  useNavigation,
 } from '@react-navigation/native';
 
 import {
@@ -43,6 +44,9 @@ import {
 } from '../theme';
 
 export default function FavoritesScreen() {
+  const navigation =
+    useNavigation<any>();
+
   const [
     favorites,
     setFavorites,
@@ -174,43 +178,63 @@ export default function FavoritesScreen() {
           styles.favoriteCard
         }
       >
-        <View
-          style={
-            styles.favoriteIcon
+        <Pressable
+          onPress={() =>
+            navigation.navigate(
+              'Home',
+              {
+                favoriteDestination:
+                  item,
+              },
+            )
           }
-        >
-          <MaterialIcons
-            name="favorite"
-            size={23}
-            color={
-              COLORS.primaryLight
-            }
-          />
-        </View>
+          style={({
+            pressed,
+          }) => [
+            styles.favoriteOpenArea,
 
-        <View
-          style={
-            styles.favoriteContent
-          }
+            pressed &&
+              styles.pressed,
+          ]}
         >
-          <Text
+          <View
             style={
-              styles.favoriteName
+              styles.favoriteIcon
             }
-            numberOfLines={1}
           >
-            {item.name}
-          </Text>
+            <MaterialIcons
+              name="favorite"
+              size={23}
+              color={
+                COLORS.primaryLight
+              }
+            />
+          </View>
 
-          <Text
+          <View
             style={
-              styles.favoriteAddress
+              styles.favoriteContent
             }
-            numberOfLines={2}
           >
-            {item.address}
-          </Text>
-        </View>
+            <Text
+              style={
+                styles.favoriteName
+              }
+              numberOfLines={1}
+            >
+              {item.name}
+            </Text>
+
+            <Text
+              style={
+                styles.favoriteAddress
+              }
+              numberOfLines={2}
+            >
+              {item.address}
+            </Text>
+          </View>
+        </Pressable>
 
         <Pressable
           onPress={() =>
@@ -483,6 +507,14 @@ const styles =
 
       backgroundColor:
         COLORS.surface,
+    },
+
+    favoriteOpenArea: {
+      flex: 1,
+
+      flexDirection: 'row',
+
+      alignItems: 'center',
     },
 
     favoriteIcon: {

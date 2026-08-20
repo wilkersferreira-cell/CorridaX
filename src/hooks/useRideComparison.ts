@@ -589,6 +589,74 @@ export default function useRideComparison() {
     };
   }
 
+  async function selectSavedDestination(
+    displayName: string,
+    coordinate: Coordinate,
+    originLatitude?: number,
+    originLongitude?: number,
+  ) {
+    setSelectedDestination({
+      placeId:
+        `favorite:${coordinate.latitude},${coordinate.longitude}`,
+
+      displayName,
+
+      coordinate,
+    });
+
+    setDestination(
+      coordinate,
+    );
+
+    setRouteCoordinates([]);
+
+    setRouteInfo(null);
+
+    setMobilityOptions([]);
+
+    setSelectedMobilityMode(
+      'car',
+    );
+
+    setRouteComparison(
+      null,
+    );
+
+    setRides([]);
+
+    setSuggestions([]);
+
+    let previewOrigin:
+      Coordinate | undefined;
+
+    if (
+      isValidCoordinate(
+        originLatitude,
+        originLongitude,
+      )
+    ) {
+      previewOrigin = {
+        latitude:
+          originLatitude as number,
+
+        longitude:
+          originLongitude as number,
+      };
+    } else if (origin) {
+      previewOrigin =
+        origin;
+    }
+
+    if (!previewOrigin) {
+      return;
+    }
+
+    await previewRoute(
+      previewOrigin,
+      coordinate,
+    );
+  }
+
   function clearSelectedDestination() {
     setSelectedDestination(
       null,
@@ -887,6 +955,8 @@ export default function useRideComparison() {
     setSuggestions,
 
     selectDestination,
+
+    selectSavedDestination,
 
     clearSelectedDestination,
 

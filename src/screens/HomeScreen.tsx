@@ -386,7 +386,10 @@ function getMobilityLabel(
   }
 }
 
-export default function HomeScreen() {
+export default function HomeScreen({
+  navigation,
+  route,
+}: any) {
   const {
     loading,
     address,
@@ -402,6 +405,7 @@ export default function HomeScreen() {
     search,
     setSuggestions,
     selectDestination,
+    selectSavedDestination,
     clearSelectedDestination,
     setGpsOrigin,
     origin,
@@ -459,6 +463,86 @@ export default function HomeScreen() {
       );
     }
   }, [
+    latitude,
+    longitude,
+  ]);
+
+  useEffect(() => {
+    const favorite =
+      route.params
+        ?.favoriteDestination;
+
+    if (!favorite) {
+      return;
+    }
+
+    const hasGps =
+      Number.isFinite(
+        latitude,
+      ) &&
+      Number.isFinite(
+        longitude,
+      ) &&
+      !(
+        latitude === 0 &&
+        longitude === 0
+      );
+
+    if (!hasGps) {
+      return;
+    }
+
+    let active = true;
+
+    async function openFavoriteDestination() {
+      try {
+        setDestino(
+          favorite.address ||
+            favorite.name,
+        );
+
+        setSuggestions([]);
+
+        await selectSavedDestination(
+          favorite.name,
+          {
+            latitude:
+              favorite.latitude,
+
+            longitude:
+              favorite.longitude,
+          },
+          latitude,
+          longitude,
+        );
+
+        if (active) {
+          navigation.setParams({
+            favoriteDestination:
+              undefined,
+          });
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível abrir este favorito.';
+
+        Alert.alert(
+          'Favoritos',
+          message,
+        );
+      }
+    }
+
+    void openFavoriteDestination();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    route.params
+      ?.favoriteDestination,
     latitude,
     longitude,
   ]);
