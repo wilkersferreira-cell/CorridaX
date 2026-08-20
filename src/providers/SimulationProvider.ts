@@ -1,5 +1,5 @@
 import {
-  estimateRidePrice,
+  estimateRidePriceRange,
 } from '../services/priceEstimator';
 
 import {
@@ -45,7 +45,7 @@ export const SimulationProvider: RideProvider = {
       new Date().toISOString();
 
     /*
-     * PREÇO CORRIDAX v1
+     * PREÇO CORRIDAX v2
      *
      * Os preços agora são calculados
      * pelo priceEstimator.
@@ -55,7 +55,7 @@ export const SimulationProvider: RideProvider = {
      */
 
     const app99Price =
-      estimateRidePrice({
+      estimateRidePriceRange({
         provider: '99',
         distanceKm,
         durationMinutes:
@@ -63,7 +63,7 @@ export const SimulationProvider: RideProvider = {
       });
 
     const uberPrice =
-      estimateRidePrice({
+      estimateRidePriceRange({
         provider: 'uber',
         distanceKm,
         durationMinutes:
@@ -71,7 +71,7 @@ export const SimulationProvider: RideProvider = {
       });
 
     const inDrivePrice =
-      estimateRidePrice({
+      estimateRidePriceRange({
         provider: 'indrive',
         distanceKm,
         durationMinutes:
@@ -89,8 +89,10 @@ export const SimulationProvider: RideProvider = {
         productName: '99Pop',
 
         price: {
-          min: app99Price,
-          max: app99Price,
+          min:
+            app99Price.min,
+          max:
+            app99Price.max,
           currency: 'BRL',
         },
 
@@ -123,8 +125,10 @@ export const SimulationProvider: RideProvider = {
         productName: 'UberX',
 
         price: {
-          min: uberPrice,
-          max: uberPrice,
+          min:
+            uberPrice.min,
+          max:
+            uberPrice.max,
           currency: 'BRL',
         },
 
@@ -157,8 +161,10 @@ export const SimulationProvider: RideProvider = {
         productName: 'inDrive',
 
         price: {
-          min: inDrivePrice,
-          max: inDrivePrice,
+          min:
+            inDrivePrice.min,
+          max:
+            inDrivePrice.max,
           currency: 'BRL',
         },
 
