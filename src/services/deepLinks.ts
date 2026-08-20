@@ -57,9 +57,7 @@ function buildUberUrl(
     return 'uber://';
   }
 
-  const params: string[] = [
-    'action=setPickup',
-  ];
+  const params: string[] = [];
 
   if (trip.origin) {
     params.push(
@@ -81,6 +79,12 @@ function buildUberUrl(
     if (trip.origin.address) {
       params.push(
         `pickup[nickname]=${encodeURIComponent(
+          trip.origin.address,
+        )}`,
+      );
+
+      params.push(
+        `pickup[formatted_address]=${encodeURIComponent(
           trip.origin.address,
         )}`,
       );
@@ -113,9 +117,15 @@ function buildUberUrl(
         trip.destination.address,
       )}`,
     );
+
+    params.push(
+      `dropoff[formatted_address]=${encodeURIComponent(
+        trip.destination.address,
+      )}`,
+    );
   }
 
-  return `uber://?${params.join('&')}`;
+  return `uber://riderequest?${params.join('&')}`;
 }
 
 function getAppUrl(
@@ -148,13 +158,47 @@ export async function openRideApp(
   app: RideApp,
   trip?: RideTrip,
 ): Promise<void> {
-  try {
-    const url =
-      getAppUrl(
-        app,
-        trip,
+  const url =
+    getAppUrl(
+      app,
+      trip,
+    );
+
+  /*
+   * UBER / ANDROID
+   *
+   * No Android 11+ o canOpenURL pode falhar
+   * quando o esquema não está declarado nas
+   * queries do AndroidManifest, mesmo com o
+   * aplicativo instalado.
+   *
+   * Por isso tentamos abrir a Uber diretamente.
+   */
+  if (app === 'uber') {
+    try {
+      await Linking.openURL(
+        url,
       );
 
+      return;
+    } catch {
+      try {
+        await Linking.openURL(
+          'uber://',
+        );
+
+        return;
+      } catch {
+        await Linking.openURL(
+          getStoreUrl(app),
+        );
+
+        return;
+      }
+    }
+  }
+
+  try {
     const canOpen =
       await Linking.canOpenURL(
         url,
@@ -168,33 +212,6 @@ export async function openRideApp(
       return;
     }
 
-    /*
-     * Caso o link parametrizado da Uber
-     * não seja reconhecido, tentamos
-     * abrir o aplicativo normalmente.
-     */
-    if (
-      app === 'uber' &&
-      url !== 'uber://'
-    ) {
-      const canOpenUber =
-        await Linking.canOpenURL(
-          'uber://',
-        );
-
-      if (canOpenUber) {
-        await Linking.openURL(
-          'uber://',
-        );
-
-        return;
-      }
-    }
-
-    /*
-     * Aplicativo não disponível:
-     * direcionamos para a loja.
-     */
     await Linking.openURL(
       getStoreUrl(app),
     );
