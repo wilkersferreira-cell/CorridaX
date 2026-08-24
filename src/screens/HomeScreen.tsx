@@ -50,6 +50,10 @@ import {
 } from '../services/favoritesStorage';
 
 import {
+  saveHistory,
+} from '../services/storage';
+
+import {
   COLORS,
   SPACING,
 } from '../theme';
@@ -641,12 +645,65 @@ export default function HomeScreen({
     }
 
     try {
-      await compare(
-        origem,
-        destino,
-        latitude,
-        longitude,
-      );
+      const result =
+        await compare(
+          origem,
+          destino,
+          latitude,
+          longitude,
+        );
+
+      try {
+        await saveHistory({
+          origin:
+            origem.trim(),
+
+          destination:
+            destino.trim(),
+
+          distance:
+            result.distance,
+
+          duration:
+            result.duration,
+
+          mobilityMode:
+            selectedMobilityMode,
+
+          comparisonMode:
+            comparisonMode,
+        });
+
+        console.log(
+          'Histórico salvo com sucesso:',
+          {
+            origin:
+              origem.trim(),
+
+            destination:
+              destino.trim(),
+
+            distance:
+              result.distance,
+
+            duration:
+              result.duration,
+
+            mobilityMode:
+              selectedMobilityMode,
+
+            comparisonMode:
+              comparisonMode,
+          },
+        );
+      } catch (
+        historyError
+      ) {
+        console.warn(
+          'Não foi possível salvar o histórico do CorridaX.',
+          historyError,
+        );
+      }
 
       setSuggestions([]);
     } catch (error) {
