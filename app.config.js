@@ -1,19 +1,23 @@
-﻿const appJson = require('./app.json');
-
-module.exports = {
-  ...appJson.expo,
+﻿module.exports = ({ config }) => ({
+  ...config,
 
   android: {
-    ...appJson.expo.android,
+    ...config.android,
 
     package: 'com.corridax.app',
 
     googleServicesFile:
       './google-services.json',
+
+    blockedPermissions: [
+      'android.permission.SYSTEM_ALERT_WINDOW',
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.WRITE_EXTERNAL_STORAGE',
+    ],
   },
 
   plugins: [
-    ...(appJson.expo.plugins ?? []),
+    ...(config.plugins ?? []),
 
     'expo-dev-client',
 
@@ -34,4 +38,4 @@ module.exports = {
       },
     ],
   ],
-};
+});

@@ -16,10 +16,10 @@ export interface GooglePlaceCoordinate {
   displayName: string;
 
   /*
-   * Endereço completo.
+   * EndereÃ§o completo.
    *
-   * Continua disponível para
-   * navegação, deep links e
+   * Continua disponÃ­vel para
+   * navegaÃ§Ã£o, deep links e
    * uso interno do CorridaX.
    */
   formattedAddress: string;
@@ -32,12 +32,14 @@ const ANDROID_PACKAGE =
   'com.corridax.app';
 
 const ANDROID_SHA1 =
-  '5E8F16062EA3CD2C4A0D547876BAA6F38CABF625';
+  __DEV__
+    ? '5E8F16062EA3CD2C4A0D547876BAA6F38CABF625'
+    : 'ED77CD58EB15D70692CAA5D2038AFBBDD1E6D643';
 
 function getApiKey(): string {
   if (!GOOGLE_PLACES_API_KEY) {
     throw new Error(
-      'Google Places API Key não configurada.',
+      'Google Places API Key nÃ£o configurada.',
     );
   }
 
@@ -45,7 +47,7 @@ function getApiKey(): string {
 }
 
 /**
- * Pesquisa sugestões de destinos
+ * Pesquisa sugestÃµes de destinos
  * usando Google Places API (New).
  */
 export async function searchGooglePlaces(
@@ -78,8 +80,8 @@ export async function searchGooglePlaces(
   };
 
   /*
-   * Favorece resultados próximos
-   * da localização atual.
+   * Favorece resultados prÃ³ximos
+   * da localizaÃ§Ã£o atual.
    *
    * Isso melhora bastante buscas
    * como:
@@ -202,13 +204,13 @@ export async function searchGooglePlaces(
  * Mantemos separadamente:
  *
  * - nome do local
- * - endereço completo
+ * - endereÃ§o completo
  * - coordenadas
  *
  * Isso permite mostrar uma
- * informação amigável na tela
- * sem perder o endereço necessário
- * para navegação.
+ * informaÃ§Ã£o amigÃ¡vel na tela
+ * sem perder o endereÃ§o necessÃ¡rio
+ * para navegaÃ§Ã£o.
  */
 export async function getGooglePlaceCoordinate(
   placeId: string,
@@ -277,12 +279,12 @@ export async function getGooglePlaceCoordinate(
     )
   ) {
     throw new Error(
-      'O Google não retornou as coordenadas do destino.',
+      'O Google nÃ£o retornou as coordenadas do destino.',
     );
   }
 
   /*
-   * Nome amigável do estabelecimento
+   * Nome amigÃ¡vel do estabelecimento
    * ou ponto de interesse.
    *
    * Exemplo:
@@ -293,11 +295,11 @@ export async function getGooglePlaceCoordinate(
     '';
 
   /*
-   * Endereço físico completo.
+   * EndereÃ§o fÃ­sico completo.
    *
    * Exemplo:
    * Av. Autaz Mirim, 6100 -
-   * São José Operário, Manaus - AM
+   * SÃ£o JosÃ© OperÃ¡rio, Manaus - AM
    */
   const formattedAddress =
     data.formattedAddress ??

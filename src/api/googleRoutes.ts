@@ -6,8 +6,8 @@ import polyline from '@mapbox/polyline';
  *
  * Mantemos os mesmos nomes
  * utilizados pelo Google Routes
- * para evitar conversões
- * desnecessárias.
+ * para evitar conversÃµes
+ * desnecessÃ¡rias.
  */
 export type GoogleTravelMode =
   | 'DRIVE'
@@ -41,7 +41,9 @@ const ANDROID_PACKAGE =
   'com.corridax.app';
 
 const ANDROID_SHA1 =
-  '5E8F16062EA3CD2C4A0D547876BAA6F38CABF625';
+  __DEV__
+    ? '5E8F16062EA3CD2C4A0D547876BAA6F38CABF625'
+    : 'ED77CD58EB15D70692CAA5D2038AFBBDD1E6D643';
 
 function getRoutesApiKey(): string {
   const apiKey =
@@ -50,7 +52,7 @@ function getRoutesApiKey(): string {
 
   if (!apiKey) {
     throw new Error(
-      'Chave do Google Routes não configurada.',
+      'Chave do Google Routes nÃ£o configurada.',
     );
   }
 
@@ -58,14 +60,14 @@ function getRoutesApiKey(): string {
 }
 
 /*
- * Define as opções adicionais
+ * Define as opÃ§Ãµes adicionais
  * adequadas para cada modalidade.
  *
  * TRAFFIC_AWARE faz sentido
- * para veículos motorizados.
+ * para veÃ­culos motorizados.
  *
  * Para caminhada e bicicleta,
- * não enviamos routingPreference.
+ * nÃ£o enviamos routingPreference.
  */
 function getRoutingOptions(
   travelMode: GoogleTravelMode,
@@ -87,11 +89,11 @@ function getRoutingOptions(
  * Calcula uma rota utilizando
  * Google Routes API.
  *
- * O modo padrão continua sendo
+ * O modo padrÃ£o continua sendo
  * DRIVE.
  *
- * Isso é importante porque todo
- * o código atual do CorridaX
+ * Isso Ã© importante porque todo
+ * o cÃ³digo atual do CorridaX
  * continua funcionando sem
  * precisar ser alterado.
  *
@@ -192,7 +194,7 @@ export async function calculateGoogleRoute(
         travelMode,
 
         /*
-         * Opções específicas
+         * OpÃ§Ãµes especÃ­ficas
          * da modalidade.
          */
         ...routingOptions,
@@ -230,12 +232,12 @@ export async function calculateGoogleRoute(
     !route.duration
   ) {
     throw new Error(
-      `Google Routes não retornou uma rota válida para ${travelMode}.`,
+      `Google Routes nÃ£o retornou uma rota vÃ¡lida para ${travelMode}.`,
     );
   }
 
   /*
-   * O Google retorna duração
+   * O Google retorna duraÃ§Ã£o
    * normalmente no formato:
    *
    * "1234s"
@@ -254,7 +256,7 @@ export async function calculateGoogleRoute(
     )
   ) {
     throw new Error(
-      'Duração inválida retornada pelo Google Routes.',
+      'DuraÃ§Ã£o invÃ¡lida retornada pelo Google Routes.',
     );
   }
 
@@ -282,14 +284,14 @@ export async function calculateGoogleRoute(
 
   return {
     /*
-     * metros → quilômetros
+     * metros â†’ quilÃ´metros
      */
     distance:
       route.distanceMeters /
       1000,
 
     /*
-     * segundos → minutos
+     * segundos â†’ minutos
      */
     duration:
       durationSeconds /

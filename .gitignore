@@ -44,3 +44,11 @@ yarn-error.*
 .env
 
 google-services.json
+
+# Firebase local cache
+.firebase/
+
+# local backups
+*.bak
+*.backup-*
+google-services.json.backup-*

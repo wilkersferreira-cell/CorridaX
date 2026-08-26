@@ -4,6 +4,7 @@ import React, {
 
 import {
   Alert,
+  Linking,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -35,6 +36,12 @@ import {
   TYPOGRAPHY,
 } from '../theme';
 
+const PRIVACY_URL =
+  'https://corridax-35de6.web.app/privacidade';
+
+const TERMS_URL =
+  'https://corridax-35de6.web.app/termos';
+
 export default function SettingsScreen() {
   const [
     loading,
@@ -54,6 +61,21 @@ export default function SettingsScreen() {
   const email =
     user?.email ||
     'E-mail não informado';
+
+  async function handleOpenUrl(
+    url: string,
+  ) {
+    try {
+      await Linking.openURL(
+        url,
+      );
+    } catch {
+      Alert.alert(
+        'Não foi possível abrir',
+        'Verifique sua conexão com a internet e tente novamente.',
+      );
+    }
+  }
 
   async function handleSignOut() {
     if (loading) {
@@ -263,6 +285,143 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        <Text
+          style={[
+            styles.sectionLabel,
+            styles.legalLabel,
+          ]}
+        >
+          LEGAL
+        </Text>
+
+        <View
+          style={
+            styles.preferencesCard
+          }
+        >
+          <Pressable
+            onPress={() =>
+              handleOpenUrl(
+                PRIVACY_URL,
+              )
+            }
+            style={({ pressed }) => [
+              styles.preferenceRow,
+
+              pressed &&
+                styles.pressed,
+            ]}
+          >
+            <View
+              style={
+                styles.preferenceIcon
+              }
+            >
+              <MaterialCommunityIcons
+                name="shield-lock-outline"
+                size={21}
+                color={
+                  COLORS.textSecondary
+                }
+              />
+            </View>
+
+            <View
+              style={
+                styles.preferenceContent
+              }
+            >
+              <Text
+                style={
+                  styles.preferenceTitle
+                }
+              >
+                Política de Privacidade
+              </Text>
+
+              <Text
+                style={
+                  styles.preferenceDescription
+                }
+              >
+                Saiba como tratamos seus dados
+              </Text>
+            </View>
+
+            <MaterialCommunityIcons
+              name="open-in-new"
+              size={19}
+              color={
+                COLORS.textMuted
+              }
+            />
+          </Pressable>
+
+          <View
+            style={
+              styles.separator
+            }
+          />
+
+          <Pressable
+            onPress={() =>
+              handleOpenUrl(
+                TERMS_URL,
+              )
+            }
+            style={({ pressed }) => [
+              styles.preferenceRow,
+
+              pressed &&
+                styles.pressed,
+            ]}
+          >
+            <View
+              style={
+                styles.preferenceIcon
+              }
+            >
+              <MaterialCommunityIcons
+                name="file-document-outline"
+                size={21}
+                color={
+                  COLORS.textSecondary
+                }
+              />
+            </View>
+
+            <View
+              style={
+                styles.preferenceContent
+              }
+            >
+              <Text
+                style={
+                  styles.preferenceTitle
+                }
+              >
+                Termos de Uso
+              </Text>
+
+              <Text
+                style={
+                  styles.preferenceDescription
+                }
+              >
+                Regras e condições de utilização
+              </Text>
+            </View>
+
+            <MaterialCommunityIcons
+              name="open-in-new"
+              size={19}
+              color={
+                COLORS.textMuted
+              }
+            />
+          </Pressable>
+        </View>
+
         <View
           style={
             styles.spacer
@@ -461,6 +620,10 @@ const styles = StyleSheet.create({
     marginTop: 28,
   },
 
+  legalLabel: {
+    marginTop: 24,
+  },
+
   preferencesCard: {
     borderWidth: 1,
 
@@ -528,6 +691,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
 
     lineHeight: 15,
+  },
+
+  separator: {
+    height: 1,
+
+    marginLeft: 65,
+
+    backgroundColor:
+      COLORS.borderSoft,
   },
 
   spacer: {
