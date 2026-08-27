@@ -47,23 +47,44 @@ type RouteAdjustment = {
 };
 
 /*
- * MOTOR DE PREÇOS CORRIDAX v2.1
+ * MOTOR DE PREÇOS CORRIDAX v2.2
  *
- * O modelo NÃO tenta reproduzir
- * tarifas oficiais das plataformas.
+ * O modelo NÃO reproduz tarifas oficiais
+ * das plataformas.
  *
- * Primeiro calculamos um preço
- * estrutural com distância e tempo.
+ * O preço de referência é calculado a partir de:
  *
- * Depois aplicamos ajustes
- * determinísticos conforme:
+ * - tarifa-base estrutural;
+ * - distância;
+ * - duração;
+ * - tarifa mínima;
+ * - faixa de distância;
+ * - velocidade média / trânsito.
  *
- * - distância da viagem;
- * - velocidade média da rota;
- * - sensibilidade de cada plataforma.
+ * A versão 2.2 incorpora calibração empírica
+ * realizada com observações reais feitas em
+ * 27/08/2026, comparando o CorridaX com:
  *
- * Não há aleatoriedade.
+ * - Uber;
+ * - 99;
+ * - inDrive.
+ *
+ * Foram utilizadas três faixas:
+ *
+ * - curta: até 5 km;
+ * - média: acima de 5 km até 15 km;
+ * - longa: acima de 15 km.
+ *
+ * Não existe aleatoriedade.
+ *
+ * Os valores continuam sendo estimativas
+ * próprias do CorridaX e podem divergir dos
+ * preços efetivamente apresentados pelas
+ * plataformas, especialmente em situações
+ * de demanda dinâmica, promoções, eventos,
+ * chuva ou alterações tarifárias.
  */
+
 const PRICE_MODELS: Record<
   ProviderPriceId,
   PriceModel
@@ -97,31 +118,37 @@ const PRICE_MODELS: Record<
 };
 
 /*
- * Ajustes internos do CorridaX.
+ * CALIBRAÇÃO CORRIDAX v2.2
  *
- * A intenção é impedir que a ordem
- * de preços seja fixa em toda rota.
+ * Coeficientes calibrados com três
+ * observações reais:
  *
- * Exemplo:
- * - 99 tende a ser competitiva em
- *   viagens curtas e médias;
- * - Uber ganha eficiência relativa
- *   em rotas longas/fluídas;
- * - inDrive recebe maior vantagem
- *   estrutural em viagens longas.
+ * CURTA
+ * 3,3 km / 10 min
  *
- * Estes parâmetros serão calibrados
- * com observações reais futuras.
+ * MÉDIA
+ * 8,3 km / 15 min
+ *
+ * LONGA
+ * 25,3 km / 46 min
+ *
+ * Os ajustes de trânsito permanecem
+ * independentes dos ajustes por distância.
+ *
+ * Dessa forma, novas condições de tráfego
+ * ainda podem alterar a estimativa sem
+ * eliminar a calibração de cada plataforma.
  */
+
 const ROUTE_ADJUSTMENTS: Record<
   ProviderPriceId,
   RouteAdjustment
 > = {
   '99': {
     distance: {
-      short: -0.02,
-      medium: 0,
-      long: 0.01,
+      short: -0.26,
+      medium: -0.07,
+      long: 0.09,
     },
 
     traffic: {
@@ -133,9 +160,9 @@ const ROUTE_ADJUSTMENTS: Record<
 
   uber: {
     distance: {
-      short: -0.04,
-      medium: 0,
-      long: -0.03,
+      short: -0.20,
+      medium: -0.27,
+      long: -0.33,
     },
 
     traffic: {
@@ -147,9 +174,9 @@ const ROUTE_ADJUSTMENTS: Record<
 
   indrive: {
     distance: {
-      short: 0.02,
-      medium: -0.01,
-      long: -0.07,
+      short: -0.06,
+      medium: -0.28,
+      long: -0.33,
     },
 
     traffic: {
@@ -194,15 +221,23 @@ function getTrafficProfile(
   }
 
   const averageSpeedKmh =
-    distanceKm /
-    durationMinutes *
+    (
+      distanceKm /
+      durationMinutes
+    ) *
     60;
 
-  if (averageSpeedKmh < 20) {
+  if (
+    averageSpeedKmh <
+    20
+  ) {
     return 'slow';
   }
 
-  if (averageSpeedKmh > 35) {
+  if (
+    averageSpeedKmh >
+    35
+  ) {
     return 'flowing';
   }
 
@@ -216,10 +251,14 @@ function calculateStructuralPrice(
 ): number {
   const calculatedPrice =
     model.baseFare +
-    distanceKm *
-      model.pricePerKm +
-    durationMinutes *
-      model.pricePerMinute;
+    (
+      distanceKm *
+      model.pricePerKm
+    ) +
+    (
+      durationMinutes *
+      model.pricePerMinute
+    );
 
   return Math.max(
     model.minimumFare,
@@ -250,14 +289,20 @@ function applyRouteAdjustment(
       provider
     ];
 
-  const multiplier =
-    1 +
+  const distanceAdjustment =
     adjustment.distance[
       distanceProfile
-    ] +
+    ];
+
+  const trafficAdjustment =
     adjustment.traffic[
       trafficProfile
     ];
+
+  const multiplier =
+    1 +
+    distanceAdjustment +
+    trafficAdjustment;
 
   return Math.max(
     minimumFare,
@@ -272,7 +317,9 @@ export function estimateRidePriceRange({
   durationMinutes,
 }: PriceEstimateInput): PriceEstimateRange {
   const model =
-    PRICE_MODELS[provider];
+    PRICE_MODELS[
+      provider
+    ];
 
   const safeDistance =
     Math.max(

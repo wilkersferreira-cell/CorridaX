@@ -42,6 +42,9 @@ const PRIVACY_URL =
 const TERMS_URL =
   'https://corridax-35de6.web.app/termos';
 
+const DELETE_ACCOUNT_URL =
+  'https://corridax-35de6.web.app/exclusao-conta';
+
 export default function SettingsScreen() {
   const [
     loading,
@@ -122,6 +125,27 @@ export default function SettingsScreen() {
           text: 'Sair',
           style: 'destructive',
           onPress: handleSignOut,
+        },
+      ],
+    );
+  }
+
+  function confirmDeleteAccount() {
+    Alert.alert(
+      'Excluir minha conta',
+      'Você será direcionado para a página oficial do CorridaX para solicitar a exclusão da sua conta e dos dados associados.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Continuar',
+          style: 'destructive',
+          onPress: () =>
+            handleOpenUrl(
+              DELETE_ACCOUNT_URL,
+            ),
         },
       ],
     );
@@ -420,6 +444,70 @@ export default function SettingsScreen() {
               }
             />
           </Pressable>
+
+          <View
+            style={
+              styles.separator
+            }
+          />
+
+          <Pressable
+            onPress={
+              confirmDeleteAccount
+            }
+            style={({ pressed }) => [
+              styles.preferenceRow,
+
+              pressed &&
+                styles.pressed,
+            ]}
+          >
+            <View
+              style={[
+                styles.preferenceIcon,
+                styles.deleteIcon,
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="account-remove-outline"
+                size={21}
+                color={
+                  COLORS.error
+                }
+              />
+            </View>
+
+            <View
+              style={
+                styles.preferenceContent
+              }
+            >
+              <Text
+                style={[
+                  styles.preferenceTitle,
+                  styles.deleteTitle,
+                ]}
+              >
+                Excluir minha conta
+              </Text>
+
+              <Text
+                style={
+                  styles.preferenceDescription
+                }
+              >
+                Solicite a exclusão da conta e dos dados
+              </Text>
+            </View>
+
+            <MaterialCommunityIcons
+              name="open-in-new"
+              size={19}
+              color={
+                COLORS.error
+              }
+            />
+          </Pressable>
         </View>
 
         <View
@@ -700,6 +788,16 @@ const styles = StyleSheet.create({
 
     backgroundColor:
       COLORS.borderSoft,
+  },
+
+  deleteIcon: {
+    backgroundColor:
+      COLORS.surfaceLight,
+  },
+
+  deleteTitle: {
+    color:
+      COLORS.error,
   },
 
   spacer: {

@@ -1533,8 +1533,19 @@ const styles =
       paddingBottom: 18,
     },
 
+    /*
+     * Ajuste responsivo:
+     *
+     * Antes este estado mantinha flexGrow: 1,
+     * contribuindo para esticar verticalmente
+     * o conteúdo em aparelhos mais altos.
+     *
+     * Agora mantemos apenas uma margem inferior
+     * confortável e deixamos o conteúdo seguir
+     * seu tamanho natural.
+     */
     contentInitial: {
-      flexGrow: 1,
+      paddingBottom: 24,
     },
 
     tripSection: {
@@ -1553,13 +1564,22 @@ const styles =
       marginTop: 0,
     },
 
+    /*
+     * Ajuste responsivo:
+     *
+     * Removidos:
+     * - flexGrow: 1
+     * - justifyContent: 'flex-end'
+     *
+     * Esses dois estilos empurravam
+     * "O que importa mais?" para o final
+     * da tela em aparelhos mais altos,
+     * criando um grande espaço vazio.
+     */
     decisionAreaInitial: {
-      flexGrow: 1,
+      marginTop: 18,
 
-      justifyContent:
-        'flex-end',
-
-      paddingTop: 12,
+      paddingTop: 0,
     },
 
     prioritySection: {
@@ -2007,25 +2027,34 @@ const styles =
 
       lineHeight: 17,
     },
+
     estimateNotice: {
       flexDirection: 'row',
+
       alignItems: 'flex-start',
+
       marginTop: 4,
+
       paddingHorizontal: 10,
+
       paddingVertical: 9,
+
       borderRadius: 10,
+
       backgroundColor:
         COLORS.surfaceLight,
     },
 
     estimateNoticeText: {
       flex: 1,
+
       marginLeft: 7,
+
       color:
         COLORS.textMuted,
+
       fontSize: 11,
+
       lineHeight: 16,
     },
-
-
   });
