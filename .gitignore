@@ -52,3 +52,5 @@ google-services.json
 *.bak
 *.backup-*
 google-services.json.backup-*
+
+.idea/

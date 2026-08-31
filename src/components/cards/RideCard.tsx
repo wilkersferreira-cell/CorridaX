@@ -19,6 +19,10 @@ import {
   RideLocation,
 } from '../../services/deepLinks';
 
+import CalibrationCard, {
+  CalibrationCardProps,
+} from './CalibrationCard';
+
 import {
   COLORS,
   RADIUS,
@@ -33,11 +37,24 @@ export type RideHighlight =
   | 'balanced'
   | 'alternative';
 
+export type RideAppId =
+  | 'uber'
+  | '99'
+  | 'indrive';
+
 type Props = {
   nome: string;
-  preco: string;
+
+  preco?: string;
+
+  precoMin?: number;
+
+  precoMax?: number;
+
   tempo?: string;
+
   distancia?: string;
+
   economia?: string;
 
   highlight?: RideHighlight;
@@ -45,12 +62,46 @@ type Props = {
   advantageText?: string;
 
   origin?: RideLocation;
+
   destination?: RideLocation;
+
+  onOpenApp?: (
+    provider: RideAppId,
+  ) => void;
+
+  calibration?:
+    CalibrationCardProps;
 };
+
+function formatCurrency(
+  value: number,
+): string {
+  return value.toLocaleString(
+    'pt-BR',
+    {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    },
+  );
+}
+
+function formatPriceRange(
+  min: number,
+  max: number,
+): string {
+  return (
+    `${formatCurrency(min)} – ` +
+    `${formatCurrency(max)}`
+  );
+}
 
 export default function RideCard({
   nome,
   preco,
+  precoMin,
+  precoMax,
   tempo,
   distancia,
   economia,
@@ -58,6 +109,8 @@ export default function RideCard({
   advantageText,
   origin,
   destination,
+  onOpenApp,
+  calibration,
 }: Props) {
   const normalizedName =
     nome.toLowerCase();
@@ -70,7 +123,6 @@ export default function RideCard({
     ) {
       return {
         id: 'uber' as const,
-        buttonLabel: 'Abrir Uber',
         type: 'uber' as const,
       };
     }
@@ -82,14 +134,12 @@ export default function RideCard({
     ) {
       return {
         id: '99' as const,
-        buttonLabel: 'Abrir 99',
         type: '99' as const,
       };
     }
 
     return {
       id: 'indrive' as const,
-      buttonLabel: 'Abrir inDrive',
       type: 'indrive' as const,
     };
   }
@@ -97,7 +147,27 @@ export default function RideCard({
   const app =
     getAppData();
 
+  const hasPriceRange =
+    Number.isFinite(
+      precoMin,
+    ) &&
+    Number.isFinite(
+      precoMax,
+    );
+
+  const displayedPrice =
+    hasPriceRange
+      ? formatPriceRange(
+          precoMin as number,
+          precoMax as number,
+        )
+      : preco || '';
+
   async function handleOpenApp() {
+    onOpenApp?.(
+      app.id,
+    );
+
     await openRideApp(
       app.id,
       {
@@ -406,6 +476,20 @@ export default function RideCard({
             )}
           </View>
         </View>
+      </View>
+
+      <View
+        style={
+          styles.priceBlock
+        }
+      >
+        <Text
+          style={
+            styles.priceLabel
+          }
+        >
+          Estimativa
+        </Text>
 
         <Text
           style={
@@ -414,7 +498,15 @@ export default function RideCard({
           numberOfLines={1}
           adjustsFontSizeToFit
         >
-          {preco}
+          {displayedPrice}
+        </Text>
+
+        <Text
+          style={
+            styles.priceDisclaimer
+          }
+        >
+          Valor estimado pelo CorridaX
         </Text>
       </View>
 
@@ -476,6 +568,7 @@ export default function RideCard({
 
       <Button
         mode="outlined"
+        icon="open-in-new"
         onPress={
           handleOpenApp
         }
@@ -492,8 +585,16 @@ export default function RideCard({
           styles.buttonLabel
         }
       >
-        {app.buttonLabel}
+        {calibration
+          ? 'Abrir app novamente'
+          : 'Ver preço no app'}
       </Button>
+
+      {calibration && (
+        <CalibrationCard
+          {...calibration}
+        />
+      )}
     </View>
   );
 }
@@ -570,9 +671,6 @@ const styles =
 
       marginLeft:
         SPACING.md,
-
-      marginRight:
-        SPACING.sm,
     },
 
     name: {
@@ -619,6 +717,7 @@ const styles =
 
     dot: {
       width: 3,
+
       height: 3,
 
       marginHorizontal:
@@ -631,9 +730,33 @@ const styles =
         COLORS.textMuted,
     },
 
-    price: {
-      maxWidth: 115,
+    priceBlock: {
+      marginTop: 13,
 
+      paddingHorizontal: 12,
+
+      paddingVertical: 10,
+
+      borderRadius:
+        RADIUS.lg,
+
+      backgroundColor:
+        COLORS.surface,
+    },
+
+    priceLabel: {
+      marginBottom: 3,
+
+      color:
+        COLORS.textMuted,
+
+      fontSize: 10,
+
+      fontWeight:
+        TYPOGRAPHY.weight.medium,
+    },
+
+    price: {
       color:
         COLORS.white,
 
@@ -642,8 +765,19 @@ const styles =
       fontWeight:
         TYPOGRAPHY.weight.extraBold,
 
-      textAlign:
-        'right',
+      letterSpacing: -0.3,
+    },
+
+    priceDisclaimer: {
+      marginTop: 3,
+
+      color:
+        COLORS.textMuted,
+
+      fontSize: 10,
+
+      fontWeight:
+        TYPOGRAPHY.weight.medium,
     },
 
     advantageRow: {
@@ -727,6 +861,7 @@ const styles =
 
     logo99: {
       width: 48,
+
       height: 48,
 
       borderRadius:
@@ -754,6 +889,7 @@ const styles =
 
     logoUber: {
       width: 48,
+
       height: 48,
 
       borderRadius:
@@ -781,6 +917,7 @@ const styles =
 
     logoIndrive: {
       width: 48,
+
       height: 48,
 
       borderRadius:

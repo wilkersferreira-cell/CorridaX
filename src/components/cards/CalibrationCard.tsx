@@ -10,7 +10,6 @@ import {
 
 import {
   Button,
-  Card,
   Text,
   TextInput,
 } from 'react-native-paper';
@@ -23,18 +22,35 @@ import {
   ProviderPriceId,
 } from '../../services/priceEstimator';
 
-type Props = {
+import {
+  COLORS,
+  RADIUS,
+  SPACING,
+  TYPOGRAPHY,
+} from '../../theme';
+
+export type CalibrationCardProps = {
   provider: ProviderPriceId;
 
   providerName: string;
 
   estimatedPrice: number;
 
+  estimatedPriceMin?: number;
+
+  estimatedPriceMax?: number;
+
   distanceKm: number;
 
   durationMinutes: number;
 
+  origin?: string;
+
+  destination?: string;
+
   onSaved?: () => void;
+
+  onDismiss?: () => void;
 };
 
 function parsePrice(
@@ -47,25 +63,27 @@ function parsePrice(
       .replace('R$', '')
       .replace(',', '.');
 
-  return Number(normalized);
+  return Number(
+    normalized,
+  );
 }
 
 export default function CalibrationCard({
   provider,
   providerName,
   estimatedPrice,
+  estimatedPriceMin,
+  estimatedPriceMax,
   distanceKm,
   durationMinutes,
+  origin,
+  destination,
   onSaved,
-}: Props) {
+  onDismiss,
+}: CalibrationCardProps) {
   const [
     observedPrice,
     setObservedPrice,
-  ] = useState('');
-
-  const [
-    promotionalPrice,
-    setPromotionalPrice,
   ] = useState('');
 
   const [
@@ -80,240 +98,287 @@ export default function CalibrationCard({
       );
 
     if (
-      !Number.isFinite(observed) ||
+      !Number.isFinite(
+        observed,
+      ) ||
       observed <= 0
     ) {
       Alert.alert(
-        'Preço observado',
+        'Preço encontrado',
         'Informe um preço válido.',
       );
 
       return;
     }
 
-    let promotional:
-      number | undefined;
-
-    if (
-      promotionalPrice.trim()
-    ) {
-      const parsedPromotion =
-        parsePrice(
-          promotionalPrice,
-        );
-
-      if (
-        !Number.isFinite(
-          parsedPromotion,
-        ) ||
-        parsedPromotion <= 0
-      ) {
-        Alert.alert(
-          'Preço promocional',
-          'Informe um preço promocional válido ou deixe o campo vazio.',
-        );
-
-        return;
-      }
-
-      promotional =
-        parsedPromotion;
-    }
-
-    setSaving(true);
+    setSaving(
+      true,
+    );
 
     try {
-      const result =
-        await addCalibrationRecord({
-          provider,
+      await addCalibrationRecord({
+        provider,
 
-          distanceKm,
+        distanceKm,
 
-          durationMinutes,
+        durationMinutes,
 
-          estimatedPrice,
+        estimatedPrice,
 
-          observedPrice:
-            observed,
+        estimatedPriceMin,
 
-          promotionalPrice:
-            promotional,
-        });
+        estimatedPriceMax,
 
-      const directionText =
-        result.direction === 'above'
-          ? 'acima'
-          : result.direction ===
-              'below'
-            ? 'abaixo'
-            : 'exatamente igual ao';
+        observedPrice:
+          observed,
+
+        origin,
+
+        destination,
+      });
 
       Alert.alert(
-        'Observação registrada',
-        `O CorridaX ficou ${result.percentageError.toFixed(
-          2,
-        )}% ${directionText} preço observado.`,
+        'Obrigado por colaborar! 💙',
+        'O preço informado foi registrado e ajudará o CorridaX a melhorar suas estimativas.',
       );
 
-      setObservedPrice('');
-
-      setPromotionalPrice('');
+      setObservedPrice(
+        '',
+      );
 
       onSaved?.();
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : 'Não foi possível registrar a observação.';
+          : 'Não foi possível registrar o preço informado.';
 
       Alert.alert(
         'Erro',
         message,
       );
     } finally {
-      setSaving(false);
+      setSaving(
+        false,
+      );
     }
   }
 
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <Text style={styles.title}>
-          📊 Calibração de preço
-        </Text>
-
-        <Text style={styles.provider}>
-          {providerName}
-        </Text>
-
-        <View style={styles.summary}>
-          <Text style={styles.label}>
-            Estimativa CorridaX
-          </Text>
-
-          <Text style={styles.price}>
-            {estimatedPrice.toLocaleString(
-              'pt-BR',
-              {
-                style: 'currency',
-                currency: 'BRL',
-              },
-            )}
-          </Text>
-
-          <Text style={styles.route}>
-            {distanceKm.toFixed(1)} km
-            {' • '}
-            {Math.round(
-              durationMinutes,
-            )}{' '}
-            min
-          </Text>
-        </View>
-
-        <TextInput
-          label="Preço observado"
-          value={observedPrice}
-          onChangeText={
-            setObservedPrice
+    <View
+      style={
+        styles.container
+      }
+    >
+      <View
+        style={
+          styles.header
+        }
+      >
+        <Text
+          style={
+            styles.title
           }
-          keyboardType="decimal-pad"
-          mode="outlined"
-          placeholder="Ex.: 43,99"
-          style={styles.input}
-        />
-
-        <TextInput
-          label="Preço promocional (opcional)"
-          value={promotionalPrice}
-          onChangeText={
-            setPromotionalPrice
-          }
-          keyboardType="decimal-pad"
-          mode="outlined"
-          placeholder="Ex.: 31,93"
-          style={styles.input}
-        />
-
-        <Text style={styles.helper}>
-          Use como preço observado o
-          valor normal exibido pela
-          plataforma. Promoções devem
-          ser registradas separadamente.
-        </Text>
-
-        <Button
-          mode="contained"
-          onPress={handleSave}
-          loading={saving}
-          disabled={saving}
-          style={styles.button}
         >
-          Registrar observação
+          Quanto apareceu no {providerName}?
+        </Text>
+
+        <Text
+          style={
+            styles.subtitle
+          }
+        >
+          Informe o preço mostrado no app para esta corrida.
+        </Text>
+      </View>
+
+      <View
+        style={
+          styles.routeRow
+        }
+      >
+        <Text
+          style={
+            styles.routeText
+          }
+        >
+          {distanceKm.toFixed(
+            1,
+          )}{' '}
+          km
+          {' • '}
+          {Math.round(
+            durationMinutes,
+          )}{' '}
+          min
+        </Text>
+      </View>
+
+      <TextInput
+        label="Preço encontrado"
+        value={
+          observedPrice
+        }
+        onChangeText={
+          setObservedPrice
+        }
+        keyboardType="decimal-pad"
+        mode="outlined"
+        placeholder="Ex.: 35,90"
+        left={
+          <TextInput.Affix
+            text="R$"
+          />
+        }
+        style={
+          styles.input
+        }
+      />
+
+      <Text
+        style={
+          styles.helper
+        }
+      >
+        Sua informação ajuda o CorridaX a aproximar cada vez mais as estimativas dos preços reais.
+      </Text>
+
+      <Button
+        mode="contained"
+        onPress={
+          handleSave
+        }
+        loading={
+          saving
+        }
+        disabled={
+          saving
+        }
+        style={
+          styles.saveButton
+        }
+        contentStyle={
+          styles.buttonContent
+        }
+      >
+        Enviar preço
+      </Button>
+
+      {onDismiss ? (
+        <Button
+          mode="text"
+          onPress={
+            onDismiss
+          }
+          disabled={
+            saving
+          }
+          style={
+            styles.dismissButton
+          }
+          textColor={
+            COLORS.textSecondary
+          }
+        >
+          Agora não
         </Button>
-      </Card.Content>
-    </Card>
+      ) : null}
+    </View>
   );
 }
 
 const styles =
   StyleSheet.create({
-    card: {
-      marginTop: 16,
-      borderRadius: 22,
+    container: {
+      marginTop:
+        SPACING.md,
+
+      padding:
+        SPACING.md,
+
+      borderRadius:
+        RADIUS.lg,
+
+      borderWidth: 1,
+
+      borderColor:
+        COLORS.primary,
+
       backgroundColor:
-        '#18263D',
+        COLORS.primarySoft,
+    },
+
+    header: {
+      marginBottom: 8,
     },
 
     title: {
-      color: '#FFFFFF',
-      fontSize: 18,
-      fontWeight: 'bold',
-    },
+      color:
+        COLORS.white,
 
-    provider: {
-      color: '#64B5F6',
       fontSize: 16,
-      fontWeight: 'bold',
-      marginTop: 8,
+
+      fontWeight:
+        TYPOGRAPHY.weight.bold,
+
+      lineHeight: 21,
     },
 
-    summary: {
-      marginTop: 14,
-      marginBottom: 10,
-    },
-
-    label: {
-      color: '#93A8C7',
-      fontSize: 12,
-      fontWeight: '600',
-    },
-
-    price: {
-      color: '#32D74B',
-      fontSize: 28,
-      fontWeight: 'bold',
+    subtitle: {
       marginTop: 3,
+
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 11,
+
+      lineHeight: 16,
     },
 
-    route: {
-      color: '#DDDDDD',
-      marginTop: 4,
+    routeRow: {
+      marginBottom: 5,
+    },
+
+    routeText: {
+      color:
+        COLORS.primaryLight,
+
+      fontSize: 11,
+
+      fontWeight:
+        TYPOGRAPHY.weight.semiBold,
     },
 
     input: {
-      marginTop: 12,
+      marginTop: 6,
+
+      backgroundColor:
+        COLORS.surfaceLight,
     },
 
     helper: {
-      color: '#93A8C7',
-      fontSize: 12,
-      lineHeight: 17,
-      marginTop: 12,
+      marginTop: 8,
+
+      color:
+        COLORS.textSecondary,
+
+      fontSize: 10,
+
+      lineHeight: 15,
     },
 
-    button: {
-      marginTop: 16,
-      borderRadius: 14,
+    saveButton: {
+      marginTop: 12,
+
+      borderRadius:
+        RADIUS.lg,
+    },
+
+    buttonContent: {
+      minHeight: 44,
+    },
+
+    dismissButton: {
+      marginTop: 1,
     },
   });

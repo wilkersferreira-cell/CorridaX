@@ -16,7 +16,11 @@ import {
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import AddressSuggestions from '../components/inputs/AddressSuggestions';
-import AIRecommendationCard from '../components/cards/AIRecommendationCard';
+
+import AIRecommendationCard, {
+  RideAppId,
+} from '../components/cards/AIRecommendationCard';
+
 import CompareButton from '../components/buttons/CompareButton';
 import ComparisonModeSelector from '../components/inputs/ComparisonModeSelector';
 import Header from '../components/layout/Header';
@@ -42,6 +46,10 @@ import {
 } from '../services/comparison';
 
 import {
+  ProviderPriceId,
+} from '../services/priceEstimator';
+
+import {
   startNavigation,
 } from '../services/navigation';
 
@@ -57,6 +65,26 @@ import {
   COLORS,
   SPACING,
 } from '../theme';
+
+type PendingCalibration = {
+  provider: ProviderPriceId;
+
+  providerName: string;
+
+  estimatedPrice: number;
+
+  estimatedPriceMin: number;
+
+  estimatedPriceMax: number;
+
+  distanceKm: number;
+
+  durationMinutes: number;
+
+  origin: string;
+
+  destination: string;
+};
 
 function formatDestinationName(
   value: string,
@@ -326,7 +354,9 @@ function formatRouteDuration(
   const totalMinutes =
     Math.max(
       1,
-      Math.round(duration),
+      Math.round(
+        duration,
+      ),
     );
 
   if (totalMinutes < 60) {
@@ -403,7 +433,8 @@ export default function HomeScreen({
 
   const {
     rides,
-    loading: loadingCompare,
+    loading:
+      loadingCompare,
     compare,
     suggestions,
     search,
@@ -433,6 +464,14 @@ export default function HomeScreen({
     destino,
     setDestino,
   ] = useState('');
+
+  const [
+    pendingCalibration,
+    setPendingCalibration,
+  ] =
+    useState<PendingCalibration | null>(
+      null,
+    );
 
   useEffect(() => {
     if (
@@ -469,6 +508,7 @@ export default function HomeScreen({
   }, [
     latitude,
     longitude,
+    setGpsOrigin,
   ]);
 
   useEffect(() => {
@@ -505,7 +545,9 @@ export default function HomeScreen({
             favorite.name,
         );
 
-        setSuggestions([]);
+        setSuggestions(
+          [],
+        );
 
         await selectSavedDestination(
           favorite.name,
@@ -549,6 +591,9 @@ export default function HomeScreen({
       ?.favoriteDestination,
     latitude,
     longitude,
+    navigation,
+    selectSavedDestination,
+    setSuggestions,
   ]);
 
   const recommendation =
@@ -562,7 +607,9 @@ export default function HomeScreen({
       return chooseBestRide(
         rides,
       );
-    }, [rides]);
+    }, [
+      rides,
+    ]);
 
   const cheapestRide =
     useMemo(
@@ -570,7 +617,9 @@ export default function HomeScreen({
         getCheapestRide(
           rides,
         ),
-      [rides],
+      [
+        rides,
+      ],
     );
 
   const fastestRide =
@@ -579,7 +628,9 @@ export default function HomeScreen({
         getFastestRide(
           rides,
         ),
-      [rides],
+      [
+        rides,
+      ],
     );
 
   const alternativeRides =
@@ -592,7 +643,9 @@ export default function HomeScreen({
         .filter(
           (ride) =>
             ride.id !==
-            recommendation.melhor.id,
+            recommendation
+              .melhor
+              .id,
         )
         .sort(
           (a, b) =>
@@ -621,6 +674,65 @@ export default function HomeScreen({
         )
       : destino;
 
+  function handleRideAppOpened(
+    provider: RideAppId,
+    ride: RideOption,
+  ) {
+    setPendingCalibration({
+      provider,
+
+      providerName:
+        ride.nome,
+
+      estimatedPrice:
+        ride.preco,
+
+      estimatedPriceMin:
+        ride.precoMin,
+
+      estimatedPriceMax:
+        ride.precoMax,
+
+      distanceKm:
+        ride.distancia,
+
+      durationMinutes:
+        ride.tempo,
+
+      origin:
+        origem.trim(),
+
+      destination:
+        destino.trim(),
+    });
+  }
+
+  function getCalibrationForRide(
+    ride: RideOption,
+  ) {
+    if (
+      !pendingCalibration ||
+      pendingCalibration.provider !==
+        ride.id
+    ) {
+      return undefined;
+    }
+
+    return {
+      ...pendingCalibration,
+
+      onSaved: () =>
+        setPendingCalibration(
+          null,
+        ),
+
+      onDismiss: () =>
+        setPendingCalibration(
+          null,
+        ),
+    };
+  }
+
   async function compararCorridas() {
     if (
       !origem.trim()
@@ -643,6 +755,10 @@ export default function HomeScreen({
 
       return;
     }
+
+    setPendingCalibration(
+      null,
+    );
 
     try {
       const result =
@@ -673,29 +789,6 @@ export default function HomeScreen({
           comparisonMode:
             comparisonMode,
         });
-
-        console.log(
-          'Histórico salvo com sucesso:',
-          {
-            origin:
-              origem.trim(),
-
-            destination:
-              destino.trim(),
-
-            distance:
-              result.distance,
-
-            duration:
-              result.duration,
-
-            mobilityMode:
-              selectedMobilityMode,
-
-            comparisonMode:
-              comparisonMode,
-          },
-        );
       } catch (
         historyError
       ) {
@@ -705,7 +798,9 @@ export default function HomeScreen({
         );
       }
 
-      setSuggestions([]);
+      setSuggestions(
+        [],
+      );
     } catch (error) {
       const message =
         error instanceof Error
@@ -871,11 +966,14 @@ export default function HomeScreen({
           <LocationInput
             label="Origem"
             value={
-              origem || 'Obtendo localização...'
+              origem ||
+              'Obtendo localização...'
             }
             onChangeText={() => {}}
             icon="crosshairs-gps"
-            editable={false}
+            editable={
+              false
+            }
             compact
             position="top"
           />
@@ -924,7 +1022,9 @@ export default function HomeScreen({
                 selected.displayName,
               );
 
-              setSuggestions([]);
+              setSuggestions(
+                [],
+              );
             } catch (error) {
               const message =
                 error instanceof Error
@@ -939,95 +1039,96 @@ export default function HomeScreen({
           }}
         />
 
-        {routeInfo && destination && (
-          <View
-            style={
-              styles.routeSummary
-            }
-          >
+        {routeInfo &&
+          destination && (
             <View
               style={
-                styles.routeSummaryHeader
-              }
-            >
-              <Text
-                style={
-                  styles.routeSummaryTitle
-                }
-              >
-                Rota estimada
-              </Text>
-
-              <Text
-                style={
-                  styles.routeSummaryStatus
-                }
-              >
-                Google Routes
-              </Text>
-            </View>
-
-            <View
-              style={
-                styles.routeMetrics
+                styles.routeSummary
               }
             >
               <View
                 style={
-                  styles.routeMetric
+                  styles.routeSummaryHeader
                 }
               >
                 <Text
                   style={
-                    styles.routeMetricLabel
+                    styles.routeSummaryTitle
                   }
                 >
-                  Distância
+                  Rota estimada
                 </Text>
 
                 <Text
                   style={
-                    styles.routeMetricValue
+                    styles.routeSummaryStatus
                   }
                 >
-                  {formatRouteDistance(
-                    routeInfo.distance,
-                  )}
+                  Google Routes
                 </Text>
               </View>
 
               <View
                 style={
-                  styles.routeDivider
-                }
-              />
-
-              <View
-                style={
-                  styles.routeMetric
+                  styles.routeMetrics
                 }
               >
-                <Text
+                <View
                   style={
-                    styles.routeMetricLabel
+                    styles.routeMetric
                   }
                 >
-                  Tempo estimado
-                </Text>
+                  <Text
+                    style={
+                      styles.routeMetricLabel
+                    }
+                  >
+                    Distância
+                  </Text>
 
-                <Text
+                  <Text
+                    style={
+                      styles.routeMetricValue
+                    }
+                  >
+                    {formatRouteDistance(
+                      routeInfo.distance,
+                    )}
+                  </Text>
+                </View>
+
+                <View
                   style={
-                    styles.routeMetricValue
+                    styles.routeDivider
+                  }
+                />
+
+                <View
+                  style={
+                    styles.routeMetric
                   }
                 >
-                  {formatRouteDuration(
-                    routeInfo.duration,
-                  )}
-                </Text>
+                  <Text
+                    style={
+                      styles.routeMetricLabel
+                    }
+                  >
+                    Tempo estimado
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.routeMetricValue
+                    }
+                  >
+                    {formatRouteDuration(
+                      routeInfo.duration,
+                    )}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
-        )}
+          )}
 
         {destination && (
           <View
@@ -1039,7 +1140,9 @@ export default function HomeScreen({
               onPress={
                 handleSaveFavorite
               }
-              style={({ pressed }) => [
+              style={({
+                pressed,
+              }) => [
                 styles.favoriteButton,
 
                 pressed &&
@@ -1147,7 +1250,9 @@ export default function HomeScreen({
                               option.id,
                             )
                           }
-                          style={({ pressed }) => [
+                          style={({
+                            pressed,
+                          }) => [
                             styles.mobilityCard,
 
                             selected &&
@@ -1237,7 +1342,9 @@ export default function HomeScreen({
                   onPress={
                     handleStartNavigation
                   }
-                  style={({ pressed }) => [
+                  style={({
+                    pressed,
+                  }) => [
                     styles.navigationButton,
 
                     pressed &&
@@ -1398,6 +1505,19 @@ export default function HomeScreen({
             destination={
               rideDestination
             }
+            onOpenApp={(
+              provider,
+            ) =>
+              handleRideAppOpened(
+                provider,
+                recommendation.melhor,
+              )
+            }
+            calibration={
+              getCalibrationForRide(
+                recommendation.melhor,
+              )
+            }
           />
 
           {alternativeRides.length >
@@ -1449,10 +1569,11 @@ export default function HomeScreen({
                       nome={
                         ride.nome
                       }
-                      preco={
-                        formatCurrency(
-                          ride.preco,
-                        )
+                      precoMin={
+                        ride.precoMin
+                      }
+                      precoMax={
+                        ride.precoMax
                       }
                       tempo={
                         `${ride.tempo} min`
@@ -1478,6 +1599,19 @@ export default function HomeScreen({
                       }
                       destination={
                         rideDestination
+                      }
+                      onOpenApp={(
+                        provider,
+                      ) =>
+                        handleRideAppOpened(
+                          provider,
+                          ride,
+                        )
+                      }
+                      calibration={
+                        getCalibrationForRide(
+                          ride,
+                        )
                       }
                     />
                   );
@@ -1533,17 +1667,6 @@ const styles =
       paddingBottom: 18,
     },
 
-    /*
-     * Ajuste responsivo:
-     *
-     * Antes este estado mantinha flexGrow: 1,
-     * contribuindo para esticar verticalmente
-     * o conteúdo em aparelhos mais altos.
-     *
-     * Agora mantemos apenas uma margem inferior
-     * confortável e deixamos o conteúdo seguir
-     * seu tamanho natural.
-     */
     contentInitial: {
       paddingBottom: 24,
     },
@@ -1564,18 +1687,6 @@ const styles =
       marginTop: 0,
     },
 
-    /*
-     * Ajuste responsivo:
-     *
-     * Removidos:
-     * - flexGrow: 1
-     * - justifyContent: 'flex-end'
-     *
-     * Esses dois estilos empurravam
-     * "O que importa mais?" para o final
-     * da tela em aparelhos mais altos,
-     * criando um grande espaço vazio.
-     */
     decisionAreaInitial: {
       marginTop: 18,
 

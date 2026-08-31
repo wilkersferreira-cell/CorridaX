@@ -47,7 +47,7 @@ type RouteAdjustment = {
 };
 
 /*
- * MOTOR DE PREÇOS CORRIDAX v2.2
+ * MOTOR DE PREÇOS CORRIDAX v2.3
  *
  * O modelo NÃO reproduz tarifas oficiais
  * das plataformas.
@@ -61,19 +61,14 @@ type RouteAdjustment = {
  * - faixa de distância;
  * - velocidade média / trânsito.
  *
- * A versão 2.2 incorpora calibração empírica
- * realizada com observações reais feitas em
- * 27/08/2026, comparando o CorridaX com:
+ * A versão 2.3 preserva o motor central
+ * calibrado da versão 2.2 e reduz apenas
+ * a amplitude da faixa exibida ao usuário.
  *
- * - Uber;
- * - 99;
- * - inDrive.
- *
- * Foram utilizadas três faixas:
- *
- * - curta: até 5 km;
- * - média: acima de 5 km até 15 km;
- * - longa: acima de 15 km.
+ * O objetivo é apresentar uma estimativa
+ * mais objetiva e fácil de comparar,
+ * mantendo o valor de referência interno
+ * disponível para calibração.
  *
  * Não existe aleatoriedade.
  *
@@ -94,8 +89,8 @@ const PRICE_MODELS: Record<
     pricePerKm: 1.65,
     pricePerMinute: 0.28,
     minimumFare: 8,
-    lowerVariation: 0.10,
-    upperVariation: 0.15,
+    lowerVariation: 0.02,
+    upperVariation: 0.02,
   },
 
   uber: {
@@ -103,8 +98,8 @@ const PRICE_MODELS: Record<
     pricePerKm: 1.75,
     pricePerMinute: 0.32,
     minimumFare: 9,
-    lowerVariation: 0.08,
-    upperVariation: 0.18,
+    lowerVariation: 0.02,
+    upperVariation: 0.02,
   },
 
   indrive: {
@@ -112,8 +107,8 @@ const PRICE_MODELS: Record<
     pricePerKm: 1.70,
     pricePerMinute: 0.30,
     minimumFare: 8.5,
-    lowerVariation: 0.15,
-    upperVariation: 0.20,
+    lowerVariation: 0.02,
+    upperVariation: 0.02,
   },
 };
 

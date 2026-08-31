@@ -6,12 +6,16 @@ import {
   calculatePriceCalibration,
 } from './priceCalibration';
 
+import {
+  saveCalibrationRecordRemote,
+} from './calibrationRemoteStorage';
+
 const STORAGE_KEY =
   '@corridax:calibration-records:v1';
 
 /**
  * Salva o dataset completo de calibração
- * no armazenamento persistente.
+ * no armazenamento persistente do aparelho.
  */
 async function saveCalibrationRecords(
   records: PriceCalibrationResult[],
@@ -39,7 +43,9 @@ Promise<PriceCalibrationResult[]> {
 
   try {
     const parsed =
-      JSON.parse(stored);
+      JSON.parse(
+        stored,
+      );
 
     if (!Array.isArray(parsed)) {
       return [];
@@ -53,8 +59,16 @@ Promise<PriceCalibrationResult[]> {
 }
 
 /**
- * Registra uma nova observação
- * e persiste o dataset atualizado.
+ * Registra uma nova observação.
+ *
+ * Fluxo:
+ * 1. calcula os dados de calibração;
+ * 2. salva localmente;
+ * 3. tenta enviar ao Firestore.
+ *
+ * Se o Firestore falhar, o registro local
+ * é preservado e o usuário não perde
+ * a contribuição realizada.
  */
 export async function addCalibrationRecord(
   input: PriceCalibrationInput,
@@ -72,9 +86,38 @@ export async function addCalibrationRecord(
     record,
   ];
 
+  /*
+   * Primeiro salvamos localmente.
+   * Assim o dado fica protegido mesmo
+   * se a internet estiver indisponível.
+   */
   await saveCalibrationRecords(
     updatedRecords,
   );
+
+  /*
+   * Depois tentamos enviar ao banco
+   * central do CorridaX.
+   *
+   * Uma falha remota não deve apagar
+   * nem invalidar o registro local.
+   */
+  try {
+    const remoteDocumentId =
+      await saveCalibrationRecordRemote(
+        record,
+      );
+
+    console.log(
+      'Calibração enviada ao Firestore:',
+      remoteDocumentId,
+    );
+  } catch (error) {
+    console.warn(
+      'Calibração salva localmente, mas ainda não enviada ao Firestore.',
+      error,
+    );
+  }
 
   return record;
 }
@@ -92,13 +135,15 @@ export async function getCalibrationRecordsByProvider(
 
   return records.filter(
     (record) =>
-      record.provider === provider,
+      record.provider ===
+      provider,
   );
 }
 
 /**
  * Retorna a quantidade total
- * de observações persistidas.
+ * de observações persistidas
+ * neste dispositivo.
  */
 export async function getCalibrationRecordCount():
 Promise<number> {
@@ -109,10 +154,11 @@ Promise<number> {
 }
 
 /**
- * Remove todos os registros persistidos.
+ * Remove os registros locais.
  *
- * Usar somente quando houver uma ação
- * explícita de limpeza do dataset.
+ * Atenção:
+ * esta função NÃO apaga os documentos
+ * já enviados ao Firestore.
  */
 export async function clearCalibrationRecords():
 Promise<void> {

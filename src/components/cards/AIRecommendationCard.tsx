@@ -23,6 +23,10 @@ import {
   RideLocation,
 } from '../../services/deepLinks';
 
+import CalibrationCard, {
+  CalibrationCardProps,
+} from './CalibrationCard';
+
 import {
   COLORS,
   RADIUS,
@@ -31,23 +35,32 @@ import {
   TYPOGRAPHY,
 } from '../../theme';
 
-type Props = {
-  ride: RideOption;
-  recommendation: string;
-
-  origin?: RideLocation;
-  destination?: RideLocation;
-};
-
-type AppType =
+export type RideAppId =
   | 'uber'
   | '99'
   | 'indrive';
 
+type Props = {
+  ride: RideOption;
+
+  recommendation: string;
+
+  origin?: RideLocation;
+
+  destination?: RideLocation;
+
+  onOpenApp?: (
+    provider: RideAppId,
+  ) => void;
+
+  calibration?:
+    CalibrationCardProps;
+};
+
 type AppData = {
-  id: AppType;
-  buttonLabel: string;
-  type: AppType;
+  id: RideAppId;
+
+  type: RideAppId;
 };
 
 function formatCurrency(
@@ -58,7 +71,19 @@ function formatCurrency(
     {
       style: 'currency',
       currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     },
+  );
+}
+
+function formatPriceRange(
+  min: number,
+  max: number,
+): string {
+  return (
+    `${formatCurrency(min)} – ` +
+    `${formatCurrency(max)}`
   );
 }
 
@@ -67,6 +92,8 @@ export default function AIRecommendationCard({
   recommendation,
   origin,
   destination,
+  onOpenApp,
+  calibration,
 }: Props) {
   if (!recommendation) {
     return null;
@@ -83,7 +110,6 @@ export default function AIRecommendationCard({
     ) {
       return {
         id: 'uber',
-        buttonLabel: 'Abrir Uber',
         type: 'uber',
       };
     }
@@ -95,14 +121,12 @@ export default function AIRecommendationCard({
     ) {
       return {
         id: '99',
-        buttonLabel: 'Abrir 99',
         type: '99',
       };
     }
 
     return {
       id: 'indrive',
-      buttonLabel: 'Abrir inDrive',
       type: 'indrive',
     };
   }
@@ -111,6 +135,10 @@ export default function AIRecommendationCard({
     getAppData();
 
   async function handleOpenApp() {
+    onOpenApp?.(
+      app.id,
+    );
+
     await openRideApp(
       app.id,
       {
@@ -316,32 +344,41 @@ export default function AIRecommendationCard({
             </View>
           </View>
         </View>
+      </View>
 
-        <View
+      <View
+        style={
+          styles.priceBlock
+        }
+      >
+        <Text
           style={
-            styles.priceArea
+            styles.priceLabel
           }
         >
-          <Text
-            style={
-              styles.priceLabel
-            }
-          >
-            Estimado
-          </Text>
+          Estimativa
+        </Text>
 
-          <Text
-            style={
-              styles.price
-            }
-            numberOfLines={1}
-            adjustsFontSizeToFit
-          >
-            {formatCurrency(
-              ride.preco,
-            )}
-          </Text>
-        </View>
+        <Text
+          style={
+            styles.price
+          }
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {formatPriceRange(
+            ride.precoMin,
+            ride.precoMax,
+          )}
+        </Text>
+
+        <Text
+          style={
+            styles.priceDisclaimer
+          }
+        >
+          Valor estimado pelo CorridaX
+        </Text>
       </View>
 
       <View
@@ -391,8 +428,16 @@ export default function AIRecommendationCard({
           styles.buttonLabel
         }
       >
-        {app.buttonLabel}
+        {calibration
+          ? 'Abrir app novamente'
+          : 'Ver preço no app'}
       </Button>
+
+      {calibration && (
+        <CalibrationCard
+          {...calibration}
+        />
+      )}
     </View>
   );
 }
@@ -401,275 +446,198 @@ const styles =
   StyleSheet.create({
     card: {
       position: 'relative',
-
       overflow: 'hidden',
-
-      padding:
-        SPACING.md,
-
+      padding: SPACING.md,
       paddingTop: 14,
-
       backgroundColor:
         COLORS.surfaceLight,
-
       borderWidth: 1,
-
       borderColor:
         COLORS.border,
-
       borderRadius:
         RADIUS.xl,
-
       ...SHADOWS.sm,
     },
 
     accent: {
       position: 'absolute',
-
       top: 0,
       left: 0,
       right: 0,
-
       height: 3,
-
       backgroundColor:
         COLORS.primary,
     },
 
     header: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-
+      flexDirection: 'row',
+      alignItems: 'center',
       justifyContent:
         'space-between',
-
       marginBottom: 13,
     },
 
     badge: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-
+      flexDirection: 'row',
+      alignItems: 'center',
       paddingHorizontal: 9,
-
       paddingVertical: 5,
-
       borderRadius:
         RADIUS.round,
-
       backgroundColor:
         COLORS.primarySoft,
     },
 
     badgeText: {
       marginLeft: 5,
-
       color:
         COLORS.primaryLight,
-
       fontSize: 10,
-
       fontWeight:
         TYPOGRAPHY.weight.bold,
     },
 
     recommended: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
+      flexDirection: 'row',
+      alignItems: 'center',
     },
 
     recommendedText: {
       marginLeft: 4,
-
       color:
         COLORS.success,
-
       fontSize: 10,
-
       fontWeight:
         TYPOGRAPHY.weight.semiBold,
     },
 
     mainRow: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
+      flexDirection: 'row',
+      alignItems: 'center',
     },
 
     rideInfo: {
       flex: 1,
-
       marginLeft: 12,
-
-      marginRight: 8,
     },
 
     providerLabel: {
       marginBottom: 5,
-
       color:
         COLORS.text,
-
       fontSize: 13,
-
       fontWeight:
         TYPOGRAPHY.weight.bold,
     },
 
     tripRow: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-
-      flexWrap:
-        'wrap',
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
     },
 
     tripItem: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
+      flexDirection: 'row',
+      alignItems: 'center',
     },
 
     tripText: {
       marginLeft: 4,
-
       color:
         COLORS.textSecondary,
-
       fontSize:
         TYPOGRAPHY.size.xs,
-
       fontWeight:
         TYPOGRAPHY.weight.medium,
     },
 
     dot: {
       width: 3,
-
       height: 3,
-
       marginHorizontal: 7,
-
       borderRadius:
         RADIUS.round,
-
       backgroundColor:
         COLORS.textMuted,
     },
 
-    priceArea: {
-      alignItems:
-        'flex-end',
+    priceBlock: {
+      marginTop: 14,
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+      borderRadius:
+        RADIUS.lg,
+      backgroundColor:
+        COLORS.surface,
     },
 
     priceLabel: {
-      marginBottom: 1,
-
+      marginBottom: 3,
       color:
         COLORS.textMuted,
-
-      fontSize: 9,
-
+      fontSize: 10,
       fontWeight:
         TYPOGRAPHY.weight.medium,
     },
 
     price: {
-      maxWidth: 120,
-
       color:
         COLORS.white,
-
       fontSize: 22,
-
       fontWeight:
         TYPOGRAPHY.weight.extraBold,
-
       letterSpacing: -0.4,
+    },
 
-      textAlign:
-        'right',
+    priceDisclaimer: {
+      marginTop: 3,
+      color:
+        COLORS.textMuted,
+      fontSize: 10,
+      fontWeight:
+        TYPOGRAPHY.weight.medium,
     },
 
     insight: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'flex-start',
-
+      flexDirection: 'row',
+      alignItems: 'flex-start',
       marginTop: 14,
-
       paddingHorizontal: 11,
-
       paddingVertical: 10,
-
       borderRadius:
         RADIUS.lg,
-
       backgroundColor:
         COLORS.primarySoft,
     },
 
     insightIcon: {
       width: 25,
-
       height: 25,
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-
+      alignItems: 'center',
+      justifyContent: 'center',
       marginRight: 7,
-
       borderRadius:
         RADIUS.round,
-
       backgroundColor:
         COLORS.background,
     },
 
     reason: {
       flex: 1,
-
       color:
         COLORS.textSecondary,
-
       fontSize:
         TYPOGRAPHY.size.xs,
-
       lineHeight: 17,
     },
 
     button: {
       marginTop: 12,
-
       borderRadius:
         RADIUS.lg,
-
       borderWidth: 1,
-
       borderColor:
         COLORS.border,
-
       backgroundColor:
         COLORS.surface,
     },
@@ -681,25 +649,17 @@ const styles =
     buttonLabel: {
       fontSize:
         TYPOGRAPHY.size.sm,
-
       fontWeight:
         TYPOGRAPHY.weight.bold,
     },
 
     logo99: {
       width: 48,
-
       height: 48,
-
       borderRadius:
         RADIUS.md,
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-
+      alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor:
         '#FFD400',
     },
@@ -707,27 +667,17 @@ const styles =
     logo99Text: {
       color:
         '#000000',
-
       fontSize: 22,
-
-      fontWeight:
-        '800',
+      fontWeight: '800',
     },
 
     logoUber: {
       width: 48,
-
       height: 48,
-
       borderRadius:
         RADIUS.md,
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-
+      alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor:
         '#000000',
     },
@@ -735,27 +685,17 @@ const styles =
     logoUberText: {
       color:
         '#FFFFFF',
-
       fontSize: 15,
-
-      fontWeight:
-        '700',
+      fontWeight: '700',
     },
 
     logoIndrive: {
       width: 48,
-
       height: 48,
-
       borderRadius:
         RADIUS.md,
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-
+      alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor:
         '#B8FF1A',
     },
@@ -763,10 +703,7 @@ const styles =
     logoIndriveText: {
       color:
         '#000000',
-
       fontSize: 20,
-
-      fontWeight:
-        '800',
+      fontWeight: '800',
     },
   });

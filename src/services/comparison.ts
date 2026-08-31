@@ -5,7 +5,28 @@ import {
 export interface RideOption {
   id: string;
   nome: string;
+
+  /*
+   * Valor de referência interno.
+   *
+   * É o ponto médio da faixa estimada
+   * e continua sendo utilizado pelo
+   * CorridaX para:
+   *
+   * - ranking;
+   * - Score;
+   * - comparação;
+   * - economia;
+   * - recomendação.
+   */
   preco: number;
+
+  /*
+   * Faixa apresentada ao usuário.
+   */
+  precoMin: number;
+  precoMax: number;
+
   tempo: number;
   distancia: number;
   economia: number;
@@ -134,40 +155,68 @@ export async function compareRides(
    * Converte o formato comum
    * dos providers para RideOption.
    *
-   * Quando houver uma faixa
-   * de preço, usamos o ponto médio.
+   * A faixa original é preservada
+   * em precoMin / precoMax.
+   *
+   * O ponto médio continua em
+   * preco e é usado somente para
+   * cálculos internos do CorridaX.
    */
   const rides: RideOption[] =
     availableEstimates.map(
-      (estimate) => ({
-        id:
-          estimate.providerId,
+      (estimate) => {
+        const precoMin =
+          Number(
+            estimate.price.min.toFixed(
+              2,
+            ),
+          );
 
-        nome:
-          estimate.providerName,
+        const precoMax =
+          Number(
+            estimate.price.max.toFixed(
+              2,
+            ),
+          );
 
-        preco: Number(
-          (
+        const precoReferencia =
+          Number(
             (
-              estimate.price.min +
-              estimate.price.max
-            ) /
-            2
-          ).toFixed(2),
-        ),
+              (
+                precoMin +
+                precoMax
+              ) /
+              2
+            ).toFixed(2),
+          );
 
-        tempo:
-          estimate.tripDurationMinutes,
+        return {
+          id:
+            estimate.providerId,
 
-        distancia:
-          estimate.distanceKm,
+          nome:
+            estimate.providerName,
 
-        economia: 0,
+          preco:
+            precoReferencia,
 
-        score: 0,
+          precoMin,
 
-        destaque: false,
-      }),
+          precoMax,
+
+          tempo:
+            estimate.tripDurationMinutes,
+
+          distancia:
+            estimate.distanceKm,
+
+          economia: 0,
+
+          score: 0,
+
+          destaque: false,
+        };
+      },
     );
 
   const prices =
@@ -194,6 +243,10 @@ export async function compareRides(
   /*
    * Economia absoluta em relação
    * à opção mais cara disponível.
+   *
+   * Utilizamos o valor de referência
+   * interno para manter uma comparação
+   * consistente entre as plataformas.
    */
   rides.forEach((ride) => {
     ride.economia =
@@ -208,17 +261,12 @@ export async function compareRides(
   /*
    * SCORE CORRIDAX v4
    *
-   * O Score passa a considerar
-   * a diferença REAL entre preço
-   * e tempo.
+   * O Score considera a diferença
+   * real entre preço e tempo.
    *
-   * Exemplo:
-   *
-   * R$ 20 vs R$ 21 não deve
-   * produzir 100 vs 0.
-   *
-   * A nota relativa preserva
-   * a magnitude da diferença.
+   * O valor usado para o cálculo
+   * permanece sendo o ponto médio
+   * da faixa estimada.
    */
   rides.forEach((ride) => {
     const priceScore =
@@ -249,7 +297,7 @@ export async function compareRides(
    * Ordenação:
    *
    * 1. Maior Score CorridaX
-   * 2. Menor preço
+   * 2. Menor preço de referência
    * 3. Menor tempo
    */
   rides.sort((a, b) => {
