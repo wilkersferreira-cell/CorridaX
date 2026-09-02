@@ -6,8 +6,8 @@ import polyline from '@mapbox/polyline';
  *
  * Mantemos os mesmos nomes
  * utilizados pelo Google Routes
- * para evitar conversÃµes
- * desnecessÃ¡rias.
+ * para evitar conversões
+ * desnecessárias.
  */
 export type GoogleTravelMode =
   | 'DRIVE'
@@ -21,16 +21,64 @@ export interface GoogleRouteCoordinate {
 }
 
 export interface GoogleRouteResult {
+  /*
+   * Distância da rota em quilômetros.
+   */
   distance: number;
+
+  /*
+   * Duração prevista em minutos.
+   *
+   * Para rotas TRAFFIC_AWARE,
+   * considera as condições atuais
+   * de trânsito.
+   */
   duration: number;
+
+  /*
+   * Duração-base da rota em minutos,
+   * sem considerar as condições
+   * atuais de trânsito.
+   */
+  staticDuration?: number;
+
+  /*
+   * Relação entre a duração atual
+   * e a duração-base.
+   *
+   * Exemplo:
+   *
+   * duration = 60
+   * staticDuration = 40
+   *
+   * trafficIndex = 1.5
+   *
+   * Ou seja:
+   * a viagem está levando cerca
+   * de 50% mais tempo.
+   */
+  trafficIndex?: number;
+
+  /*
+   * Quantidade adicional de minutos
+   * associada às condições atuais
+   * da rota.
+   */
+  trafficDelayMinutes?: number;
+
   coordinates: GoogleRouteCoordinate[];
+
   encodedPolyline?: string;
 }
 
 type ComputeRoutesResponse = {
   routes?: Array<{
     distanceMeters?: number;
+
     duration?: string;
+
+    staticDuration?: string;
+
     polyline?: {
       encodedPolyline?: string;
     };
@@ -52,7 +100,7 @@ function getRoutesApiKey(): string {
 
   if (!apiKey) {
     throw new Error(
-      'Chave do Google Routes nÃ£o configurada.',
+      'Chave do Google Routes não configurada.',
     );
   }
 
@@ -60,14 +108,15 @@ function getRoutesApiKey(): string {
 }
 
 /*
- * Define as opÃ§Ãµes adicionais
+ * Define as opções adicionais
  * adequadas para cada modalidade.
  *
- * TRAFFIC_AWARE faz sentido
- * para veÃ­culos motorizados.
+ * TRAFFIC_AWARE utiliza as
+ * condições atuais de trânsito
+ * para veículos motorizados.
  *
  * Para caminhada e bicicleta,
- * nÃ£o enviamos routingPreference.
+ * não enviamos routingPreference.
  */
 function getRoutingOptions(
   travelMode: GoogleTravelMode,
@@ -85,38 +134,43 @@ function getRoutingOptions(
   return {};
 }
 
+/*
+ * Converte uma duração retornada
+ * pelo Google Routes no formato
+ * "1234s" para segundos.
+ */
+function parseDurationSeconds(
+  value?: string,
+): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const seconds =
+    Number(
+      value.replace(
+        's',
+        '',
+      ),
+    );
+
+  if (
+    !Number.isFinite(
+      seconds,
+    )
+  ) {
+    return undefined;
+  }
+
+  return seconds;
+}
+
 /**
  * Calcula uma rota utilizando
  * Google Routes API.
  *
- * O modo padrÃ£o continua sendo
+ * O modo padrão continua sendo
  * DRIVE.
- *
- * Isso Ã© importante porque todo
- * o cÃ³digo atual do CorridaX
- * continua funcionando sem
- * precisar ser alterado.
- *
- * Exemplos:
- *
- * calculateGoogleRoute(
- *   origemLat,
- *   origemLon,
- *   destinoLat,
- *   destinoLon,
- * )
- *
- * = carro
- *
- * calculateGoogleRoute(
- *   origemLat,
- *   origemLon,
- *   destinoLat,
- *   destinoLon,
- *   'WALK',
- * )
- *
- * = caminhada
  */
 export async function calculateGoogleRoute(
   originLat: number,
@@ -155,6 +209,7 @@ export async function calculateGoogleRoute(
           [
             'routes.distanceMeters',
             'routes.duration',
+            'routes.staticDuration',
             'routes.polyline.encodedPolyline',
           ].join(','),
       },
@@ -184,19 +239,8 @@ export async function calculateGoogleRoute(
           },
         },
 
-        /*
-         * NOVO
-         *
-         * Agora o modo de transporte
-         * pode ser escolhido pelo
-         * CorridaX.
-         */
         travelMode,
 
-        /*
-         * OpÃ§Ãµes especÃ­ficas
-         * da modalidade.
-         */
         ...routingOptions,
 
         polylineQuality:
@@ -232,33 +276,66 @@ export async function calculateGoogleRoute(
     !route.duration
   ) {
     throw new Error(
-      `Google Routes nÃ£o retornou uma rota vÃ¡lida para ${travelMode}.`,
+      `Google Routes não retornou uma rota válida para ${travelMode}.`,
     );
   }
 
-  /*
-   * O Google retorna duraÃ§Ã£o
-   * normalmente no formato:
-   *
-   * "1234s"
-   */
   const durationSeconds =
-    Number(
-      route.duration.replace(
-        's',
-        '',
-      ),
+    parseDurationSeconds(
+      route.duration,
     );
 
   if (
-    !Number.isFinite(
-      durationSeconds,
-    )
+    durationSeconds ===
+    undefined
   ) {
     throw new Error(
-      'DuraÃ§Ã£o invÃ¡lida retornada pelo Google Routes.',
+      'Duração inválida retornada pelo Google Routes.',
     );
   }
+
+  const staticDurationSeconds =
+    parseDurationSeconds(
+      route.staticDuration,
+    );
+
+  const durationMinutes =
+    durationSeconds /
+    60;
+
+  const staticDurationMinutes =
+    staticDurationSeconds !==
+    undefined
+      ? staticDurationSeconds /
+        60
+      : undefined;
+
+  /*
+   * Índice real de impacto
+   * do trânsito.
+   *
+   * 1.00 = sem aumento relevante
+   * 1.20 = aproximadamente 20% maior
+   * 1.50 = aproximadamente 50% maior
+   * 2.00 = aproximadamente o dobro
+   */
+  const trafficIndex =
+    staticDurationMinutes !==
+      undefined &&
+    staticDurationMinutes > 0
+      ? durationMinutes /
+        staticDurationMinutes
+      : undefined;
+
+  const trafficDelayMinutes =
+    staticDurationMinutes !==
+    undefined
+      ? Math.max(
+          0,
+          durationMinutes -
+            staticDurationMinutes,
+        )
+      : undefined;
 
   const encodedPolyline =
     route.polyline
@@ -284,18 +361,26 @@ export async function calculateGoogleRoute(
 
   return {
     /*
-     * metros â†’ quilÃ´metros
+     * metros → quilômetros
      */
     distance:
       route.distanceMeters /
       1000,
 
     /*
-     * segundos â†’ minutos
+     * minutos considerando
+     * o trânsito atual quando
+     * TRAFFIC_AWARE estiver ativo.
      */
     duration:
-      durationSeconds /
-      60,
+      durationMinutes,
+
+    staticDuration:
+      staticDurationMinutes,
+
+    trafficIndex,
+
+    trafficDelayMinutes,
 
     coordinates,
 

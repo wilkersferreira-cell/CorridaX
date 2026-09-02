@@ -31,6 +31,7 @@ import {
 
 import {
   getAuth,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from '@react-native-firebase/auth';
 
@@ -100,6 +101,35 @@ function getFirebaseErrorMessage(
   }
 }
 
+function getPasswordResetErrorMessage(
+  error: unknown,
+): string {
+  const code =
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof error.code === 'string'
+      ? error.code
+      : '';
+
+  switch (code) {
+    case 'auth/invalid-email':
+      return 'Informe um endereço de e-mail válido.';
+
+    case 'auth/user-disabled':
+      return 'Esta conta foi desativada.';
+
+    case 'auth/network-request-failed':
+      return 'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.';
+
+    case 'auth/too-many-requests':
+      return 'Muitas solicitações foram realizadas. Aguarde um pouco e tente novamente.';
+
+    default:
+      return 'Não foi possível enviar o e-mail de recuperação agora. Tente novamente.';
+  }
+}
+
 export default function SignInScreen({
   onBack,
   onCreateAccount,
@@ -135,8 +165,18 @@ export default function SignInScreen({
   ] = useState(false);
 
   const [
+    resetLoading,
+    setResetLoading,
+  ] = useState(false);
+
+  const [
     firebaseError,
     setFirebaseError,
+  ] = useState('');
+
+  const [
+    resetSuccess,
+    setResetSuccess,
   ] = useState('');
 
   const scrollRef =
@@ -153,10 +193,14 @@ export default function SignInScreen({
   const passwordValid =
     password.length >= 6;
 
+  const busy =
+    loading ||
+    resetLoading;
+
   const canLogin =
     emailValid &&
     passwordValid &&
-    !loading;
+    !busy;
 
   const emailError =
     touchedEmail &&
@@ -193,15 +237,71 @@ export default function SignInScreen({
     }, 180);
   }
 
+  async function handlePasswordReset() {
+    setTouchedEmail(true);
+    setFirebaseError('');
+    setResetSuccess('');
+
+    if (
+      !emailValid ||
+      busy
+    ) {
+      if (!emailValid) {
+        setFirebaseError(
+          'Informe seu e-mail acima para receber o link de recuperação.',
+        );
+      }
+
+      return;
+    }
+
+    try {
+      setResetLoading(true);
+
+      const auth =
+        getAuth();
+
+      await sendPasswordResetEmail(
+        auth,
+        email.trim().toLowerCase(),
+      );
+
+      setResetSuccess(
+        'E-mail de recuperação enviado. Verifique sua caixa de entrada e também a pasta de spam.',
+      );
+
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({
+          animated: true,
+        });
+      }, 150);
+    } catch (error) {
+      setFirebaseError(
+        getPasswordResetErrorMessage(
+          error,
+        ),
+      );
+
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({
+          animated: true,
+        });
+      }, 150);
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
   async function handleLogin() {
     setTouchedEmail(true);
     setTouchedPassword(true);
     setFirebaseError('');
+    setResetSuccess('');
 
     if (
       !emailValid ||
       !passwordValid ||
-      loading
+      busy
     ) {
       return;
     }
@@ -293,7 +393,7 @@ export default function SignInScreen({
           >
             <Pressable
               onPress={onBack}
-              disabled={loading}
+              disabled={busy}
               hitSlop={12}
               style={({ pressed }) => [
                 styles.backButton,
@@ -373,7 +473,7 @@ export default function SignInScreen({
               mode="outlined"
               label="E-mail"
               value={email}
-              editable={!loading}
+              editable={!busy}
               onChangeText={(
                 value,
               ) => {
@@ -382,6 +482,7 @@ export default function SignInScreen({
                 );
 
                 setFirebaseError('');
+                setResetSuccess('');
               }}
               onBlur={() =>
                 setTouchedEmail(
@@ -451,7 +552,7 @@ export default function SignInScreen({
               mode="outlined"
               label="Senha"
               value={password}
-              editable={!loading}
+              editable={!busy}
               onChangeText={(
                 value,
               ) => {
@@ -460,6 +561,7 @@ export default function SignInScreen({
                 );
 
                 setFirebaseError('');
+                setResetSuccess('');
               }}
               onBlur={() =>
                 setTouchedPassword(
@@ -549,25 +651,81 @@ export default function SignInScreen({
 
             <View
               style={
-                styles.passwordHint
+                styles.passwordActions
               }
             >
-              <MaterialCommunityIcons
-                name="shield-check-outline"
-                size={14}
-                color={
-                  COLORS.textMuted
-                }
-              />
-
-              <Text
+              <View
                 style={
-                  styles.passwordHintText
+                  styles.passwordHint
                 }
               >
-                Seus dados são protegidos pelo Firebase
-              </Text>
+                <MaterialCommunityIcons
+                  name="shield-check-outline"
+                  size={14}
+                  color={
+                    COLORS.textMuted
+                  }
+                />
+
+                <Text
+                  style={
+                    styles.passwordHintText
+                  }
+                >
+                  Dados protegidos pelo Firebase
+                </Text>
+              </View>
+
+              <Pressable
+                onPress={
+                  handlePasswordReset
+                }
+                disabled={busy}
+                hitSlop={10}
+              >
+                {({ pressed }) => (
+                  <Text
+                    style={[
+                      styles.forgotPasswordText,
+
+                      pressed &&
+                        styles.forgotPasswordPressed,
+
+                      busy &&
+                        styles.forgotPasswordDisabled,
+                    ]}
+                  >
+                    {resetLoading
+                      ? 'Enviando...'
+                      : 'Esqueceu sua senha?'}
+                  </Text>
+                )}
+              </Pressable>
             </View>
+
+            {!!resetSuccess && (
+              <View
+                style={
+                  styles.successBox
+                }
+              >
+                <MaterialCommunityIcons
+                  name="check-circle-outline"
+                  size={18}
+                  color={
+                    COLORS.primaryLight
+                  }
+                />
+
+                <Text
+                  style={
+                    styles.successText
+                  }
+                >
+                  {resetSuccess}
+                </Text>
+              </View>
+            )}
 
             {!!firebaseError && (
               <View
@@ -669,7 +827,7 @@ export default function SignInScreen({
               onPress={
                 onCreateAccount
               }
-              disabled={loading}
+              disabled={busy}
               hitSlop={10}
             >
               {({ pressed }) => (
@@ -888,27 +1046,103 @@ const styles = StyleSheet.create({
       TYPOGRAPHY.weight.medium,
   },
 
-  passwordHint: {
+  passwordActions: {
+    minHeight: 38,
+
     flexDirection: 'row',
 
     alignItems: 'center',
 
-    marginTop: 9,
+    justifyContent:
+      'space-between',
 
-    marginBottom: 16,
+    marginTop: 5,
+
+    marginBottom: 12,
 
     paddingHorizontal: 3,
   },
 
+  passwordHint: {
+    flex: 1,
+
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    marginRight: 8,
+  },
+
   passwordHintText: {
+    flexShrink: 1,
+
     marginLeft: 5,
 
     color:
       COLORS.textMuted,
 
-    fontSize: 10.5,
+    fontSize: 10,
 
     lineHeight: 14,
+  },
+
+  forgotPasswordText: {
+    color:
+      COLORS.primaryLight,
+
+    fontSize: 11.5,
+
+    lineHeight: 16,
+
+    fontWeight:
+      TYPOGRAPHY.weight.bold,
+  },
+
+  forgotPasswordPressed: {
+    opacity: 0.65,
+  },
+
+  forgotPasswordDisabled: {
+    opacity: 0.5,
+  },
+
+  successBox: {
+    flexDirection: 'row',
+
+    alignItems: 'flex-start',
+
+    marginBottom: 14,
+
+    paddingHorizontal: 11,
+
+    paddingVertical: 10,
+
+    borderWidth: 1,
+
+    borderColor:
+      COLORS.primaryLight,
+
+    borderRadius:
+      RADIUS.lg,
+
+    backgroundColor:
+      COLORS.surface,
+  },
+
+  successText: {
+    flex: 1,
+
+    marginLeft: 7,
+
+    color:
+      COLORS.textSecondary,
+
+    fontSize: 11,
+
+    lineHeight: 16,
+
+    fontWeight:
+      TYPOGRAPHY.weight.medium,
   },
 
   firebaseErrorBox: {

@@ -21,6 +21,34 @@ export type RideRequest = {
 
   distance: number;
   duration: number;
+
+  /*
+   * Duração-base da rota,
+   * sem considerar o trânsito atual.
+   *
+   * Esse campo é opcional para
+   * manter compatibilidade com
+   * chamadas antigas.
+   */
+  staticDuration?: number;
+
+  /*
+   * Índice de trânsito real:
+   *
+   * duration / staticDuration
+   *
+   * Exemplos:
+   * 1.00 = sem aumento relevante
+   * 1.20 = cerca de 20% mais lento
+   * 1.50 = cerca de 50% mais lento
+   */
+  trafficIndex?: number;
+
+  /*
+   * Minutos adicionais causados
+   * pelas condições atuais da rota.
+   */
+  trafficDelayMinutes?: number;
 };
 
 export type RideEstimate = {

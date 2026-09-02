@@ -39,9 +39,32 @@ export type MobilityOption = {
   id: MobilityMode;
   label: string;
   travelMode: GoogleTravelMode;
+
   distance: number;
   duration: number;
+
+  /*
+   * Dados de trânsito retornados
+   * pelo Google Routes.
+   *
+   * São opcionais porque WALK,
+   * BICYCLE ou um eventual fallback
+   * podem não fornecer essas métricas.
+   */
+  staticDuration?: number;
+  trafficIndex?: number;
+  trafficDelayMinutes?: number;
+
   coordinates: Coordinate[];
+};
+
+export type RouteInfo = {
+  distance: number;
+  duration: number;
+
+  staticDuration?: number;
+  trafficIndex?: number;
+  trafficDelayMinutes?: number;
 };
 
 const MOBILITY_MODES: Array<{
@@ -69,7 +92,7 @@ const MOBILITY_MODES: Array<{
 
   {
     id: 'walk',
-    label: 'A pÃ©',
+    label: 'A pé',
     travelMode: 'WALK',
   },
 ];
@@ -121,10 +144,9 @@ export default function useRideComparison() {
   const [
     routeInfo,
     setRouteInfo,
-  ] = useState<{
-    distance: number;
-    duration: number;
-  } | null>(null);
+  ] = useState<RouteInfo | null>(
+    null,
+  );
 
   const [
     mobilityOptions,
@@ -229,6 +251,15 @@ export default function useRideComparison() {
 
       duration:
         option.duration,
+
+      staticDuration:
+        option.staticDuration,
+
+      trafficIndex:
+        option.trafficIndex,
+
+      trafficDelayMinutes:
+        option.trafficDelayMinutes,
     });
 
     if (
@@ -277,6 +308,15 @@ export default function useRideComparison() {
                 duration:
                   route.duration,
 
+                staticDuration:
+                  route.staticDuration,
+
+                trafficIndex:
+                  route.trafficIndex,
+
+                trafficDelayMinutes:
+                  route.trafficDelayMinutes,
+
                 coordinates:
                   route.coordinates,
               };
@@ -303,7 +343,7 @@ export default function useRideComparison() {
           }
 
           console.warn(
-            `Modo ${MOBILITY_MODES[index].label} indisponÃ­vel:`,
+            `Modo ${MOBILITY_MODES[index].label} indisponível:`,
             result.reason,
           );
         },
@@ -316,7 +356,7 @@ export default function useRideComparison() {
       return availableOptions;
     } catch (error) {
       console.warn(
-        'Falha ao calcular opÃ§Ãµes de mobilidade:',
+        'Falha ao calcular opções de mobilidade:',
         error,
       );
 
@@ -329,12 +369,15 @@ export default function useRideComparison() {
   }
 
   /*
-   * PRÃ‰-VISUALIZAÃ‡ÃƒO DA ROTA
+   * PRÉ-VISUALIZAÇÃO DA ROTA
    *
-   * Agora recebe a origem explicitamente.
+   * Recebe a origem explicitamente
+   * para não depender exclusivamente
+   * do estado assíncrono do React.
    *
-   * Isso elimina a dependÃªncia exclusiva
-   * do estado assÃ­ncrono do React.
+   * Quando o Google Routes responde,
+   * também preservamos os dados
+   * objetivos de trânsito.
    */
   async function previewRoute(
     originCoordinate: Coordinate,
@@ -343,6 +386,15 @@ export default function useRideComparison() {
     try {
       let routeDistance: number;
       let routeDuration: number;
+
+      let routeStaticDuration:
+        number | undefined;
+
+      let routeTrafficIndex:
+        number | undefined;
+
+      let routeTrafficDelayMinutes:
+        number | undefined;
 
       let coordinates:
         Coordinate[];
@@ -363,6 +415,15 @@ export default function useRideComparison() {
         routeDuration =
           googleRoute.duration;
 
+        routeStaticDuration =
+          googleRoute.staticDuration;
+
+        routeTrafficIndex =
+          googleRoute.trafficIndex;
+
+        routeTrafficDelayMinutes =
+          googleRoute.trafficDelayMinutes;
+
         coordinates =
           googleRoute.coordinates;
 
@@ -382,7 +443,7 @@ export default function useRideComparison() {
         }
       } catch (googleError) {
         console.warn(
-          'Google Routes indisponÃ­vel no preview. Usando OSRM.',
+          'Google Routes indisponível no preview. Usando OSRM.',
           googleError,
         );
 
@@ -400,6 +461,23 @@ export default function useRideComparison() {
         routeDuration =
           osrmRoute.duration;
 
+        /*
+         * OSRM não fornece a mesma
+         * referência de trânsito atual
+         * utilizada pelo Google Routes.
+         *
+         * Por isso não inventamos
+         * trafficIndex no fallback.
+         */
+        routeStaticDuration =
+          undefined;
+
+        routeTrafficIndex =
+          undefined;
+
+        routeTrafficDelayMinutes =
+          undefined;
+
         coordinates =
           osrmRoute.coordinates;
       }
@@ -413,8 +491,6 @@ export default function useRideComparison() {
       );
 
       /*
-       * IMPORTANTE:
-       *
        * A rota de carro aparece
        * imediatamente.
        */
@@ -428,6 +504,15 @@ export default function useRideComparison() {
 
         duration:
           routeDuration,
+
+        staticDuration:
+          routeStaticDuration,
+
+        trafficIndex:
+          routeTrafficIndex,
+
+        trafficDelayMinutes:
+          routeTrafficDelayMinutes,
       });
 
       /*
@@ -453,6 +538,15 @@ export default function useRideComparison() {
 
           duration:
             carOption.duration,
+
+          staticDuration:
+            carOption.staticDuration,
+
+          trafficIndex:
+            carOption.trafficIndex,
+
+          trafficDelayMinutes:
+            carOption.trafficDelayMinutes,
         });
 
         if (
@@ -466,7 +560,7 @@ export default function useRideComparison() {
       }
     } catch (error) {
       console.warn(
-        'NÃ£o foi possÃ­vel prÃ©-visualizar a rota:',
+        'Não foi possível pré-visualizar a rota:',
         error,
       );
 
@@ -479,9 +573,9 @@ export default function useRideComparison() {
   }
 
   /*
-   * SELEÃ‡ÃƒO DO DESTINO
+   * SELEÇÃO DO DESTINO
    *
-   * Agora pode receber diretamente
+   * Pode receber diretamente
    * latitude e longitude atuais
    * fornecidas pela Home.
    */
@@ -544,7 +638,7 @@ export default function useRideComparison() {
      * 1. GPS fornecido diretamente
      *    pela Home.
      *
-     * 2. Estado origin jÃ¡ existente.
+     * 2. Estado origin já existente.
      */
     let previewOrigin:
       Coordinate | undefined;
@@ -569,7 +663,7 @@ export default function useRideComparison() {
 
     if (!previewOrigin) {
       console.warn(
-        'GPS ainda nÃ£o disponÃ­vel para calcular a rota.',
+        'GPS ainda não disponível para calcular a rota.',
       );
 
       return {
@@ -699,7 +793,7 @@ export default function useRideComparison() {
         )
       ) {
         throw new Error(
-          'LocalizaÃ§Ã£o GPS ainda nÃ£o disponÃ­vel.',
+          'Localização GPS ainda não disponível.',
         );
       }
 
@@ -730,7 +824,7 @@ export default function useRideComparison() {
           results.length === 0
         ) {
           throw new Error(
-            'Destino nÃ£o encontrado.',
+            'Destino não encontrado.',
           );
         }
 
@@ -771,6 +865,15 @@ export default function useRideComparison() {
       let routeDistance: number;
       let routeDuration: number;
 
+      let routeStaticDuration:
+        number | undefined;
+
+      let routeTrafficIndex:
+        number | undefined;
+
+      let routeTrafficDelayMinutes:
+        number | undefined;
+
       let carCoordinates:
         Coordinate[];
 
@@ -789,6 +892,38 @@ export default function useRideComparison() {
 
         routeDuration =
           googleRoute.duration;
+
+        routeStaticDuration =
+  googleRoute.staticDuration;
+
+routeTrafficIndex =
+  googleRoute.trafficIndex;
+
+routeTrafficDelayMinutes =
+  googleRoute.trafficDelayMinutes;
+
+console.log(
+  '🚦 CORRIDAX TRAFFIC',
+  {
+    distanceKm:
+      googleRoute.distance,
+
+    durationMinutes:
+      googleRoute.duration,
+
+    staticDurationMinutes:
+      googleRoute.staticDuration,
+
+    trafficIndex:
+      googleRoute.trafficIndex,
+
+    trafficDelayMinutes:
+      googleRoute.trafficDelayMinutes,
+  },
+);
+
+carCoordinates =
+  googleRoute.coordinates;
 
         carCoordinates =
           googleRoute.coordinates;
@@ -809,7 +944,7 @@ export default function useRideComparison() {
         }
       } catch (googleError) {
         console.warn(
-          'Google Routes indisponÃ­vel. Usando OSRM.',
+          'Google Routes indisponível. Usando OSRM.',
           googleError,
         );
 
@@ -826,6 +961,15 @@ export default function useRideComparison() {
 
         routeDuration =
           osrmRoute.duration;
+
+        routeStaticDuration =
+          undefined;
+
+        routeTrafficIndex =
+          undefined;
+
+        routeTrafficDelayMinutes =
+          undefined;
 
         carCoordinates =
           osrmRoute.coordinates;
@@ -845,6 +989,15 @@ export default function useRideComparison() {
 
           duration:
             routeDuration,
+
+          staticDuration:
+            routeStaticDuration,
+
+          trafficIndex:
+            routeTrafficIndex,
+
+          trafficDelayMinutes:
+            routeTrafficDelayMinutes,
         });
       }
 
@@ -859,6 +1012,69 @@ export default function useRideComparison() {
             originCoordinate,
             destinationCoordinate,
           );
+      }
+
+      /*
+       * Caso a opção de carro tenha sido
+       * recalculada nas modalidades,
+       * usamos também os dados mais recentes
+       * dessa rota como referência.
+       */
+      const carOption =
+        options.find(
+          (option) =>
+            option.id === 'car',
+        );
+
+      if (carOption) {
+        routeDistance =
+          carOption.distance;
+
+        routeDuration =
+          carOption.duration;
+
+        routeStaticDuration =
+          carOption.staticDuration;
+
+        routeTrafficIndex =
+          carOption.trafficIndex;
+
+        routeTrafficDelayMinutes =
+          carOption.trafficDelayMinutes;
+
+        if (
+          carOption.coordinates.length >=
+          2
+        ) {
+          carCoordinates =
+            carOption.coordinates;
+        }
+      }
+
+      if (
+        selectedMobilityMode ===
+        'car'
+      ) {
+        setRouteCoordinates(
+          carCoordinates,
+        );
+
+        setRouteInfo({
+          distance:
+            routeDistance,
+
+          duration:
+            routeDuration,
+
+          staticDuration:
+            routeStaticDuration,
+
+          trafficIndex:
+            routeTrafficIndex,
+
+          trafficDelayMinutes:
+            routeTrafficDelayMinutes,
+        });
       }
 
       if (
@@ -879,6 +1095,15 @@ export default function useRideComparison() {
 
             duration:
               selectedOption.duration,
+
+            staticDuration:
+              selectedOption.staticDuration,
+
+            trafficIndex:
+              selectedOption.trafficIndex,
+
+            trafficDelayMinutes:
+              selectedOption.trafficDelayMinutes,
           });
 
           if (
@@ -892,11 +1117,37 @@ export default function useRideComparison() {
         }
       }
 
+      /*
+       * PREÇOS DE CORRIDA
+       *
+       * Uber, 99 e inDrive utilizam
+       * a rota de carro como referência.
+       *
+       * Agora também repassamos:
+       *
+       * - staticDuration
+       * - trafficIndex
+       * - trafficDelayMinutes
+       *
+       * Se o Google não fornecer esses
+       * dados, todos permanecem opcionais
+       * e o motor usa o fallback legado.
+       */
       const resultado =
         await compareRides(
           routeDistance,
           routeDuration,
           comparisonMode,
+          {
+            staticDuration:
+              routeStaticDuration,
+
+            trafficIndex:
+              routeTrafficIndex,
+
+            trafficDelayMinutes:
+              routeTrafficDelayMinutes,
+          },
         );
 
       setRides(
@@ -926,7 +1177,7 @@ export default function useRideComparison() {
         );
       } catch (error) {
         console.warn(
-          'Falha no diagnÃ³stico Google Ã— OSRM:',
+          'Falha no diagnóstico Google × OSRM:',
           error,
         );
 

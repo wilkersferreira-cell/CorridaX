@@ -45,37 +45,81 @@ export const SimulationProvider: RideProvider = {
       new Date().toISOString();
 
     /*
-     * PREÇO CORRIDAX v2
+     * PREÇO CORRIDAX
      *
-     * Os preços agora são calculados
+     * As estimativas são calculadas
      * pelo priceEstimator.
      *
-     * Eles continuam sendo estimativas
-     * internas e NÃO tarifas oficiais.
+     * Quando disponíveis, os dados
+     * reais de trânsito da rota são
+     * repassados ao motor:
+     *
+     * - staticDuration
+     * - trafficIndex
+     * - trafficDelayMinutes
+     *
+     * Esses valores são opcionais.
+     *
+     * Quando não existem, o motor
+     * continua funcionando com o
+     * comportamento de fallback.
      */
 
     const app99Price =
       estimateRidePriceRange({
         provider: '99',
+
         distanceKm,
+
         durationMinutes:
           safeDuration,
+
+        staticDurationMinutes:
+          request.staticDuration,
+
+        trafficIndex:
+          request.trafficIndex,
+
+        trafficDelayMinutes:
+          request.trafficDelayMinutes,
       });
 
     const uberPrice =
       estimateRidePriceRange({
         provider: 'uber',
+
         distanceKm,
+
         durationMinutes:
           safeDuration,
+
+        staticDurationMinutes:
+          request.staticDuration,
+
+        trafficIndex:
+          request.trafficIndex,
+
+        trafficDelayMinutes:
+          request.trafficDelayMinutes,
       });
 
     const inDrivePrice =
       estimateRidePriceRange({
         provider: 'indrive',
+
         distanceKm,
+
         durationMinutes:
           safeDuration,
+
+        staticDurationMinutes:
+          request.staticDuration,
+
+        trafficIndex:
+          request.trafficIndex,
+
+        trafficDelayMinutes:
+          request.trafficDelayMinutes,
       });
 
     return [
@@ -91,8 +135,10 @@ export const SimulationProvider: RideProvider = {
         price: {
           min:
             app99Price.min,
+
           max:
             app99Price.max,
+
           currency: 'BRL',
         },
 
@@ -127,8 +173,10 @@ export const SimulationProvider: RideProvider = {
         price: {
           min:
             uberPrice.min,
+
           max:
             uberPrice.max,
+
           currency: 'BRL',
         },
 
@@ -163,8 +211,10 @@ export const SimulationProvider: RideProvider = {
         price: {
           min:
             inDrivePrice.min,
+
           max:
             inDrivePrice.max,
+
           currency: 'BRL',
         },
 

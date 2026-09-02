@@ -65,6 +65,14 @@ export async function saveCalibrationRecordRemote(
       record.promotionalPrice ??
       null,
 
+    origin:
+      record.origin ??
+      null,
+
+    destination:
+      record.destination ??
+      null,
+
     absoluteError:
       record.absoluteError,
 
@@ -81,7 +89,7 @@ export async function saveCalibrationRecordRemote(
       serverTimestamp(),
 
     appVersion:
-      '1.0.0',
+      '1.0.1',
 
     source:
       'corridax-alpha',

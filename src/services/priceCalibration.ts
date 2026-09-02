@@ -172,7 +172,8 @@ export function calculatePriceCalibration(
           difference,
         ) /
         observedPrice
-      ) * 100,
+      ) *
+        100,
     );
 
   let direction:

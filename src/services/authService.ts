@@ -20,8 +20,46 @@ export type GoogleSignInResult =
       message: string;
     };
 
+type UnknownError = {
+  code?: unknown;
+  message?: unknown;
+  name?: unknown;
+};
+
+function getDiagnosticMessage(
+  error: unknown,
+): string {
+  if (
+    typeof error === 'object' &&
+    error !== null
+  ) {
+    const typedError =
+      error as UnknownError;
+
+    const code =
+      typeof typedError.code ===
+      'string'
+        ? typedError.code
+        : 'sem código';
+
+    const message =
+      typeof typedError.message ===
+      'string'
+        ? typedError.message
+        : 'sem mensagem';
+
+    return `${code} - ${message}`;
+  }
+
+  return String(error);
+}
+
 export async function signInWithGoogle(): Promise<GoogleSignInResult> {
   try {
+    console.log(
+      '[GoogleSignIn] Iniciando login...',
+    );
+
     /*
      * Confirma que o Google Play Services
      * está disponível e atualizado.
@@ -30,11 +68,20 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
       showPlayServicesUpdateDialog: true,
     });
 
+    console.log(
+      '[GoogleSignIn] Google Play Services OK.',
+    );
+
     /*
      * Abre o seletor de contas Google.
      */
     const response =
       await GoogleSignin.signIn();
+
+    console.log(
+      '[GoogleSignIn] Conta selecionada.',
+      response,
+    );
 
     /*
      * Recupera os tokens da conta selecionada.
@@ -42,12 +89,30 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
     const tokens =
       await GoogleSignin.getTokens();
 
+    console.log(
+      '[GoogleSignIn] Tokens recebidos.',
+      {
+        hasIdToken:
+          Boolean(
+            tokens.idToken,
+          ),
+        hasAccessToken:
+          Boolean(
+            tokens.accessToken,
+          ),
+      },
+    );
+
     if (!tokens.idToken) {
+      console.error(
+        '[GoogleSignIn] ID Token não recebido.',
+      );
+
       return {
         success: false,
         cancelled: false,
         message:
-          'Não foi possível obter a credencial da sua conta Google.',
+          'Google Sign-In: ID Token não recebido.',
       };
     }
 
@@ -60,23 +125,37 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
         tokens.idToken,
       );
 
+    console.log(
+      '[GoogleSignIn] Credencial Firebase criada.',
+    );
+
     /*
      * Autentica efetivamente no Firebase.
-     *
-     * O AppNavigator já está ouvindo
-     * onAuthStateChanged. Portanto, quando
-     * essa operação terminar, a Home será
-     * aberta automaticamente.
      */
     await signInWithCredential(
       getAuth(),
       googleCredential,
     );
 
+    console.log(
+      '[GoogleSignIn] Login Firebase concluído.',
+    );
+
     return {
       success: true,
     };
   } catch (error) {
+    const diagnostic =
+      getDiagnosticMessage(
+        error,
+      );
+
+    console.error(
+      '[GoogleSignIn] ERRO:',
+      diagnostic,
+      error,
+    );
+
     if (isErrorWithCode(error)) {
       if (
         error.code ===
@@ -118,7 +197,7 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
       success: false,
       cancelled: false,
       message:
-        'Não foi possível entrar com o Google. Tente novamente.',
+        `Erro Google Sign-In: ${diagnostic}`,
     };
   }
 }

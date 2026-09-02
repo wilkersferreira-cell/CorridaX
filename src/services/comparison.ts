@@ -44,6 +44,12 @@ type ComparisonWeights = {
   time: number;
 };
 
+export type RideTrafficData = {
+  staticDuration?: number;
+  trafficIndex?: number;
+  trafficDelayMinutes?: number;
+};
+
 const WEIGHTS: Record<
   ComparisonMode,
   ComparisonWeights
@@ -108,6 +114,7 @@ export async function compareRides(
   distance: number,
   duration: number,
   mode: ComparisonMode = 'balanced',
+  trafficData?: RideTrafficData,
 ): Promise<RideOption[]> {
   const weights =
     WEIGHTS[mode];
@@ -118,6 +125,11 @@ export async function compareRides(
    *
    * Atualmente usamos o
    * SimulationProvider.
+   *
+   * Quando disponíveis, os dados
+   * reais de trânsito calculados
+   * pelo Google Routes também são
+   * repassados ao provider.
    */
   const estimates =
     await SimulationProvider.getEstimates({
@@ -133,6 +145,15 @@ export async function compareRides(
 
       distance,
       duration,
+
+      staticDuration:
+        trafficData?.staticDuration,
+
+      trafficIndex:
+        trafficData?.trafficIndex,
+
+      trafficDelayMinutes:
+        trafficData?.trafficDelayMinutes,
     });
 
   /*
