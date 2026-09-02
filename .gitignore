@@ -54,3 +54,5 @@ google-services.json
 google-services.json.backup-*
 
 .idea/
+
+playstore-base.apk
