@@ -1,4 +1,5 @@
 ﻿import {
+  useCallback,
   useState,
 } from 'react';
 
@@ -43,14 +44,6 @@ export type MobilityOption = {
   distance: number;
   duration: number;
 
-  /*
-   * Dados de trânsito retornados
-   * pelo Google Routes.
-   *
-   * São opcionais porque WALK,
-   * BICYCLE ou um eventual fallback
-   * podem não fornecer essas métricas.
-   */
   staticDuration?: number;
   trafficIndex?: number;
   trafficDelayMinutes?: number;
@@ -180,24 +173,55 @@ export default function useRideComparison() {
       RouteComparisonResult | null
     >(null);
 
-  function setGpsOrigin(
-    latitude: number,
-    longitude: number,
-  ) {
-    if (
-      !isValidCoordinate(
-        latitude,
-        longitude,
-      )
-    ) {
-      return;
-    }
+  /*
+   * ORIGEM GPS
+   *
+   * useCallback mantém a referência
+   * da função estável entre renders.
+   *
+   * Isso evita que o useEffect da Home
+   * seja disparado novamente apenas
+   * porque setGpsOrigin recebeu uma
+   * nova referência.
+   *
+   * Também evitamos atualizar o estado
+   * quando as coordenadas não mudaram.
+   */
+  const setGpsOrigin =
+    useCallback(
+      (
+        latitude: number,
+        longitude: number,
+      ) => {
+        if (
+          !isValidCoordinate(
+            latitude,
+            longitude,
+          )
+        ) {
+          return;
+        }
 
-    setOrigin({
-      latitude,
-      longitude,
-    });
-  }
+        setOrigin(
+          (currentOrigin) => {
+            if (
+              currentOrigin?.latitude ===
+                latitude &&
+              currentOrigin?.longitude ===
+                longitude
+            ) {
+              return currentOrigin;
+            }
+
+            return {
+              latitude,
+              longitude,
+            };
+          },
+        );
+      },
+      [],
+    );
 
   async function search(
     query: string,
@@ -368,17 +392,6 @@ export default function useRideComparison() {
     }
   }
 
-  /*
-   * PRÉ-VISUALIZAÇÃO DA ROTA
-   *
-   * Recebe a origem explicitamente
-   * para não depender exclusivamente
-   * do estado assíncrono do React.
-   *
-   * Quando o Google Routes responde,
-   * também preservamos os dados
-   * objetivos de trânsito.
-   */
   async function previewRoute(
     originCoordinate: Coordinate,
     destinationCoordinate: Coordinate,
@@ -461,14 +474,6 @@ export default function useRideComparison() {
         routeDuration =
           osrmRoute.duration;
 
-        /*
-         * OSRM não fornece a mesma
-         * referência de trânsito atual
-         * utilizada pelo Google Routes.
-         *
-         * Por isso não inventamos
-         * trafficIndex no fallback.
-         */
         routeStaticDuration =
           undefined;
 
@@ -490,10 +495,6 @@ export default function useRideComparison() {
         'car',
       );
 
-      /*
-       * A rota de carro aparece
-       * imediatamente.
-       */
       setRouteCoordinates(
         coordinates,
       );
@@ -515,10 +516,6 @@ export default function useRideComparison() {
           routeTrafficDelayMinutes,
       });
 
-      /*
-       * Depois calculamos as quatro
-       * modalidades.
-       */
       const options =
         await calculateMobilityOptions(
           originCoordinate,
@@ -572,13 +569,6 @@ export default function useRideComparison() {
     }
   }
 
-  /*
-   * SELEÇÃO DO DESTINO
-   *
-   * Pode receber diretamente
-   * latitude e longitude atuais
-   * fornecidas pela Home.
-   */
   async function selectDestination(
     suggestion: GooglePlaceSuggestion,
     originLatitude?: number,
@@ -632,14 +622,6 @@ export default function useRideComparison() {
 
     setSuggestions([]);
 
-    /*
-     * PRIORIDADE:
-     *
-     * 1. GPS fornecido diretamente
-     *    pela Home.
-     *
-     * 2. Estado origin já existente.
-     */
     let previewOrigin:
       Coordinate | undefined;
 
@@ -894,36 +876,33 @@ export default function useRideComparison() {
           googleRoute.duration;
 
         routeStaticDuration =
-  googleRoute.staticDuration;
+          googleRoute.staticDuration;
 
-routeTrafficIndex =
-  googleRoute.trafficIndex;
+        routeTrafficIndex =
+          googleRoute.trafficIndex;
 
-routeTrafficDelayMinutes =
-  googleRoute.trafficDelayMinutes;
+        routeTrafficDelayMinutes =
+          googleRoute.trafficDelayMinutes;
 
-console.log(
-  '🚦 CORRIDAX TRAFFIC',
-  {
-    distanceKm:
-      googleRoute.distance,
+        console.log(
+          '🚦 CORRIDAX TRAFFIC',
+          {
+            distanceKm:
+              googleRoute.distance,
 
-    durationMinutes:
-      googleRoute.duration,
+            durationMinutes:
+              googleRoute.duration,
 
-    staticDurationMinutes:
-      googleRoute.staticDuration,
+            staticDurationMinutes:
+              googleRoute.staticDuration,
 
-    trafficIndex:
-      googleRoute.trafficIndex,
+            trafficIndex:
+              googleRoute.trafficIndex,
 
-    trafficDelayMinutes:
-      googleRoute.trafficDelayMinutes,
-  },
-);
-
-carCoordinates =
-  googleRoute.coordinates;
+            trafficDelayMinutes:
+              googleRoute.trafficDelayMinutes,
+          },
+        );
 
         carCoordinates =
           googleRoute.coordinates;
@@ -1014,12 +993,6 @@ carCoordinates =
           );
       }
 
-      /*
-       * Caso a opção de carro tenha sido
-       * recalculada nas modalidades,
-       * usamos também os dados mais recentes
-       * dessa rota como referência.
-       */
       const carOption =
         options.find(
           (option) =>
@@ -1117,22 +1090,6 @@ carCoordinates =
         }
       }
 
-      /*
-       * PREÇOS DE CORRIDA
-       *
-       * Uber, 99 e inDrive utilizam
-       * a rota de carro como referência.
-       *
-       * Agora também repassamos:
-       *
-       * - staticDuration
-       * - trafficIndex
-       * - trafficDelayMinutes
-       *
-       * Se o Google não fornecer esses
-       * dados, todos permanecem opcionais
-       * e o motor usa o fallback legado.
-       */
       const resultado =
         await compareRides(
           routeDistance,

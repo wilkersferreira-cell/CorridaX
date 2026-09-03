@@ -1,15 +1,7 @@
-import {
-  Alert,
-  Linking,
-  Platform,
-} from 'react-native';
-
+import { Alert, Linking, Platform } from 'react-native';
 import * as IntentLauncher from 'expo-intent-launcher';
 
-export type RideApp =
-  | 'uber'
-  | '99'
-  | 'indrive';
+export type RideApp = 'uber' | '99' | 'indrive';
 
 export type RideLocation = {
   latitude: number;
@@ -22,287 +14,317 @@ export type RideTrip = {
   destination?: RideLocation;
 };
 
-function getStoreUrl(
-  app: RideApp,
-): string {
-  if (Platform.OS === 'ios') {
+function getStoreUrl(app: RideApp): string {
+  if (Platform.OS === 'android') {
     switch (app) {
       case 'uber':
-        return 'https://apps.apple.com/app/uber/id368677368';
+        return 'market://details?id=com.ubercab';
 
       case '99':
-        return 'https://apps.apple.com/app/99/id553663691';
+        return 'market://details?id=com.taxis99';
 
       case 'indrive':
-        return 'https://apps.apple.com/app/indrive/id780125801';
+        return 'market://details?id=sinet.startup.inDriver';
     }
   }
 
   switch (app) {
     case 'uber':
-      return 'https://play.google.com/store/apps/details?id=com.ubercab';
+      return 'https://apps.apple.com/app/uber-request-a-ride/id368677368';
 
     case '99':
-      return 'https://play.google.com/store/apps/details?id=com.taxis99';
+      return 'https://apps.apple.com/app/99-corridas/id553663691';
 
     case 'indrive':
-      return 'https://play.google.com/store/apps/details?id=sinet.startup.inDriver';
+      return 'https://apps.apple.com/app/indrive-save-on-city-rides/id780125801';
   }
 }
 
-function buildUberUrl(
-  trip?: RideTrip,
-): string {
-  if (
-    !trip?.destination
-  ) {
-    return 'uber://';
-  }
+function buildUberUrl(trip?: RideTrip): string {
+  const params: string[] = ['action=setPickup'];
 
-  const params: string[] = [];
-
-  if (trip.origin) {
+  if (trip?.origin) {
     params.push(
       `pickup[latitude]=${encodeURIComponent(
-        String(
-          trip.origin.latitude,
-        ),
-      )}`,
+        String(trip.origin.latitude)
+      )}`
     );
 
     params.push(
       `pickup[longitude]=${encodeURIComponent(
-        String(
-          trip.origin.longitude,
-        ),
-      )}`,
+        String(trip.origin.longitude)
+      )}`
     );
 
     if (trip.origin.address) {
       params.push(
         `pickup[nickname]=${encodeURIComponent(
-          trip.origin.address,
-        )}`,
+          trip.origin.address
+        )}`
       );
 
       params.push(
         `pickup[formatted_address]=${encodeURIComponent(
-          trip.origin.address,
-        )}`,
+          trip.origin.address
+        )}`
       );
     }
   } else {
-    params.push(
-      'pickup=my_location',
-    );
+    params.push('pickup=my_location');
   }
 
-  params.push(
-    `dropoff[latitude]=${encodeURIComponent(
-      String(
-        trip.destination.latitude,
-      ),
-    )}`,
-  );
+  if (trip?.destination) {
+    params.push(
+      `dropoff[latitude]=${encodeURIComponent(
+        String(trip.destination.latitude)
+      )}`
+    );
 
-  params.push(
-    `dropoff[longitude]=${encodeURIComponent(
-      String(
-        trip.destination.longitude,
-      ),
+    params.push(
+      `dropoff[longitude]=${encodeURIComponent(
+        String(trip.destination.longitude)
+      )}`
+    );
+
+    if (trip.destination.address) {
+      params.push(
+        `dropoff[nickname]=${encodeURIComponent(
+          trip.destination.address
+        )}`
+      );
+
+      params.push(
+        `dropoff[formatted_address]=${encodeURIComponent(
+          trip.destination.address
+        )}`
+      );
+    }
+  }
+
+  return `uber://?${params.join('&')}`;
+}
+
+function build99Url(trip?: RideTrip): string {
+  if (!trip?.origin || !trip?.destination) {
+    return 'taxis99://';
+  }
+
+  const params: string[] = [
+    'deep_link_product_id=316',
+
+    `pickup_latitude=${encodeURIComponent(
+      String(trip.origin.latitude)
     )}`,
-  );
+
+    `pickup_longitude=${encodeURIComponent(
+      String(trip.origin.longitude)
+    )}`,
+
+    `dropoff_latitude=${encodeURIComponent(
+      String(trip.destination.latitude)
+    )}`,
+
+    `dropoff_longitude=${encodeURIComponent(
+      String(trip.destination.longitude)
+    )}`,
+  ];
+
+  if (trip.origin.address) {
+    params.push(
+      `pickup_title=${encodeURIComponent(
+        trip.origin.address
+      )}`
+    );
+
+    params.push(
+      `pickup_formatted_address=${encodeURIComponent(
+        trip.origin.address
+      )}`
+    );
+  }
 
   if (trip.destination.address) {
     params.push(
-      `dropoff[nickname]=${encodeURIComponent(
-        trip.destination.address,
-      )}`,
+      `dropoff_title=${encodeURIComponent(
+        trip.destination.address
+      )}`
     );
 
     params.push(
-      `dropoff[formatted_address]=${encodeURIComponent(
-        trip.destination.address,
-      )}`,
+      `dropoff_formatted_address=${encodeURIComponent(
+        trip.destination.address
+      )}`
     );
   }
 
-  return `uber://riderequest?${params.join('&')}`;
+  return `taxis99://call?${params.join('&')}`;
 }
 
-function getAppUrl(
-  app: RideApp,
-  trip?: RideTrip,
-): string {
-  switch (app) {
-    case 'uber':
-      return buildUberUrl(trip);
+/**
+ * O inDrive instalado no Android declara suporte ao scheme geo:
+ * diretamente em:
+ *
+ * sinet.startup.inDriver/.ui.deeplink.DeeplinkActivity
+ *
+ * Portanto enviamos o destino diretamente para essa Activity.
+ */
+function buildInDriveGeoUrl(trip?: RideTrip): string {
+  if (!trip?.destination) {
+    return 'indrive://open';
+  }
 
-    case '99':
-      /*
-       * Ainda não enviamos origem/destino.
-       * Mantemos somente a abertura do app
-       * até termos integração oficialmente
-       * documentada.
-       */
-      return '99://';
+  const latitude = trip.destination.latitude;
+  const longitude = trip.destination.longitude;
 
-    case 'indrive':
-      /*
-       * Mesmo princípio da 99:
-       * abertura simples e segura.
-       */
-      return 'indrive://';
+  return `geo:${latitude},${longitude}?q=${latitude},${longitude}`;
+}
+
+async function openStore(app: RideApp): Promise<void> {
+  const storeUrl = getStoreUrl(app);
+
+  try {
+    await Linking.openURL(storeUrl);
+  } catch (error) {
+    console.error('[CORRIDAX STORE]', error);
+
+    Alert.alert(
+      'Aplicativo não encontrado',
+      'Não foi possível abrir o aplicativo nem a loja.'
+    );
   }
 }
 
 export async function openRideApp(
   app: RideApp,
-  trip?: RideTrip,
+  trip?: RideTrip
 ): Promise<void> {
-  const url =
-    getAppUrl(
-      app,
-      trip,
-    );
+  try {
+    /*
+     * UBER
+     */
+    if (app === 'uber') {
+      const url = buildUberUrl(trip);
 
-  /*
-   * 99 / ANDROID
-   *
-   * O esquema 99:// não abre corretamente
-   * no Android testado. Abrimos a 99 pelo
-   * package name oficial validado no aparelho.
-   */
-  if (
-    app === '99' &&
-    Platform.OS === 'android'
-  ) {
-    try {
-      await IntentLauncher.startActivityAsync(
-        'android.intent.action.MAIN',
-        {
-          packageName:
-            'com.taxis99',
+      console.log('[CORRIDAX UBER DEEPLINK]', url);
 
-          className:
-            'com.didi.sdk.splash.SplashActivity',
-
-          category:
-            'android.intent.category.LAUNCHER',
-        },
-      );
-
-      return;
-    } catch {
-      await Linking.openURL(
-        getStoreUrl(app),
-      );
+      await Linking.openURL(url);
 
       return;
     }
-  }
 
+    /*
+     * 99
+     *
+     * Deep link validado no Android:
+     *
+     * taxis99://call
+     *
+     * A versão atual da 99 lê:
+     * pickup_latitude
+     * pickup_longitude
+     * pickup_title
+     * pickup_formatted_address
+     * dropoff_latitude
+     * dropoff_longitude
+     * dropoff_title
+     * dropoff_formatted_address
+     * deep_link_product_id
+     *
+     * Não utilizamos client_id fictício.
+     */
+    if (app === '99') {
+      if (Platform.OS === 'android') {
+        const url = build99Url(trip);
 
-  /*
-   * UBER E 99 / ANDROID
-   *
-   * No Android 11+ o canOpenURL pode falhar
-   * quando o esquema não está declarado nas
-   * queries do AndroidManifest, mesmo com o
-   * aplicativo instalado.
-   *
-   * Por isso tentamos abrir Uber e 99
-   * diretamente e usamos a loja como fallback.
-   */
-  if (app === 'uber') {
-    try {
-      await Linking.openURL(
-        url,
-      );
+        console.log('[CORRIDAX 99 DEEPLINK]', url);
 
-      return;
-    } catch {
-      if (app === 'uber') {
         try {
-          await Linking.openURL(
-            'uber://',
-          );
+          await Linking.openURL(url);
 
           return;
-        } catch {
-          await Linking.openURL(
-            getStoreUrl(app),
+        } catch (error) {
+          console.warn(
+            '[CORRIDAX 99] Deep link falhou. Abrindo Activity principal.',
+            error
+          );
+
+          await IntentLauncher.startActivityAsync(
+            'android.intent.action.MAIN',
+            {
+              packageName: 'com.taxis99',
+              className:
+                'com.didi.sdk.splash.SplashActivity',
+            }
           );
 
           return;
         }
       }
 
-      await Linking.openURL(
-        getStoreUrl(app),
-      );
-
-      return;
-    }
-  }
-
-
-  /*
-   * inDrive / ANDROID
-   *
-   * Abrimos o aplicativo pela Activity principal
-   * validada no Galaxy S21+.
-   */
-  if (
-    app === 'indrive' &&
-    Platform.OS === 'android'
-  ) {
-    try {
-      await IntentLauncher.startActivityAsync(
-        'android.intent.action.MAIN',
-        {
-          packageName:
-            'sinet.startup.inDriver',
-
-          className:
-            'sinet.startup.inDriver.ui.splash.SplashActivity',
-
-          category:
-            'android.intent.category.LAUNCHER',
-        },
-      );
-
-      return;
-    } catch {
-      await Linking.openURL(
-        getStoreUrl(app),
-      );
-
-      return;
-    }
-  }
-
-  try {
-    const canOpen =
-      await Linking.canOpenURL(
-        url,
-      );
-
-    if (canOpen) {
-      await Linking.openURL(
-        url,
-      );
+      await Linking.openURL(build99Url(trip));
 
       return;
     }
 
-    await Linking.openURL(
-      getStoreUrl(app),
+    /*
+     * INDRIVE
+     *
+     * Android:
+     * envia o destino via geo: diretamente para a DeeplinkActivity
+     * do inDrive, evitando o seletor Maps/Uber/Waze.
+     */
+    if (app === 'indrive') {
+      if (Platform.OS === 'android') {
+        if (!trip?.destination) {
+          console.log(
+            '[CORRIDAX INDRIVE] Sem destino. Abrindo aplicativo.'
+          );
+
+          await IntentLauncher.startActivityAsync(
+            'android.intent.action.MAIN',
+            {
+              packageName: 'sinet.startup.inDriver',
+              className:
+                'sinet.startup.inDriver.ui.splash.SplashActivity',
+            }
+          );
+
+          return;
+        }
+
+        const geoUrl = buildInDriveGeoUrl(trip);
+
+        console.log(
+          '[CORRIDAX INDRIVE GEO]',
+          geoUrl
+        );
+
+        await IntentLauncher.startActivityAsync(
+          'android.intent.action.VIEW',
+          {
+            packageName: 'sinet.startup.inDriver',
+            className:
+              'sinet.startup.inDriver.ui.deeplink.DeeplinkActivity',
+            data: geoUrl,
+          }
+        );
+
+        return;
+      }
+
+      /*
+       * iOS ainda não foi validado para receber destino.
+       */
+      await Linking.openURL('indrive://open');
+
+      return;
+    }
+  } catch (error) {
+    console.error(
+      `[CORRIDAX] Erro ao abrir ${app}:`,
+      error
     );
-  } catch {
-    Alert.alert(
-      'Erro',
-      'Não foi possível abrir o aplicativo.',
-    );
+
+    await openStore(app);
   }
 }
