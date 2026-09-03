@@ -180,7 +180,7 @@ const PRICE_MODELS: Record<
      * os testes reais realizados.
      */
     marketCalibrationFactor:
-      0.70,
+      1.47,
 
     trafficSensitivity:
       0.30,
@@ -202,7 +202,7 @@ const PRICE_MODELS: Record<
     minimumFare: 9,
 
     marketCalibrationFactor:
-      1.18,
+      1.65,
 
     trafficSensitivity:
       0.30,
@@ -723,3 +723,5 @@ export function estimateRidePrice(
     input,
   ).reference;
 }
+
+
