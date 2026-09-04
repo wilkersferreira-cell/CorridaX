@@ -103,12 +103,7 @@ export async function getHistory(): Promise<
     }
 
     return parsed as HistoryItem[];
-  } catch (error) {
-    console.warn(
-      'Não foi possível carregar o histórico do CorridaX.',
-      error,
-    );
-
+  } catch {
     return [];
   }
 }
@@ -119,11 +114,6 @@ export async function clearHistory(): Promise<void> {
       getUserHistoryKey(),
     );
   } catch (error) {
-    console.warn(
-      'Não foi possível limpar o histórico do CorridaX.',
-      error,
-    );
-
     throw error;
   }
 }

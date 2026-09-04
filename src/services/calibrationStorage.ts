@@ -103,20 +103,11 @@ export async function addCalibrationRecord(
    * nem invalidar o registro local.
    */
   try {
-    const remoteDocumentId =
-      await saveCalibrationRecordRemote(
-        record,
-      );
-
-    console.log(
-      'Calibração enviada ao Firestore:',
-      remoteDocumentId,
+    await saveCalibrationRecordRemote(
+      record,
     );
-  } catch (error) {
-    console.warn(
-      'Calibração salva localmente, mas ainda não enviada ao Firestore.',
-      error,
-    );
+  } catch {
+    // O registro local permanece válido mesmo se o envio remoto falhar.
   }
 
   return record;

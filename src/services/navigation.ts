@@ -241,12 +241,7 @@ export async function startNavigation({
     await Linking.openURL(
       fallbackUrl,
     );
-  } catch (error) {
-    console.warn(
-      'Falha ao iniciar navegação:',
-      error,
-    );
-
+  } catch {
     Alert.alert(
       'Navegação',
       'Não foi possível iniciar a navegação.',

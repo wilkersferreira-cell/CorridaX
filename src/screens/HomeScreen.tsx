@@ -789,13 +789,8 @@ export default function HomeScreen({
           comparisonMode:
             comparisonMode,
         });
-      } catch (
-        historyError
-      ) {
-        console.warn(
-          'Não foi possível salvar o histórico do CorridaX.',
-          historyError,
-        );
+      } catch {
+        // O histórico não deve impedir o fluxo principal da comparação.
       }
 
       setSuggestions(

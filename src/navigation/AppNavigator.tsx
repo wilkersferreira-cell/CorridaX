@@ -371,17 +371,7 @@ export default function AppNavigator() {
   return (
     <LoginScreen
       onContinue={async () => {
-        const result =
-          await signInWithGoogle();
-
-        if (
-          !result.success &&
-          !result.cancelled
-        ) {
-          console.warn(
-            result.message,
-          );
-        }
+        await signInWithGoogle();
       }}
       onCreateAccount={() =>
         setAuthScreen(

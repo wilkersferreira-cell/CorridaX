@@ -16,10 +16,10 @@ export interface GooglePlaceCoordinate {
   displayName: string;
 
   /*
-   * EndereÃ§o completo.
+   * Endereço completo.
    *
-   * Continua disponÃ­vel para
-   * navegaÃ§Ã£o, deep links e
+   * Continua disponível para
+   * navegação, deep links e
    * uso interno do CorridaX.
    */
   formattedAddress: string;
@@ -39,7 +39,7 @@ const ANDROID_SHA1 =
 function getApiKey(): string {
   if (!GOOGLE_PLACES_API_KEY) {
     throw new Error(
-      'Google Places API Key nÃ£o configurada.',
+      'Google Places API Key não configurada.',
     );
   }
 
@@ -47,7 +47,7 @@ function getApiKey(): string {
 }
 
 /**
- * Pesquisa sugestÃµes de destinos
+ * Pesquisa sugestões de destinos
  * usando Google Places API (New).
  */
 export async function searchGooglePlaces(
@@ -80,8 +80,8 @@ export async function searchGooglePlaces(
   };
 
   /*
-   * Favorece resultados prÃ³ximos
-   * da localizaÃ§Ã£o atual.
+   * Favorece resultados próximos
+   * da localização atual.
    *
    * Isso melhora bastante buscas
    * como:
@@ -141,15 +141,6 @@ export async function searchGooglePlaces(
     );
 
   if (!response.ok) {
-    const errorText =
-      await response.text();
-
-    console.warn(
-      'Google Places Autocomplete:',
-      response.status,
-      errorText,
-    );
-
     throw new Error(
       `Google Places Autocomplete HTTP ${response.status}`,
     );
@@ -204,13 +195,13 @@ export async function searchGooglePlaces(
  * Mantemos separadamente:
  *
  * - nome do local
- * - endereÃ§o completo
+ * - endereço completo
  * - coordenadas
  *
  * Isso permite mostrar uma
- * informaÃ§Ã£o amigÃ¡vel na tela
- * sem perder o endereÃ§o necessÃ¡rio
- * para navegaÃ§Ã£o.
+ * informação amigável na tela
+ * sem perder o endereço necessário
+ * para navegação.
  */
 export async function getGooglePlaceCoordinate(
   placeId: string,
@@ -241,15 +232,6 @@ export async function getGooglePlaceCoordinate(
     );
 
   if (!response.ok) {
-    const errorText =
-      await response.text();
-
-    console.warn(
-      'Google Place Details:',
-      response.status,
-      errorText,
-    );
-
     throw new Error(
       `Google Place Details HTTP ${response.status}`,
     );
@@ -279,12 +261,12 @@ export async function getGooglePlaceCoordinate(
     )
   ) {
     throw new Error(
-      'O Google nÃ£o retornou as coordenadas do destino.',
+      'O Google não retornou as coordenadas do destino.',
     );
   }
 
   /*
-   * Nome amigÃ¡vel do estabelecimento
+   * Nome amigável do estabelecimento
    * ou ponto de interesse.
    *
    * Exemplo:
@@ -295,11 +277,11 @@ export async function getGooglePlaceCoordinate(
     '';
 
   /*
-   * EndereÃ§o fÃ­sico completo.
+   * Endereço físico completo.
    *
    * Exemplo:
    * Av. Autaz Mirim, 6100 -
-   * SÃ£o JosÃ© OperÃ¡rio, Manaus - AM
+   * São José Operário, Manaus - AM
    */
   const formattedAddress =
     data.formattedAddress ??

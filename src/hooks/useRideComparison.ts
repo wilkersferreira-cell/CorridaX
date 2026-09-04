@@ -229,12 +229,7 @@ export default function useRideComparison() {
         );
 
       setSuggestions(result);
-    } catch (error) {
-      console.warn(
-        'Falha na busca Google Places:',
-        error,
-      );
-
+    } catch {
       setSuggestions([]);
     }
   }
@@ -341,7 +336,7 @@ export default function useRideComparison() {
         MobilityOption[] = [];
 
       results.forEach(
-        (result, index) => {
+        (result) => {
           if (
             result.status ===
             'fulfilled'
@@ -349,14 +344,7 @@ export default function useRideComparison() {
             availableOptions.push(
               result.value,
             );
-
-            return;
           }
-
-          console.warn(
-            `Modo ${MOBILITY_MODES[index].label} indisponível:`,
-            result.reason,
-          );
         },
       );
 
@@ -365,12 +353,7 @@ export default function useRideComparison() {
       );
 
       return availableOptions;
-    } catch (error) {
-      console.warn(
-        'Falha ao calcular opções de mobilidade:',
-        error,
-      );
-
+    } catch {
       setMobilityOptions([]);
 
       return [];
@@ -441,12 +424,7 @@ export default function useRideComparison() {
           coordinates =
             osrmGeometry.coordinates;
         }
-      } catch (googleError) {
-        console.warn(
-          'Google Routes indisponível no preview. Usando OSRM.',
-          googleError,
-        );
-
+      } catch {
         const osrmRoute =
           await calculateRoute(
             originCoordinate.latitude,
@@ -542,12 +520,7 @@ export default function useRideComparison() {
           );
         }
       }
-    } catch (error) {
-      console.warn(
-        'Não foi possível pré-visualizar a rota:',
-        error,
-      );
-
+    } catch {
       setRouteCoordinates([]);
 
       setRouteInfo(null);
@@ -627,10 +600,6 @@ export default function useRideComparison() {
     }
 
     if (!previewOrigin) {
-      console.warn(
-        'GPS ainda não disponível para calcular a rota.',
-      );
-
       return {
         displayName,
         coordinate,
@@ -876,12 +845,7 @@ export default function useRideComparison() {
           carCoordinates =
             osrmGeometry.coordinates;
         }
-      } catch (googleError) {
-        console.warn(
-          'Google Routes indisponível. Usando OSRM.',
-          googleError,
-        );
-
+      } catch {
         const osrmRoute =
           await calculateRoute(
             originCoordinate.latitude,

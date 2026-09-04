@@ -109,12 +109,7 @@ export async function getFavorites(): Promise<
     }
 
     return parsed as FavoriteItem[];
-  } catch (error) {
-    console.warn(
-      'Não foi possível carregar os favoritos do CorridaX.',
-      error,
-    );
-
+  } catch {
     return [];
   }
 }
