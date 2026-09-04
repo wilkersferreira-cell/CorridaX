@@ -75,11 +75,6 @@ type PriceModel = {
   /*
    * Intensidade com que o trânsito
    * altera o preço estimado.
-   *
-   * 0.30 significa que aproximadamente
-   * 30% do impacto percentual observado
-   * no tempo da rota será refletido
-   * no preço.
    */
   trafficSensitivity: number;
 
@@ -101,59 +96,46 @@ type RouteAdjustment = {
 };
 
 /*
- * MOTOR DE PREÇOS CORRIDAX v2.6
+ * MOTOR DE PREÇOS CORRIDAX v2.7
  *
- * PRINCIPAL EVOLUÇÃO:
+ * PRINCÍPIOS:
  *
- * O trânsito deixa de ser dividido
- * apenas em:
+ * 1. A duração-base do Google Routes
+ *    é usada na estrutura do preço,
+ *    quando disponível.
  *
- * - flowing
- * - normal
- * - slow
+ * 2. O trânsito atual é aplicado
+ *    separadamente por meio do
+ *    trafficIndex.
  *
- * Agora o trafficIndex é utilizado
- * continuamente.
+ * 3. Cada plataforma possui uma
+ *    calibração própria.
  *
- * EXEMPLOS COM SENSIBILIDADE 0.30:
+ * 4. A referência CorridaX continua
+ *    sendo determinística.
  *
- * trafficIndex 1.05
- * impacto no preço ≈ +1,5%
+ * 5. A faixa final permanece estreita,
+ *    com variação de ±2% ao redor
+ *    da referência CorridaX.
  *
- * trafficIndex 1.12
- * impacto no preço ≈ +3,6%
+ * IMPORTANTE:
  *
- * trafficIndex 1.25
- * impacto no preço ≈ +7,5%
+ * O CorridaX produz estimativas próprias.
  *
- * trafficIndex 1.40
- * impacto no preço ≈ +12%
+ * O CorridaX não reproduz tarifas
+ * oficiais de Uber, 99 ou inDrive.
  *
- * LIMITES DE SEGURANÇA:
+ * Tarifas reais podem variar por:
  *
- * mínimo: -3%
- * máximo: +12%
+ * - demanda;
+ * - oferta de motoristas;
+ * - horário;
+ * - região;
+ * - tarifa dinâmica;
+ * - promoções;
+ * - regras internas de cada plataforma.
  *
- * Isso impede que um dado extremo
- * de trânsito distorça excessivamente
- * a estimativa.
- *
- * Quando staticDurationMinutes existe,
- * ela é usada no componente estrutural
- * de tempo.
- *
- * Dessa forma, evitamos utilizar
- * durationMinutes com trânsito e,
- * posteriormente, cobrar novamente
- * todo o impacto do trânsito.
- *
- * O CorridaX continua produzindo
- * estimativas próprias.
- *
- * Não reproduz tarifas oficiais
- * das plataformas.
- *
- * Não existe aleatoriedade.
+ * Não existe aleatoriedade neste motor.
  */
 
 const MIN_TRAFFIC_ADJUSTMENT =
@@ -176,8 +158,8 @@ const PRICE_MODELS: Record<
     minimumFare: 8,
 
     /*
-     * Calibração definida após
-     * os testes reais realizados.
+     * Calibração provisória definida
+     * após testes reais.
      */
     marketCalibrationFactor:
       1.47,
@@ -201,6 +183,10 @@ const PRICE_MODELS: Record<
 
     minimumFare: 9,
 
+    /*
+     * Calibração provisória definida
+     * após testes reais.
+     */
     marketCalibrationFactor:
       1.65,
 
@@ -351,7 +337,7 @@ function getSafeStaticDuration(
 }
 
 /*
- * Determina o índice real
+ * Determina o índice efetivo
  * de trânsito.
  *
  * PRIORIDADE:
@@ -404,10 +390,6 @@ function getEffectiveTrafficIndex(
 
 /*
  * IMPACTO CONTÍNUO DO TRÂNSITO
- *
- * Ao invés de categorias fixas,
- * utilizamos diretamente a intensidade
- * do trafficIndex.
  *
  * Fórmula:
  *
@@ -723,5 +705,3 @@ export function estimateRidePrice(
     input,
   ).reference;
 }
-
-
