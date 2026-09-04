@@ -74,17 +74,22 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
 
     /*
      * Abre o seletor de contas Google.
+     *
+     * O retorno não é exibido no console
+     * para evitar exposição desnecessária
+     * de dados da conta.
      */
-    const response =
-      await GoogleSignin.signIn();
+    await GoogleSignin.signIn();
 
     console.log(
       '[GoogleSignIn] Conta selecionada.',
-      response,
     );
 
     /*
      * Recupera os tokens da conta selecionada.
+     *
+     * Os valores dos tokens nunca são
+     * exibidos no console.
      */
     const tokens =
       await GoogleSignin.getTokens();
@@ -153,7 +158,6 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
     console.error(
       '[GoogleSignIn] ERRO:',
       diagnostic,
-      error,
     );
 
     if (isErrorWithCode(error)) {

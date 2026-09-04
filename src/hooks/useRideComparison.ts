@@ -25,11 +25,6 @@ import {
   RideOption,
 } from '../services/comparison';
 
-import {
-  compareRouteEngines,
-  RouteComparisonResult,
-} from '../services/routeComparison';
-
 export type MobilityMode =
   | 'car'
   | 'motorcycle'
@@ -164,14 +159,6 @@ export default function useRideComparison() {
   ] = useState<ComparisonMode>(
     'balanced',
   );
-
-  const [
-    routeComparison,
-    setRouteComparison,
-  ] =
-    useState<
-      RouteComparisonResult | null
-    >(null);
 
   /*
    * ORIGEM GPS
@@ -614,10 +601,6 @@ export default function useRideComparison() {
       'car',
     );
 
-    setRouteComparison(
-      null,
-    );
-
     setRides([]);
 
     setSuggestions([]);
@@ -694,10 +677,6 @@ export default function useRideComparison() {
       'car',
     );
 
-    setRouteComparison(
-      null,
-    );
-
     setRides([]);
 
     setSuggestions([]);
@@ -750,10 +729,6 @@ export default function useRideComparison() {
 
     setSelectedMobilityMode(
       'car',
-    );
-
-    setRouteComparison(
-      null,
     );
 
     setRides([]);
@@ -883,26 +858,6 @@ export default function useRideComparison() {
 
         routeTrafficDelayMinutes =
           googleRoute.trafficDelayMinutes;
-
-        console.log(
-          '🚦 CORRIDAX TRAFFIC',
-          {
-            distanceKm:
-              googleRoute.distance,
-
-            durationMinutes:
-              googleRoute.duration,
-
-            staticDurationMinutes:
-              googleRoute.staticDuration,
-
-            trafficIndex:
-              googleRoute.trafficIndex,
-
-            trafficDelayMinutes:
-              googleRoute.trafficDelayMinutes,
-          },
-        );
 
         carCoordinates =
           googleRoute.coordinates;
@@ -1111,7 +1066,7 @@ export default function useRideComparison() {
         resultado,
       );
 
-      const comparisonResult = {
+      return {
         distance:
           routeDistance,
 
@@ -1121,29 +1076,6 @@ export default function useRideComparison() {
         rides:
           resultado,
       };
-
-      try {
-        const comparison =
-          await compareRouteEngines(
-            originCoordinate,
-            destinationCoordinate,
-          );
-
-        setRouteComparison(
-          comparison,
-        );
-      } catch (error) {
-        console.warn(
-          'Falha no diagnóstico Google × OSRM:',
-          error,
-        );
-
-        setRouteComparison(
-          null,
-        );
-      }
-
-      return comparisonResult;
     } finally {
       setLoading(false);
     }
@@ -1191,7 +1123,5 @@ export default function useRideComparison() {
     comparisonMode,
 
     setComparisonMode,
-
-    routeComparison,
   };
 }
