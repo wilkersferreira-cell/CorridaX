@@ -1,6 +1,7 @@
 import React, {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -465,6 +466,11 @@ export default function HomeScreen({
     setDestino,
   ] = useState('');
 
+  const processingFavoriteRef =
+    useRef<string | null>(
+      null,
+    );
+
   const [
     pendingCalibration,
     setPendingCalibration,
@@ -517,8 +523,37 @@ export default function HomeScreen({
         ?.favoriteDestination;
 
     if (!favorite) {
+      processingFavoriteRef.current =
+        null;
+
       return;
     }
+
+    const favoriteLatitude =
+      Number(
+        favorite.latitude,
+      );
+
+    const favoriteLongitude =
+      Number(
+        favorite.longitude,
+      );
+
+    const hasValidFavoriteCoordinate =
+      Number.isFinite(
+        favoriteLatitude,
+      ) &&
+      Number.isFinite(
+        favoriteLongitude,
+      ) &&
+      favoriteLatitude >= -90 &&
+      favoriteLatitude <= 90 &&
+      favoriteLongitude >= -180 &&
+      favoriteLongitude <= 180 &&
+      !(
+        favoriteLatitude === 0 &&
+        favoriteLongitude === 0
+      );
 
     const hasGps =
       Number.isFinite(
@@ -527,12 +562,48 @@ export default function HomeScreen({
       Number.isFinite(
         longitude,
       ) &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180 &&
       !(
         latitude === 0 &&
         longitude === 0
       );
 
     if (!hasGps) {
+      return;
+    }
+
+    const favoriteKey =
+      String(
+        favorite.id ||
+          `${favoriteLatitude},${favoriteLongitude}:${favorite.name || favorite.address || ''}`,
+      );
+
+    if (
+      processingFavoriteRef.current ===
+      favoriteKey
+    ) {
+      return;
+    }
+
+    processingFavoriteRef.current =
+      favoriteKey;
+
+    navigation.setParams({
+      favoriteDestination:
+        undefined,
+    });
+
+    if (
+      !hasValidFavoriteCoordinate
+    ) {
+      Alert.alert(
+        'Favoritos',
+        'Este favorito possui uma localização inválida. Remova-o e salve o destino novamente.',
+      );
+
       return;
     }
 
@@ -553,22 +624,19 @@ export default function HomeScreen({
           favorite.name,
           {
             latitude:
-              favorite.latitude,
+              favoriteLatitude,
 
             longitude:
-              favorite.longitude,
+              favoriteLongitude,
           },
           latitude,
           longitude,
         );
-
-        if (active) {
-          navigation.setParams({
-            favoriteDestination:
-              undefined,
-          });
-        }
       } catch (error) {
+        if (!active) {
+          return;
+        }
+
         const message =
           error instanceof Error
             ? error.message

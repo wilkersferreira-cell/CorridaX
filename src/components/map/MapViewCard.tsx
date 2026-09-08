@@ -1,5 +1,6 @@
 import React, {
   useEffect,
+  useMemo,
   useRef,
 } from 'react';
 
@@ -31,6 +32,36 @@ type Props = {
   route?: Coordinate[];
 };
 
+function isValidCoordinate(
+  coordinate?: Coordinate,
+): coordinate is Coordinate {
+  if (!coordinate) {
+    return false;
+  }
+
+  const {
+    latitude,
+    longitude,
+  } = coordinate;
+
+  return (
+    Number.isFinite(
+      latitude,
+    ) &&
+    Number.isFinite(
+      longitude,
+    ) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180 &&
+    !(
+      latitude === 0 &&
+      longitude === 0
+    )
+  );
+}
+
 export default function MapViewCard({
   userLocation,
   origin,
@@ -40,6 +71,31 @@ export default function MapViewCard({
   const mapRef =
     useRef<MapView>(null);
 
+  const validOrigin =
+    isValidCoordinate(
+      origin,
+    )
+      ? origin
+      : undefined;
+
+  const validDestination =
+    isValidCoordinate(
+      destination,
+    )
+      ? destination
+      : undefined;
+
+  const validRoute =
+    useMemo(
+      () =>
+        route.filter(
+          isValidCoordinate,
+        ),
+      [
+        route,
+      ],
+    );
+
   useEffect(() => {
     if (!mapRef.current) {
       return;
@@ -48,9 +104,11 @@ export default function MapViewCard({
     /*
      * ROTA CALCULADA
      */
-    if (route.length >= 2) {
+    if (
+      validRoute.length >= 2
+    ) {
       mapRef.current.fitToCoordinates(
-        route,
+        validRoute,
         {
           edgePadding: {
             top: 35,
@@ -70,13 +128,13 @@ export default function MapViewCard({
      * ORIGEM + DESTINO
      */
     if (
-      origin &&
-      destination
+      validOrigin &&
+      validDestination
     ) {
       mapRef.current.fitToCoordinates(
         [
-          origin,
-          destination,
+          validOrigin,
+          validDestination,
         ],
         {
           edgePadding: {
@@ -96,14 +154,14 @@ export default function MapViewCard({
     /*
      * SOMENTE LOCALIZAÇÃO
      */
-    if (origin) {
+    if (validOrigin) {
       mapRef.current.animateToRegion(
         {
           latitude:
-            origin.latitude,
+            validOrigin.latitude,
 
           longitude:
-            origin.longitude,
+            validOrigin.longitude,
 
           latitudeDelta:
             0.025,
@@ -116,22 +174,23 @@ export default function MapViewCard({
       );
     }
   }, [
-    route,
-    origin,
-    destination,
+    validRoute,
+    validOrigin,
+    validDestination,
   ]);
 
+  const validUserLocation =
+    isValidCoordinate(
+      userLocation,
+    );
+
   const initialLatitude =
-    Number.isFinite(
-      userLocation.latitude,
-    )
+    validUserLocation
       ? userLocation.latitude
       : -3.119;
 
   const initialLongitude =
-    Number.isFinite(
-      userLocation.longitude,
-    )
+    validUserLocation
       ? userLocation.longitude
       : -60.0217;
 
@@ -157,9 +216,11 @@ export default function MapViewCard({
         showsMyLocationButton
         toolbarEnabled={false}
       >
-        {origin && (
+        {validOrigin && (
           <Marker
-            coordinate={origin}
+            coordinate={
+              validOrigin
+            }
             title="Origem"
             description="Sua localização"
             anchor={{
@@ -181,10 +242,10 @@ export default function MapViewCard({
           </Marker>
         )}
 
-        {destination && (
+        {validDestination && (
           <Marker
             coordinate={
-              destination
+              validDestination
             }
             title="Destino"
             anchor={{
@@ -206,10 +267,12 @@ export default function MapViewCard({
           </Marker>
         )}
 
-        {route.length >= 2 && (
+        {validRoute.length >= 2 && (
           <>
             <Polyline
-              coordinates={route}
+              coordinates={
+                validRoute
+              }
               strokeColor={
                 COLORS.white
               }
@@ -217,7 +280,9 @@ export default function MapViewCard({
             />
 
             <Polyline
-              coordinates={route}
+              coordinates={
+                validRoute
+              }
               strokeColor={
                 COLORS.primaryLight
               }
