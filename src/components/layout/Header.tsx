@@ -31,14 +31,14 @@ export default function Header() {
         styles.container,
         {
           paddingTop:
-  statusBarHeight > 0
-    ? SPACING.sm + 20
-    : SPACING.md + 18,
+            statusBarHeight > 0
+              ? SPACING.sm + 14
+              : SPACING.md + 12,
         },
       ]}
     >
       <View style={styles.brandRow}>
-        <LogoCX size={42} />
+        <LogoCX size={46} />
 
         <View style={styles.textContainer}>
           <Text
@@ -52,7 +52,7 @@ export default function Header() {
             style={styles.subtitle}
             numberOfLines={1}
           >
-            Compare. Escolha. Economize.
+            Um destino. Todas as opções.
           </Text>
         </View>
       </View>
@@ -60,50 +60,40 @@ export default function Header() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 10,
-  },
+const styles =
+  StyleSheet.create({
+    container: {
+      marginBottom: 12,
+    },
 
-  brandRow: {
-    minHeight: 50,
+    brandRow: {
+      minHeight: 54,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
 
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+    textContainer: {
+      flex: 1,
+      marginLeft: 12,
+      justifyContent: 'center',
+    },
 
-  textContainer: {
-    flex: 1,
+    title: {
+      color: COLORS.white,
+      fontSize: 25,
+      lineHeight: 28,
+      fontWeight:
+        TYPOGRAPHY.weight.extraBold,
+      letterSpacing: -0.6,
+    },
 
-    marginLeft: 11,
-
-    justifyContent: 'center',
-  },
-
-  title: {
-    color: COLORS.white,
-
-    fontSize: 23,
-    lineHeight: 26,
-
-    fontWeight:
-      TYPOGRAPHY.weight.extraBold,
-
-    letterSpacing: -0.45,
-  },
-
-  subtitle: {
-    marginTop: 1,
-
-    color:
-      COLORS.textSecondary,
-
-    fontSize: 12,
-    lineHeight: 16,
-
-    fontWeight:
-      TYPOGRAPHY.weight.medium,
-
-    letterSpacing: 0.05,
-  },
-});
+    subtitle: {
+      marginTop: 2,
+      color: COLORS.textSecondary,
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight:
+        TYPOGRAPHY.weight.medium,
+      letterSpacing: 0.08,
+    },
+  });

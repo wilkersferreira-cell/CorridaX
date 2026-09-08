@@ -5,9 +5,12 @@ import React, {
 } from 'react';
 
 import {
+  Pressable,
   StyleSheet,
   View,
 } from 'react-native';
+
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import MapView, {
   Marker,
@@ -30,6 +33,7 @@ type Props = {
   origin?: Coordinate;
   destination?: Coordinate;
   route?: Coordinate[];
+  compact?: boolean;
 };
 
 function isValidCoordinate(
@@ -67,6 +71,7 @@ export default function MapViewCard({
   origin,
   destination,
   route = [],
+  compact = false,
 }: Props) {
   const mapRef =
     useRef<MapView>(null);
@@ -96,14 +101,16 @@ export default function MapViewCard({
       ],
     );
 
+  const validUserLocation =
+    isValidCoordinate(
+      userLocation,
+    );
+
   useEffect(() => {
     if (!mapRef.current) {
       return;
     }
 
-    /*
-     * ROTA CALCULADA
-     */
     if (
       validRoute.length >= 2
     ) {
@@ -111,10 +118,10 @@ export default function MapViewCard({
         validRoute,
         {
           edgePadding: {
-            top: 35,
-            right: 35,
-            bottom: 35,
-            left: 35,
+            top: 32,
+            right: 32,
+            bottom: 32,
+            left: 32,
           },
 
           animated: true,
@@ -124,9 +131,6 @@ export default function MapViewCard({
       return;
     }
 
-    /*
-     * ORIGEM + DESTINO
-     */
     if (
       validOrigin &&
       validDestination
@@ -138,10 +142,10 @@ export default function MapViewCard({
         ],
         {
           edgePadding: {
-            top: 40,
-            right: 40,
-            bottom: 40,
-            left: 40,
+            top: 36,
+            right: 36,
+            bottom: 36,
+            left: 36,
           },
 
           animated: true,
@@ -151,9 +155,6 @@ export default function MapViewCard({
       return;
     }
 
-    /*
-     * SOMENTE LOCALIZAÇÃO
-     */
     if (validOrigin) {
       mapRef.current.animateToRegion(
         {
@@ -164,25 +165,52 @@ export default function MapViewCard({
             validOrigin.longitude,
 
           latitudeDelta:
-            0.025,
+            compact
+              ? 0.032
+              : 0.025,
 
           longitudeDelta:
-            0.025,
+            compact
+              ? 0.032
+              : 0.025,
         },
 
-        500,
+        450,
       );
     }
   }, [
     validRoute,
     validOrigin,
     validDestination,
+    compact,
   ]);
 
-  const validUserLocation =
-    isValidCoordinate(
-      userLocation,
+  function centerOnUser() {
+    if (
+      !mapRef.current ||
+      !validUserLocation
+    ) {
+      return;
+    }
+
+    mapRef.current.animateToRegion(
+      {
+        latitude:
+          userLocation.latitude,
+
+        longitude:
+          userLocation.longitude,
+
+        latitudeDelta:
+          0.025,
+
+        longitudeDelta:
+          0.025,
+      },
+
+      400,
     );
+  }
 
   const initialLatitude =
     validUserLocation
@@ -195,7 +223,14 @@ export default function MapViewCard({
       : -60.0217;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+
+        compact &&
+          styles.containerCompact,
+      ]}
+    >
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -213,7 +248,9 @@ export default function MapViewCard({
             0.04,
         }}
         showsUserLocation
-        showsMyLocationButton
+        showsMyLocationButton={
+          false
+        }
         toolbarEnabled={false}
       >
         {validOrigin && (
@@ -276,7 +313,7 @@ export default function MapViewCard({
               strokeColor={
                 COLORS.white
               }
-              strokeWidth={4}
+              strokeWidth={5}
             />
 
             <Polyline
@@ -286,11 +323,39 @@ export default function MapViewCard({
               strokeColor={
                 COLORS.primaryLight
               }
-              strokeWidth={2}
+              strokeWidth={3}
             />
           </>
         )}
       </MapView>
+
+      <Pressable
+        onPress={
+          centerOnUser
+        }
+        disabled={
+          !validUserLocation
+        }
+        style={({
+          pressed,
+        }) => [
+          styles.locationButton,
+
+          pressed &&
+            styles.locationButtonPressed,
+
+          !validUserLocation &&
+            styles.locationButtonDisabled,
+        ]}
+      >
+        <MaterialIcons
+          name="my-location"
+          size={22}
+          color={
+            COLORS.text
+          }
+        />
+      </Pressable>
     </View>
   );
 }
@@ -298,26 +363,55 @@ export default function MapViewCard({
 const styles =
   StyleSheet.create({
     container: {
-      height: 252,
-
+      height: 218,
       borderRadius:
         RADIUS.xxl,
-
       overflow: 'hidden',
-
       borderWidth: 1,
-
       borderColor:
         COLORS.borderSoft,
-
       backgroundColor:
         COLORS.surfaceLight,
-
       ...SHADOWS.sm,
+    },
+
+    containerCompact: {
+      height: 172,
     },
 
     map: {
       flex: 1,
+    },
+
+    locationButton: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+
+      width: 42,
+      height: 42,
+
+      alignItems: 'center',
+      justifyContent: 'center',
+
+      borderRadius: 14,
+
+      borderWidth: 1,
+      borderColor:
+        COLORS.borderSoft,
+
+      backgroundColor:
+        'rgba(11, 24, 43, 0.92)',
+
+      ...SHADOWS.sm,
+    },
+
+    locationButtonPressed: {
+      opacity: 0.76,
+    },
+
+    locationButtonDisabled: {
+      opacity: 0.45,
     },
 
     originMarkerOuter: {
@@ -348,8 +442,8 @@ const styles =
     },
 
     destinationMarker: {
-      width: 26,
-      height: 26,
+      width: 28,
+      height: 28,
 
       alignItems: 'center',
       justifyContent: 'center',

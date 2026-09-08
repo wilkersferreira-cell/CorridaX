@@ -247,71 +247,6 @@ export default function SettingsScreen() {
         <Text
           style={[
             styles.sectionLabel,
-            styles.preferencesLabel,
-          ]}
-        >
-          PREFERÊNCIAS
-        </Text>
-
-        <View
-          style={
-            styles.preferencesCard
-          }
-        >
-          <View
-            style={
-              styles.preferenceRow
-            }
-          >
-            <View
-              style={
-                styles.preferenceIcon
-              }
-            >
-              <MaterialCommunityIcons
-                name="tune-variant"
-                size={21}
-                color={
-                  COLORS.textSecondary
-                }
-              />
-            </View>
-
-            <View
-              style={
-                styles.preferenceContent
-              }
-            >
-              <Text
-                style={
-                  styles.preferenceTitle
-                }
-              >
-                Preferências de viagem
-              </Text>
-
-              <Text
-                style={
-                  styles.preferenceDescription
-                }
-              >
-                Em breve
-              </Text>
-            </View>
-
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={22}
-              color={
-                COLORS.textMuted
-              }
-            />
-          </View>
-        </View>
-
-        <Text
-          style={[
-            styles.sectionLabel,
             styles.legalLabel,
           ]}
         >
@@ -586,13 +521,13 @@ const styles = StyleSheet.create({
     paddingHorizontal:
       SPACING.xl,
 
-    paddingTop: 20,
+    paddingTop: 18,
 
-    paddingBottom: 16,
+    paddingBottom: 86,
   },
 
   header: {
-    marginBottom: 30,
+    marginBottom: 24,
   },
 
   title: {
@@ -704,12 +639,8 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
 
-  preferencesLabel: {
-    marginTop: 28,
-  },
-
   legalLabel: {
-    marginTop: 24,
+    marginTop: 26,
   },
 
   preferencesCard: {
@@ -728,7 +659,7 @@ const styles = StyleSheet.create({
   },
 
   preferenceRow: {
-    minHeight: 66,
+    minHeight: 62,
 
     flexDirection: 'row',
 
@@ -805,7 +736,7 @@ const styles = StyleSheet.create({
   },
 
   signOutButton: {
-    minHeight: 52,
+    minHeight: 50,
 
     flexDirection: 'row',
 
@@ -846,7 +777,7 @@ const styles = StyleSheet.create({
   },
 
   versionText: {
-    marginTop: 13,
+    marginTop: 10,
 
     color:
       COLORS.textMuted,

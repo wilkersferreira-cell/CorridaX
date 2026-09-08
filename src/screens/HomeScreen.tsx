@@ -15,22 +15,15 @@ import {
 } from 'react-native';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import {
+  getAnalytics,
+  logEvent,
+} from '@react-native-firebase/analytics';
 
 import AddressSuggestions from '../components/inputs/AddressSuggestions';
-
-import AIRecommendationCard, {
-  RideAppId,
-} from '../components/cards/AIRecommendationCard';
-
-import CompareButton from '../components/buttons/CompareButton';
-import ComparisonModeSelector from '../components/inputs/ComparisonModeSelector';
 import Header from '../components/layout/Header';
 import LocationInput from '../components/inputs/LocationInput';
 import MapViewCard from '../components/map/MapViewCard';
-
-import RideCard, {
-  RideHighlight,
-} from '../components/cards/RideCard';
 
 import useLocation from '../hooks/useLocation';
 
@@ -39,16 +32,9 @@ import useRideComparison, {
 } from '../hooks/useRideComparison';
 
 import {
-  chooseBestRide,
-} from '../services/ai';
-
-import {
-  RideOption,
-} from '../services/comparison';
-
-import {
-  ProviderPriceId,
-} from '../services/priceEstimator';
+  openRideApp,
+  RideApp,
+} from '../services/deepLinks';
 
 import {
   startNavigation,
@@ -67,25 +53,49 @@ import {
   SPACING,
 } from '../theme';
 
-type PendingCalibration = {
-  provider: ProviderPriceId;
-
-  providerName: string;
-
-  estimatedPrice: number;
-
-  estimatedPriceMin: number;
-
-  estimatedPriceMax: number;
-
-  distanceKm: number;
-
-  durationMinutes: number;
-
-  origin: string;
-
-  destination: string;
+type ProviderOption = {
+  id: RideApp;
+  name: string;
+  eyebrow: string;
+  action: string;
+  accent: string;
+  cardBackground: string;
+  badgeBackground: string;
+  badgeTextColor: string;
 };
+
+const PROVIDERS: ProviderOption[] = [
+  {
+    id: 'uber',
+    name: 'Uber',
+    eyebrow: 'CORRIDA',
+    action: 'Abrir Uber agora',
+    accent: '#FFFFFF',
+    cardBackground: '#090A0C',
+    badgeBackground: '#FFFFFF',
+    badgeTextColor: '#090A0C',
+  },
+  {
+    id: '99',
+    name: '99',
+    eyebrow: 'CORRIDA',
+    action: 'Abrir 99 agora',
+    accent: '#FFD400',
+    cardBackground: '#241E00',
+    badgeBackground: '#FFD400',
+    badgeTextColor: '#171400',
+  },
+  {
+    id: 'indrive',
+    name: 'inDrive',
+    eyebrow: 'CORRIDA',
+    action: 'Abrir inDrive agora',
+    accent: '#A7EA36',
+    cardBackground: '#15200B',
+    badgeBackground: '#A7EA36',
+    badgeTextColor: '#142008',
+  },
+];
 
 function formatDestinationName(
   value: string,
@@ -128,225 +138,12 @@ function formatDestinationName(
   return `${firstPart}, ${secondPart}`;
 }
 
-function getCheapestRide(
-  rides: RideOption[],
-): RideOption | undefined {
-  if (rides.length === 0) {
-    return undefined;
-  }
-
-  return rides.reduce(
-    (current, ride) =>
-      ride.preco <
-      current.preco
-        ? ride
-        : current,
-  );
-}
-
-function getFastestRide(
-  rides: RideOption[],
-): RideOption | undefined {
-  if (rides.length === 0) {
-    return undefined;
-  }
-
-  return rides.reduce(
-    (current, ride) =>
-      ride.tempo <
-      current.tempo
-        ? ride
-        : current,
-  );
-}
-
-function formatCurrency(
-  value: number,
-): string {
-  return value.toLocaleString(
-    'pt-BR',
-    {
-      style: 'currency',
-      currency: 'BRL',
-    },
-  );
-}
-
-function getRideHighlight(
-  ride: RideOption,
-  cheapest?: RideOption,
-  fastest?: RideOption,
-): RideHighlight {
-  if (
-    cheapest &&
-    ride.id === cheapest.id
-  ) {
-    return 'cheapest';
-  }
-
-  if (
-    fastest &&
-    ride.id === fastest.id
-  ) {
-    return 'fastest';
-  }
-
-  return 'balanced';
-}
-
-function getAdvantageText(
-  ride: RideOption,
-  cheapest?: RideOption,
-  fastest?: RideOption,
-): string | undefined {
-  if (
-    !cheapest ||
-    !fastest
-  ) {
-    return undefined;
-  }
-
-  const isCheapest =
-    ride.id ===
-    cheapest.id;
-
-  const isFastest =
-    ride.id ===
-    fastest.id;
-
-  if (
-    isCheapest &&
-    isFastest
-  ) {
-    return 'Menor preço e menor tempo nesta viagem.';
-  }
-
-  if (isCheapest) {
-    const saving =
-      fastest.preco -
-      ride.preco;
-
-    const extraMinutes =
-      ride.tempo -
-      fastest.tempo;
-
-    if (
-      saving > 0 &&
-      extraMinutes > 0
-    ) {
-      return (
-        `Economize ${formatCurrency(
-          saving,
-        )} por ${extraMinutes} min a mais.`
-      );
-    }
-
-    if (saving > 0) {
-      return (
-        `Economize ${formatCurrency(
-          saving,
-        )} em relação à opção mais rápida.`
-      );
-    }
-
-    return 'Menor preço desta viagem.';
-  }
-
-  if (isFastest) {
-    const minutesSaved =
-      cheapest.tempo -
-      ride.tempo;
-
-    const extraCost =
-      ride.preco -
-      cheapest.preco;
-
-    if (
-      minutesSaved > 0 &&
-      extraCost > 0
-    ) {
-      return (
-        `Chegue ${minutesSaved} min antes por ` +
-        `apenas ${formatCurrency(
-          extraCost,
-        )} a mais.`
-      );
-    }
-
-    if (minutesSaved > 0) {
-      return (
-        `Chegue ${minutesSaved} min antes que ` +
-        `a opção mais econômica.`
-      );
-    }
-
-    return 'Menor tempo desta viagem.';
-  }
-
-  const savingVsFastest =
-    fastest.preco -
-    ride.preco;
-
-  const timeGainVsCheapest =
-    cheapest.tempo -
-    ride.tempo;
-
-  if (
-    savingVsFastest > 0 &&
-    timeGainVsCheapest > 0
-  ) {
-    return (
-      `Economize ${formatCurrency(
-        savingVsFastest,
-      )} e chegue ${timeGainVsCheapest} min antes ` +
-      `que a opção mais econômica.`
-    );
-  }
-
-  if (savingVsFastest > 0) {
-    return (
-      `Economize ${formatCurrency(
-        savingVsFastest,
-      )} em relação à opção mais rápida.`
-    );
-  }
-
-  if (timeGainVsCheapest > 0) {
-    return (
-      `${timeGainVsCheapest} min mais rápido que ` +
-      `a opção mais econômica.`
-    );
-  }
-
-  return 'Boa relação entre preço e tempo.';
-}
-
-function getAlternativePriority(
-  ride: RideOption,
-  cheapest?: RideOption,
-  fastest?: RideOption,
-): number {
-  if (
-    cheapest &&
-    ride.id === cheapest.id
-  ) {
-    return 1;
-  }
-
-  if (
-    fastest &&
-    ride.id === fastest.id
-  ) {
-    return 2;
-  }
-
-  return 3;
-}
-
 function formatRouteDistance(
   distance: number,
 ): string {
-  return `${distance.toFixed(1)} km`;
+  return `${distance.toFixed(
+    1,
+  )} km`;
 }
 
 function formatRouteDuration(
@@ -360,7 +157,9 @@ function formatRouteDuration(
       ),
     );
 
-  if (totalMinutes < 60) {
+  if (
+    totalMinutes < 60
+  ) {
     return `${totalMinutes} min`;
   }
 
@@ -372,7 +171,9 @@ function formatRouteDuration(
   const minutes =
     totalMinutes % 60;
 
-  if (minutes === 0) {
+  if (
+    minutes === 0
+  ) {
     return `${hours} h`;
   }
 
@@ -433,10 +234,6 @@ export default function HomeScreen({
   } = useLocation();
 
   const {
-    rides,
-    loading:
-      loadingCompare,
-    compare,
     suggestions,
     search,
     setSuggestions,
@@ -452,8 +249,6 @@ export default function HomeScreen({
     loadingMobility,
     selectedMobilityMode,
     selectMobilityMode,
-    comparisonMode,
-    setComparisonMode,
   } = useRideComparison();
 
   const [
@@ -471,11 +266,8 @@ export default function HomeScreen({
       null,
     );
 
-  const [
-    pendingCalibration,
-    setPendingCalibration,
-  ] =
-    useState<PendingCalibration | null>(
+  const savedHistoryRouteRef =
+    useRef<string | null>(
       null,
     );
 
@@ -664,77 +456,6 @@ export default function HomeScreen({
     setSuggestions,
   ]);
 
-  const recommendation =
-    useMemo(() => {
-      if (
-        rides.length === 0
-      ) {
-        return null;
-      }
-
-      return chooseBestRide(
-        rides,
-      );
-    }, [
-      rides,
-    ]);
-
-  const cheapestRide =
-    useMemo(
-      () =>
-        getCheapestRide(
-          rides,
-        ),
-      [
-        rides,
-      ],
-    );
-
-  const fastestRide =
-    useMemo(
-      () =>
-        getFastestRide(
-          rides,
-        ),
-      [
-        rides,
-      ],
-    );
-
-  const alternativeRides =
-    useMemo(() => {
-      if (!recommendation) {
-        return [];
-      }
-
-      return rides
-        .filter(
-          (ride) =>
-            ride.id !==
-            recommendation
-              .melhor
-              .id,
-        )
-        .sort(
-          (a, b) =>
-            getAlternativePriority(
-              a,
-              cheapestRide,
-              fastestRide,
-            ) -
-            getAlternativePriority(
-              b,
-              cheapestRide,
-              fastestRide,
-            ),
-        );
-    }, [
-      rides,
-      recommendation,
-      cheapestRide,
-      fastestRide,
-    ]);
-
   const displayedDestination =
     destination
       ? formatDestinationName(
@@ -742,140 +463,24 @@ export default function HomeScreen({
         )
       : destino;
 
-  function handleRideAppOpened(
-    provider: RideAppId,
-    ride: RideOption,
-  ) {
-    setPendingCalibration({
-      provider,
-
-      providerName:
-        ride.nome,
-
-      estimatedPrice:
-        ride.preco,
-
-      estimatedPriceMin:
-        ride.precoMin,
-
-      estimatedPriceMax:
-        ride.precoMax,
-
-      distanceKm:
-        ride.distancia,
-
-      durationMinutes:
-        ride.tempo,
-
-      origin:
-        origem.trim(),
-
-      destination:
-        destino.trim(),
-    });
-  }
-
-  function getCalibrationForRide(
-    ride: RideOption,
-  ) {
-    if (
-      !pendingCalibration ||
-      pendingCalibration.provider !==
-        ride.id
-    ) {
-      return undefined;
-    }
-
-    return {
-      ...pendingCalibration,
-
-      onSaved: () =>
-        setPendingCalibration(
-          null,
-        ),
-
-      onDismiss: () =>
-        setPendingCalibration(
-          null,
-        ),
-    };
-  }
-
-  async function compararCorridas() {
-    if (
-      !origem.trim()
-    ) {
-      Alert.alert(
-        'Localização',
-        'Não foi possível identificar sua localização.',
-      );
-
-      return;
-    }
-
-    if (
-      !destino.trim()
-    ) {
-      Alert.alert(
-        'Destino',
-        'Informe para onde você deseja ir.',
-      );
-
-      return;
-    }
-
-    setPendingCalibration(
-      null,
-    );
-
-    try {
-      const result =
-        await compare(
-          origem,
-          destino,
-          latitude,
-          longitude,
-        );
-
-      try {
-        await saveHistory({
-          origin:
-            origem.trim(),
-
-          destination:
-            destino.trim(),
-
-          distance:
-            result.distance,
-
-          duration:
-            result.duration,
-
-          mobilityMode:
-            selectedMobilityMode,
-
-          comparisonMode:
-            comparisonMode,
-        });
-      } catch {
-        // O histórico não deve impedir o fluxo principal da comparação.
+  const currentRouteKey =
+    useMemo(() => {
+      if (
+        !origin ||
+        !destination
+      ) {
+        return null;
       }
 
-      setSuggestions(
-        [],
+      return (
+        `${origin.latitude},${origin.longitude}` +
+        '>' +
+        `${destination.latitude},${destination.longitude}`
       );
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível comparar as corridas.';
-
-      Alert.alert(
-        'Não foi possível comparar',
-        message,
-      );
-    }
-  }
+    }, [
+      origin,
+      destination,
+    ]);
 
   async function handleSaveFavorite() {
     if (!destination) {
@@ -936,9 +541,86 @@ export default function HomeScreen({
     });
   }
 
-  const rideOrigin =
-    origin
-      ? {
+  async function saveCurrentRouteToHistory() {
+    if (
+      !routeInfo ||
+      !currentRouteKey
+    ) {
+      return;
+    }
+
+    if (
+      savedHistoryRouteRef.current ===
+      currentRouteKey
+    ) {
+      return;
+    }
+
+    savedHistoryRouteRef.current =
+      currentRouteKey;
+
+    try {
+      await saveHistory({
+        origin:
+          origem.trim(),
+
+        destination:
+          destino.trim(),
+
+        distance:
+          routeInfo.distance,
+
+        duration:
+          routeInfo.duration,
+
+        mobilityMode:
+          selectedMobilityMode,
+      });
+    } catch {
+      savedHistoryRouteRef.current =
+        null;
+    }
+  }
+
+  async function handleOpenProvider(
+    provider: RideApp,
+  ) {
+    if (
+      !origin ||
+      !destination
+    ) {
+      Alert.alert(
+        'Corrida',
+        'Selecione um destino antes de consultar uma plataforma.',
+      );
+
+      return;
+    }
+
+    await saveCurrentRouteToHistory();
+
+    try {
+      await logEvent(
+        getAnalytics(),
+        'provider_open',
+        {
+          provider,
+          mobility_mode:
+            selectedMobilityMode,
+          distance_km:
+            routeInfo?.distance ?? 0,
+          duration_minutes:
+            routeInfo?.duration ?? 0,
+        },
+      );
+    } catch {
+      // Analytics não deve impedir a abertura da plataforma.
+    }
+
+    await openRideApp(
+      provider,
+      {
+        origin: {
           latitude:
             origin.latitude,
 
@@ -946,13 +628,10 @@ export default function HomeScreen({
             origin.longitude,
 
           address:
-            origem,
-        }
-      : undefined;
+            origem.trim(),
+        },
 
-  const rideDestination =
-    destination
-      ? {
+        destination: {
           latitude:
             destination.latitude,
 
@@ -960,14 +639,15 @@ export default function HomeScreen({
             destination.longitude,
 
           address:
-            destino,
-        }
-      : undefined;
+            destino.trim(),
+        },
+      },
+    );
+  }
 
   const initialState =
     !destination &&
-    !routeInfo &&
-    rides.length === 0;
+    !routeInfo;
 
   return (
     <ScrollView
@@ -1002,6 +682,9 @@ export default function HomeScreen({
           route={
             routeCoordinates
           }
+          compact={
+            initialState
+          }
         />
       )}
 
@@ -1013,13 +696,21 @@ export default function HomeScreen({
             styles.tripSectionInitial,
         ]}
       >
-        <Text
-          style={
-            styles.sectionTitle
-          }
-        >
-          Para onde vamos?
-        </Text>
+        <View style={styles.tripHeading}>
+          <Text style={styles.sectionEyebrow}>
+            SEU PONTO DE PARTIDA
+          </Text>
+
+          <Text style={styles.sectionTitle}>
+            Para onde vamos hoje?
+          </Text>
+
+          {initialState && (
+            <Text style={styles.sectionSubtitle}>
+              Informe seu destino uma vez e escolha em qual plataforma consultar sua corrida.
+            </Text>
+          )}
+        </View>
 
         <View
           style={
@@ -1102,6 +793,60 @@ export default function HomeScreen({
           }}
         />
 
+        {initialState && (
+          <View style={styles.initialProvidersSection}>
+            <Text style={styles.initialProvidersEyebrow}>
+              SUAS OPÇÕES DE CORRIDA
+            </Text>
+
+            <View style={styles.providerCompactRow}>
+              {PROVIDERS.map((provider) => (
+                <View
+                  key={provider.id}
+                  style={[
+                    styles.providerCompactCard,
+                    styles.providerCompactCardDisabled,
+                    {
+                      backgroundColor:
+                        provider.id === 'uber'
+                          ? '#050505'
+                          : provider.id === '99'
+                            ? '#FFD400'
+                            : '#A7EA36',
+                      borderColor:
+                        provider.id === 'uber'
+                          ? '#FFFFFF'
+                          : provider.id === '99'
+                            ? '#FFD400'
+                            : '#A7EA36',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.providerCompactBrand,
+                      {
+                        color:
+                          provider.id === 'uber'
+                            ? '#FFFFFF'
+                            : '#000000',
+                      },
+                    ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {provider.name}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <Text style={styles.initialProvidersMessage}>
+              Informe seu destino e clique na plataforma para saber o valor da sua corrida.
+            </Text>
+          </View>
+        )}
+
         {routeInfo &&
           destination && (
             <View
@@ -1119,7 +864,7 @@ export default function HomeScreen({
                     styles.routeSummaryTitle
                   }
                 >
-                  Rota estimada
+                  Sua rota
                 </Text>
 
                 <Text
@@ -1209,7 +954,7 @@ export default function HomeScreen({
                 styles.favoriteButton,
 
                 pressed &&
-                  styles.mobilityCardPressed,
+                  styles.cardPressed,
               ]}
             >
               <MaterialIcons
@@ -1250,6 +995,78 @@ export default function HomeScreen({
                 }
               />
             </Pressable>
+
+            {routeInfo &&
+              origin && (
+                <View style={styles.routeProvidersSection}>
+                  <Text style={styles.routeProvidersEyebrow}>
+                    ESCOLHA ONDE CONSULTAR
+                  </Text>
+
+                  <View style={styles.providerCompactRow}>
+                    {PROVIDERS.map((provider) => (
+                      <Pressable
+                        key={provider.id}
+                        onPress={() =>
+                          handleOpenProvider(
+                            provider.id,
+                          )
+                        }
+                        style={({ pressed }) => [
+                          styles.providerCompactCard,
+                          {
+                            backgroundColor:
+                              provider.id === 'uber'
+                                ? '#050505'
+                                : provider.id === '99'
+                                  ? '#FFD400'
+                                  : '#A7EA36',
+                            borderColor:
+                              provider.id === 'uber'
+                                ? '#FFFFFF'
+                                : provider.id === '99'
+                                  ? '#FFD400'
+                                  : '#A7EA36',
+                          },
+                          pressed &&
+                            styles.providerCompactCardPressed,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.providerCompactBrand,
+                            {
+                              color:
+                                provider.id === 'uber'
+                                  ? '#FFFFFF'
+                                  : '#000000',
+                            },
+                          ]}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                        >
+                          {provider.name}
+                        </Text>
+
+                        <Text
+                          style={[
+                            styles.providerCompactAction,
+                            {
+                              color:
+                                provider.id === 'uber'
+                                  ? '#FFFFFF'
+                                  : '#000000',
+                            },
+                          ]}
+                          numberOfLines={2}
+                        >
+                          Clique e veja o valor
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              )}
 
             <View
               style={
@@ -1322,79 +1139,58 @@ export default function HomeScreen({
                               styles.mobilityCardSelected,
 
                             pressed &&
-                              styles.mobilityCardPressed,
+                              styles.cardPressed,
                           ]}
                         >
                           <View
-                            style={
-                              styles.mobilityTopRow
-                            }
+                            style={[
+                              styles.mobilityIconContainer,
+
+                              selected &&
+                                styles.mobilityIconContainerSelected,
+                            ]}
                           >
-                            <View
-                              style={[
-                                styles.mobilityIconContainer,
+                            <MaterialIcons
+                              name={
+                                getMobilityIcon(
+                                  option.id,
+                                )
+                              }
+                              size={19}
+                              color={
+                                COLORS.primary
+                              }
+                            />
+                          </View>
 
-                                selected &&
-                                  styles.mobilityIconContainerSelected,
-                              ]}
-                            >
-                              <MaterialIcons
-                                name={
-                                  getMobilityIcon(
-                                    option.id,
-                                  )
-                                }
-                                size={18}
-                                color={
-                                  COLORS.primary
-                                }
-                              />
-                            </View>
+                          <Text
+                            style={
+                              styles.mobilityLabel
+                            }
+                            numberOfLines={1}
+                          >
+                            {option.label}
+                          </Text>
 
-                            {selected && (
-                              <MaterialIcons
-                                name="check-circle"
-                                size={16}
-                                color={
-                                  COLORS.primary
-                                }
-                              />
+                          <Text
+                            style={
+                              styles.mobilityDuration
+                            }
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                          >
+                            {formatRouteDuration(
+                              option.duration,
                             )}
-                          </View>
+                          </Text>
 
-                          <View
-                            style={
-                              styles.mobilityInfo
-                            }
-                          >
-                            <Text
+                          {selected && (
+                            <View
                               style={
-                                styles.mobilityLabel
+                                styles.mobilitySelectedDot
                               }
-                            >
-                              {option.label}
-                            </Text>
-
-                            <Text
-                              style={
-                                styles.mobilityDuration
-                              }
-                            >
-                              {formatRouteDuration(
-                                option.duration,
-                              )}
-                            </Text>
-
-                            <Text
-                              style={
-                                styles.mobilityDistance
-                              }
-                            >
-                              {formatRouteDistance(
-                                option.distance,
-                              )}
-                            </Text>
-                          </View>
+                            />
+                          )}
                         </Pressable>
                       );
                     },
@@ -1478,234 +1274,8 @@ export default function HomeScreen({
               )}
           </View>
         )}
+
       </View>
-
-      <View
-        style={[
-          styles.decisionArea,
-
-          initialState &&
-            styles.decisionAreaInitial,
-        ]}
-      >
-        <View
-          style={
-            styles.prioritySection
-          }
-        >
-          <Text
-            style={
-              styles.sectionTitle
-            }
-          >
-            O que importa mais?
-          </Text>
-
-          <ComparisonModeSelector
-            value={
-              comparisonMode
-            }
-            onChange={
-              setComparisonMode
-            }
-          />
-        </View>
-
-        <View
-          style={
-            styles.compareSection
-          }
-        >
-          <CompareButton
-            onPress={
-              compararCorridas
-            }
-            loading={
-              loadingCompare
-            }
-          />
-        </View>
-      </View>
-
-      {recommendation && (
-        <View
-          style={
-            styles.resultsSection
-          }
-        >
-          <View
-            style={
-              styles.resultsHeader
-            }
-          >
-            <Text
-              style={
-                styles.resultsTitle
-              }
-            >
-              Melhor corrida para você
-            </Text>
-
-            <Text
-              style={
-                styles.resultsSubtitle
-              }
-            >
-              Comparamos preço e tempo para facilitar sua escolha.
-            </Text>
-          </View>
-
-          <AIRecommendationCard
-            ride={
-              recommendation.melhor
-            }
-            recommendation={
-              recommendation.motivo
-            }
-            origin={
-              rideOrigin
-            }
-            destination={
-              rideDestination
-            }
-            onOpenApp={(
-              provider,
-            ) =>
-              handleRideAppOpened(
-                provider,
-                recommendation.melhor,
-              )
-            }
-            calibration={
-              getCalibrationForRide(
-                recommendation.melhor,
-              )
-            }
-          />
-
-          {alternativeRides.length >
-            0 && (
-            <>
-              <View
-                style={
-                  styles.optionsHeader
-                }
-              >
-                <Text
-                  style={
-                    styles.optionsTitle
-                  }
-                >
-                  Compare as opções
-                </Text>
-
-                <Text
-                  style={
-                    styles.optionsSubtitle
-                  }
-                >
-                  Veja o que você ganha em preço e tempo em cada alternativa.
-                </Text>
-              </View>
-
-              {alternativeRides.map(
-                (ride) => {
-                  const highlight =
-                    getRideHighlight(
-                      ride,
-                      cheapestRide,
-                      fastestRide,
-                    );
-
-                  const advantageText =
-                    getAdvantageText(
-                      ride,
-                      cheapestRide,
-                      fastestRide,
-                    );
-
-                  return (
-                    <RideCard
-                      key={
-                        ride.id
-                      }
-                      nome={
-                        ride.nome
-                      }
-                      precoMin={
-                        ride.precoMin
-                      }
-                      precoMax={
-                        ride.precoMax
-                      }
-                      tempo={
-                        `${ride.tempo} min`
-                      }
-                      distancia={
-                        `${ride.distancia.toFixed(
-                          1,
-                        )} km`
-                      }
-                      economia={
-                        formatCurrency(
-                          ride.economia,
-                        )
-                      }
-                      highlight={
-                        highlight
-                      }
-                      advantageText={
-                        advantageText
-                      }
-                      origin={
-                        rideOrigin
-                      }
-                      destination={
-                        rideDestination
-                      }
-                      onOpenApp={(
-                        provider,
-                      ) =>
-                        handleRideAppOpened(
-                          provider,
-                          ride,
-                        )
-                      }
-                      calibration={
-                        getCalibrationForRide(
-                          ride,
-                        )
-                      }
-                    />
-                  );
-                },
-              )}
-            </>
-          )}
-
-          <View
-            style={
-              styles.estimateNotice
-            }
-          >
-            <MaterialIcons
-              name="info-outline"
-              size={15}
-              color={
-                COLORS.textMuted
-              }
-            />
-
-            <Text
-              style={
-                styles.estimateNoticeText
-              }
-            >
-              Valores estimados pelo CorridaX. O preço final pode variar e é definido por cada plataforma.
-            </Text>
-          </View>
-        </View>
-      )}
     </ScrollView>
   );
 }
@@ -1714,121 +1284,200 @@ const styles =
   StyleSheet.create({
     container: {
       flex: 1,
-
       backgroundColor:
         COLORS.background,
     },
 
     content: {
       flexGrow: 1,
-
       paddingHorizontal:
         SPACING.lg,
-
       paddingTop: 2,
-
-      paddingBottom: 18,
+      paddingBottom: 32,
     },
 
     contentInitial: {
-      paddingBottom: 24,
+      paddingBottom: 96,
     },
 
     tripSection: {
-      marginTop: 10,
+      marginTop: 11,
     },
 
     tripSectionInitial: {
       marginTop: 12,
     },
 
-    locationGroup: {
-      marginBottom: 8,
+    tripHeading: {
+      marginBottom: 9,
     },
 
-    decisionArea: {
-      marginTop: 0,
-    },
-
-    decisionAreaInitial: {
-      marginTop: 18,
-
-      paddingTop: 0,
-    },
-
-    prioritySection: {
-      marginTop: 10,
-    },
-
-    compareSection: {
-      marginTop: 8,
-
-      marginBottom: 2,
+    sectionEyebrow: {
+      marginBottom: 4,
+      color:
+        COLORS.primary,
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 1.35,
     },
 
     sectionTitle: {
-      marginBottom: 7,
-
       color:
         COLORS.text,
+      fontSize: 23,
+      fontWeight: '900',
+      letterSpacing: -0.6,
+    },
 
-      fontSize: 18,
+    sectionSubtitle: {
+      maxWidth: 340,
+      marginTop: 4,
+      color:
+        COLORS.textSecondary,
+      fontSize: 11,
+      lineHeight: 15,
+    },
 
+    locationGroup: {
+      marginBottom: 8,
+      borderRadius: 18,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      backgroundColor:
+        COLORS.surface,
+    },
+
+    initialProvidersSection: {
+      marginTop: 10,
+      paddingHorizontal: 13,
+      paddingVertical: 12,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      backgroundColor:
+        COLORS.surface,
+    },
+
+    initialProvidersEyebrow: {
+      marginBottom: 9,
+      color:
+        COLORS.primary,
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 1.15,
+    },
+
+    initialProvidersMessage: {
+      marginTop: 9,
+      color:
+        COLORS.textSecondary,
+      fontSize: 9,
+      lineHeight: 13,
+      textAlign: 'center',
+    },
+
+    routeProvidersSection: {
+      marginBottom: 12,
+    },
+
+    routeProvidersEyebrow: {
+      marginBottom: 8,
+      color:
+        COLORS.primary,
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 1.15,
+    },
+
+    providerCompactRow: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+    },
+
+    providerCompactCard: {
+      width: '31.8%',
+      minHeight: 96,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 6,
+      paddingVertical: 9,
+      borderRadius: 16,
+      borderWidth: 1,
+    },
+
+    providerCompactCardDisabled: {
+      minHeight: 78,
+      opacity: 0.94,
+    },
+
+    providerCompactCardPressed: {
+      opacity: 0.78,
+      transform: [
+        {
+          scale: 0.985,
+        },
+      ],
+    },
+
+    providerCompactBrand: {
+      width: '100%',
+      color:
+        COLORS.white,
+      fontSize: 20,
+      lineHeight: 24,
+      fontWeight: '900',
+      letterSpacing: -0.5,
+      textAlign: 'center',
+    },
+
+    providerCompactAction: {
+      marginTop: 8,
+      fontSize: 9,
+      lineHeight: 12,
       fontWeight: '800',
-
-      letterSpacing: -0.25,
+      textAlign: 'center',
     },
 
     routeSummary: {
-      marginTop: 8,
-
-      paddingHorizontal: 14,
-
-      paddingVertical: 11,
-
-      borderRadius: 14,
-
+      marginTop: 9,
+      paddingHorizontal: 15,
+      paddingVertical: 12,
+      borderRadius: 17,
       backgroundColor:
         COLORS.surface,
-
       borderWidth: 1,
-
       borderColor:
         COLORS.border,
     },
 
     routeSummaryHeader: {
       flexDirection: 'row',
-
       alignItems: 'center',
-
       justifyContent:
         'space-between',
-
-      marginBottom: 7,
+      marginBottom: 8,
     },
 
     routeSummaryTitle: {
       color:
         COLORS.text,
-
-      fontSize: 14,
-
-      fontWeight: '700',
+      fontSize: 15,
+      fontWeight: '900',
     },
 
     routeSummaryStatus: {
       color:
-        COLORS.textSecondary,
-
-      fontSize: 10,
-
-      fontWeight: '600',
+        COLORS.primary,
+      fontSize: 9,
+      fontWeight: '800',
     },
 
     routeMetrics: {
       flexDirection: 'row',
-
       alignItems: 'center',
     },
 
@@ -1839,30 +1488,22 @@ const styles =
     routeMetricLabel: {
       color:
         COLORS.textSecondary,
-
-      fontSize: 11,
-
+      fontSize: 10,
       marginBottom: 1,
     },
 
     routeMetricValue: {
       color:
         COLORS.text,
-
-      fontSize: 18,
-
-      fontWeight: '800',
-
-      letterSpacing: -0.2,
+      fontSize: 19,
+      fontWeight: '900',
+      letterSpacing: -0.3,
     },
 
     routeDivider: {
       width: 1,
-
-      height: 28,
-
-      marginHorizontal: 12,
-
+      height: 31,
+      marginHorizontal: 13,
       backgroundColor:
         COLORS.border,
     },
@@ -1873,228 +1514,169 @@ const styles =
 
     favoriteButton: {
       flexDirection: 'row',
-
       alignItems: 'center',
-
-      marginBottom: 10,
-
-      paddingHorizontal: 13,
-
-      paddingVertical: 10,
-
+      marginBottom: 9,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
       borderRadius: 13,
-
       borderWidth: 1,
-
       borderColor:
         COLORS.border,
-
       backgroundColor:
         COLORS.surface,
     },
 
     favoriteButtonText: {
       flex: 1,
-
-      marginLeft: 10,
+      marginLeft: 9,
     },
 
     favoriteButtonTitle: {
       color:
         COLORS.text,
-
-      fontSize: 13,
-
+      fontSize: 12,
       fontWeight: '800',
     },
 
     favoriteButtonSubtitle: {
       marginTop: 1,
-
       color:
         COLORS.textSecondary,
-
-      fontSize: 10,
+      fontSize: 9,
     },
 
     mobilityHeader: {
       flexDirection: 'row',
-
       justifyContent:
         'space-between',
-
       alignItems: 'flex-start',
-
       marginBottom: 7,
     },
 
     mobilityHeaderText: {
       flex: 1,
-
       paddingRight: 8,
     },
 
     mobilityTitle: {
       color:
         COLORS.text,
-
-      fontSize: 16,
-
-      fontWeight: '800',
-
-      letterSpacing: -0.2,
+      fontSize: 17,
+      fontWeight: '900',
+      letterSpacing: -0.3,
     },
 
     mobilitySubtitle: {
       marginTop: 1,
-
       color:
         COLORS.textSecondary,
-
-      fontSize: 11,
-
-      lineHeight: 15,
+      fontSize: 10,
+      lineHeight: 14,
     },
 
     mobilityLoading: {
       color:
         COLORS.primary,
-
-      fontSize: 10,
-
-      fontWeight: '700',
+      fontSize: 9,
+      fontWeight: '800',
     },
 
     mobilityGrid: {
       flexDirection: 'row',
-
-      flexWrap: 'wrap',
-
       justifyContent:
         'space-between',
     },
 
     mobilityCard: {
-      width: '48.8%',
-
-      minHeight: 88,
-
-      marginBottom: 6,
-
-      paddingHorizontal: 11,
-
-      paddingVertical: 9,
-
-      borderRadius: 13,
-
+      position: 'relative',
+      width: '23.7%',
+      minHeight: 84,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 7,
+      paddingHorizontal: 5,
+      paddingVertical: 8,
+      borderRadius: 14,
       borderWidth: 1,
-
       borderColor:
         COLORS.border,
-
       backgroundColor:
         COLORS.surface,
     },
 
     mobilityCardSelected: {
       borderWidth: 1.5,
-
       borderColor:
         COLORS.primary,
+      backgroundColor:
+        COLORS.surfaceLight,
     },
 
-    mobilityCardPressed: {
+    cardPressed: {
       opacity: 0.78,
     },
 
-    mobilityTopRow: {
-      flexDirection: 'row',
-
-      alignItems: 'center',
-
-      justifyContent:
-        'space-between',
-    },
-
     mobilityIconContainer: {
-      width: 28,
-
-      height: 28,
-
+      width: 30,
+      height: 30,
       alignItems: 'center',
-
       justifyContent: 'center',
-
-      borderRadius: 8,
-
+      borderRadius: 9,
       backgroundColor:
         COLORS.background,
     },
 
     mobilityIconContainerSelected: {
       borderWidth: 1,
-
       borderColor:
         COLORS.primary,
     },
 
-    mobilityInfo: {
-      marginTop: 3,
-    },
-
     mobilityLabel: {
+      marginTop: 5,
       color:
         COLORS.textSecondary,
-
-      fontSize: 10,
-
-      fontWeight: '600',
+      fontSize: 8,
+      fontWeight: '800',
+      textAlign: 'center',
     },
 
     mobilityDuration: {
       marginTop: 1,
-
+      maxWidth: '100%',
       color:
         COLORS.text,
-
-      fontSize: 16,
-
-      fontWeight: '800',
-
-      letterSpacing: -0.15,
+      fontSize: 13,
+      fontWeight: '900',
+      letterSpacing: -0.2,
+      textAlign: 'center',
     },
 
-    mobilityDistance: {
-      marginTop: 1,
-
-      color:
-        COLORS.textSecondary,
-
-      fontSize: 10,
+    mobilitySelectedDot: {
+      position: 'absolute',
+      top: 7,
+      right: 7,
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor:
+        COLORS.primary,
     },
 
     mobilityUnavailable: {
       color:
         COLORS.textSecondary,
-
-      fontSize: 12,
-
-      lineHeight: 17,
+      fontSize: 11,
+      lineHeight: 16,
     },
 
     navigationButton: {
       flexDirection: 'row',
-
       alignItems: 'center',
-
       marginTop: 2,
-
       paddingHorizontal: 14,
-
-      paddingVertical: 10,
-
-      borderRadius: 13,
-
+      paddingVertical: 9,
+      borderRadius: 14,
       backgroundColor:
         COLORS.primary,
     },
@@ -2105,130 +1687,32 @@ const styles =
 
     navigationButtonIcon: {
       width: 32,
-
       height: 32,
-
       alignItems: 'center',
-
       justifyContent: 'center',
-
       borderRadius: 9,
-
       backgroundColor:
-        'rgba(255,255,255,0.12)',
+        'rgba(255,255,255,0.14)',
     },
 
     navigationButtonTextArea: {
       flex: 1,
-
       marginLeft: 10,
     },
 
     navigationButtonTitle: {
       color:
         COLORS.white,
-
       fontSize: 14,
-
-      fontWeight: '800',
+      fontWeight: '900',
     },
 
     navigationButtonSubtitle: {
       marginTop: 1,
-
       color:
-        'rgba(255,255,255,0.76)',
-
-      fontSize: 10,
-
+        'rgba(255,255,255,0.78)',
+      fontSize: 9,
       fontWeight: '500',
     },
 
-    resultsSection: {
-      marginTop: 14,
-    },
-
-    resultsHeader: {
-      marginBottom: 8,
-    },
-
-    resultsTitle: {
-      color:
-        COLORS.text,
-
-      fontSize: 20,
-
-      fontWeight: '800',
-
-      letterSpacing: -0.3,
-    },
-
-    resultsSubtitle: {
-      marginTop: 2,
-
-      color:
-        COLORS.textSecondary,
-
-      fontSize: 12,
-
-      lineHeight: 17,
-    },
-
-    optionsHeader: {
-      marginTop: 14,
-
-      marginBottom: 7,
-    },
-
-    optionsTitle: {
-      color:
-        COLORS.text,
-
-      fontSize: 18,
-
-      fontWeight: '800',
-
-      letterSpacing: -0.2,
-    },
-
-    optionsSubtitle: {
-      marginTop: 2,
-
-      color:
-        COLORS.textSecondary,
-
-      fontSize: 12,
-
-      lineHeight: 17,
-    },
-
-    estimateNotice: {
-      flexDirection: 'row',
-
-      alignItems: 'flex-start',
-
-      marginTop: 4,
-
-      paddingHorizontal: 10,
-
-      paddingVertical: 9,
-
-      borderRadius: 10,
-
-      backgroundColor:
-        COLORS.surfaceLight,
-    },
-
-    estimateNoticeText: {
-      flex: 1,
-
-      marginLeft: 7,
-
-      color:
-        COLORS.textMuted,
-
-      fontSize: 11,
-
-      lineHeight: 16,
-    },
   });

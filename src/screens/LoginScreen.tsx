@@ -68,21 +68,20 @@ export default function LoginScreen({
           </Text>
 
           <Text style={styles.slogan}>
-            Compare. Escolha. Economize.
+            Um destino. Todas as opções.
           </Text>
         </View>
 
         {/* PROPOSTA DE VALOR */}
         <View style={styles.presentation}>
           <Text style={styles.title}>
-            A melhor corrida
+            Seu ponto de partida
             {'\n'}
-            para você.
+            para qualquer corrida.
           </Text>
 
           <Text style={styles.description}>
-            Compare preço e tempo entre suas opções
-            e escolha como quer ir.
+            Informe seu destino uma vez e consulte o valor diretamente nas principais plataformas de mobilidade.
           </Text>
         </View>
 
@@ -252,8 +251,6 @@ const styles = StyleSheet.create({
 
   /*
    * PROPOSTA
-   *
-   * Aproximada da marca.
    */
   presentation: {
     marginTop: 40,
@@ -439,9 +436,6 @@ const styles = StyleSheet.create({
 
   /*
    * RODAPÉ
-   *
-   * Um pouco mais afastado do login,
-   * aproveitando melhor a vertical.
    */
   footer: {
     marginTop: 26,

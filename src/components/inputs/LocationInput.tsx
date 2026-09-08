@@ -23,7 +23,6 @@ type Props = {
   icon: string;
   editable?: boolean;
   compact?: boolean;
-
   position?: 'top' | 'bottom';
 };
 
@@ -58,8 +57,8 @@ export default function LocationInput({
           }
           size={
             compact
-              ? 18
-              : 20
+              ? 19
+              : 21
           }
         />
       }
@@ -93,8 +92,8 @@ export default function LocationInput({
       outlineStyle={[
         styles.outline,
 
-        compact &&
-          styles.outlineCompact,
+        grouped &&
+          styles.outlineGrouped,
 
         position === 'top' &&
           styles.outlineTop,
@@ -103,28 +102,22 @@ export default function LocationInput({
           styles.outlineBottom,
       ]}
       textColor={
-        compact
-          ? COLORS.textSecondary
-          : COLORS.white
+        editable
+          ? COLORS.white
+          : COLORS.textSecondary
       }
       theme={{
+        roundness: RADIUS.lg,
+
         colors: {
           background:
-            grouped
-              ? COLORS.surface
-              : compact
-                ? COLORS.surface
-                : COLORS.surfaceLight,
+            COLORS.surface,
 
           primary:
             COLORS.primary,
 
           outline:
-            grouped
-              ? COLORS.borderSoft
-              : compact
-                ? COLORS.borderSoft
-                : COLORS.border,
+            COLORS.borderSoft,
 
           onSurfaceVariant:
             COLORS.textSecondary,
@@ -143,23 +136,16 @@ const styles =
   StyleSheet.create({
     input: {
       marginBottom: 8,
-
       backgroundColor:
-        COLORS.surfaceLight,
+        COLORS.surface,
     },
 
     inputCompact: {
-      marginBottom: 6,
-
-      backgroundColor:
-        COLORS.surface,
+      marginBottom: 5,
     },
 
     inputGrouped: {
       marginBottom: 0,
-
-      backgroundColor:
-        COLORS.surface,
     },
 
     inputTop: {
@@ -168,7 +154,6 @@ const styles =
 
     inputBottom: {
       marginTop: -1,
-
       zIndex: 1,
     },
 
@@ -177,51 +162,44 @@ const styles =
     },
 
     content: {
-      minHeight: 50,
-
+      minHeight: 54,
+      paddingHorizontal: 2,
       fontSize: 16,
+      fontWeight:
+        TYPOGRAPHY.weight.medium,
     },
 
     contentCompact: {
-      minHeight: 42,
-
+      minHeight: 48,
       fontSize:
         TYPOGRAPHY.size.md,
     },
 
     contentGrouped: {
-      minHeight: 48,
-
+      minHeight: 52,
       fontSize: 16,
     },
 
     outline: {
       borderRadius:
-        RADIUS.lg,
-
-      borderWidth: 1.5,
+        RADIUS.xl,
+      borderWidth: 1.25,
     },
 
-    outlineCompact: {
-      borderRadius:
-        RADIUS.lg,
-
-      borderWidth: 1,
+    outlineGrouped: {
+      borderColor:
+        COLORS.borderSoft,
     },
 
     outlineTop: {
       borderBottomLeftRadius: 0,
-
       borderBottomRightRadius: 0,
-
       borderWidth: 1,
     },
 
     outlineBottom: {
       borderTopLeftRadius: 0,
-
       borderTopRightRadius: 0,
-
       borderWidth: 1,
     },
   });
