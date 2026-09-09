@@ -2,7 +2,9 @@ import React from 'react';
 
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -31,20 +33,6 @@ type Props = {
   ) => void;
 };
 
-/*
- * Separa o nome principal
- * do restante da descrição.
- *
- * Exemplo:
- *
- * Shopping Grande Circular,
- * Avenida Autaz Mirim...
- *
- * vira:
- *
- * Shopping Grande Circular
- * Avenida Autaz Mirim...
- */
 function splitDisplayName(
   displayName: string,
 ): {
@@ -86,9 +74,22 @@ export default function AddressSuggestions({
   data,
   onSelect,
 }: Props) {
+  const {
+    height,
+  } = useWindowDimensions();
+
   if (data.length === 0) {
     return null;
   }
+
+  const listMaxHeight =
+    Math.min(
+      220,
+      Math.max(
+        130,
+        height * 0.26,
+      ),
+    );
 
   return (
     <View
@@ -106,86 +107,99 @@ export default function AddressSuggestions({
 
       <View
         style={
-          styles.list
+          styles.listContainer
         }
       >
-        {data.map(
-          (item, index) => {
-            const {
-              title,
-              subtitle,
-            } =
-              splitDisplayName(
-                item.displayName,
-              );
+        <ScrollView
+          style={{
+            maxHeight:
+              listMaxHeight,
+          }}
+          nestedScrollEnabled
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator
+        >
+          {data.map(
+            (
+              item,
+              index,
+            ) => {
+              const {
+                title,
+                subtitle,
+              } =
+                splitDisplayName(
+                  item.displayName,
+                );
 
-            const isLast =
-              index ===
-              data.length - 1;
+              const isLast =
+                index ===
+                data.length - 1;
 
-            return (
-              <Pressable
-                key={
-                  item.placeId
-                }
-                onPress={() =>
-                  onSelect(
-                    item,
-                  )
-                }
-                style={({
-                  pressed,
-                }) => [
-                  styles.item,
-
-                  !isLast &&
-                    styles.itemBorder,
-
-                  pressed &&
-                    styles.itemPressed,
-                ]}
-              >
-                <View
-                  style={
-                    styles.textContainer
+              return (
+                <Pressable
+                  key={
+                    item.placeId
                   }
+                  onPress={() =>
+                    onSelect(
+                      item,
+                    )
+                  }
+                  style={({
+                    pressed,
+                  }) => [
+                    styles.item,
+
+                    !isLast &&
+                      styles.itemBorder,
+
+                    pressed &&
+                      styles.itemPressed,
+                  ]}
                 >
-                  <Text
+                  <View
                     style={
-                      styles.title
-                    }
-                    numberOfLines={
-                      1
+                      styles.textContainer
                     }
                   >
-                    {title}
-                  </Text>
-
-                  {subtitle && (
                     <Text
                       style={
-                        styles.subtitle
+                        styles.title
                       }
                       numberOfLines={
                         1
                       }
                     >
-                      {subtitle}
+                      {title}
                     </Text>
-                  )}
-                </View>
 
-                <MaterialIcons
-                  name="chevron-right"
-                  size={20}
-                  color={
-                    COLORS.textMuted
-                  }
-                />
-              </Pressable>
-            );
-          },
-        )}
+                    {subtitle && (
+                      <Text
+                        style={
+                          styles.subtitle
+                        }
+                        numberOfLines={
+                          1
+                        }
+                      >
+                        {subtitle}
+                      </Text>
+                    )}
+                  </View>
+
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={20}
+                    color={
+                      COLORS.textMuted
+                    }
+                  />
+                </Pressable>
+              );
+            },
+          )}
+        </ScrollView>
       </View>
     </View>
   );
@@ -217,14 +231,7 @@ const styles =
       letterSpacing: 0.2,
     },
 
-    /*
-     * Um único painel para
-     * todas as sugestões.
-     *
-     * Mais limpo que vários
-     * cards independentes.
-     */
-    list: {
+    listContainer: {
       overflow:
         'hidden',
 

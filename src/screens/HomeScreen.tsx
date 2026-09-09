@@ -7,11 +7,14 @@ import React, {
 
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -227,6 +230,13 @@ export default function HomeScreen({
   route,
 }: any) {
   const {
+    width: windowWidth,
+  } = useWindowDimensions();
+
+  const isNarrowScreen =
+    windowWidth < 360;
+
+  const {
     loading,
     address,
     latitude,
@@ -275,6 +285,17 @@ export default function HomeScreen({
     useRef<string | null>(
       null,
     );
+
+  const homeScrollRef =
+    useRef<ScrollView | null>(
+      null,
+    );
+
+  const tripSectionYRef =
+    useRef(0);
+
+  const locationGroupYRef =
+    useRef(0);
 
   useEffect(() => {
     if (
@@ -703,26 +724,83 @@ export default function HomeScreen({
     );
   }
 
+  function scrollDestinationIntoView(
+    delay = 300,
+  ) {
+    setTimeout(() => {
+      const targetY =
+        tripSectionYRef.current +
+        locationGroupYRef.current -
+        12;
+
+      homeScrollRef.current?.scrollTo({
+        y: Math.max(
+          0,
+          targetY,
+        ),
+        animated: true,
+      });
+    }, delay);
+  }
+
+  useEffect(() => {
+    if (
+      suggestions.length === 0
+    ) {
+      return;
+    }
+
+    scrollDestinationIntoView(
+      80,
+    );
+  }, [
+    suggestions.length,
+  ]);
+
   const initialState =
     !destination &&
     !routeInfo;
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={
-        styles.container
+        styles.keyboardAvoidingView
       }
-      contentContainerStyle={[
-        styles.content,
-
-        initialState &&
-          styles.contentInitial,
-      ]}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={
-        false
+      behavior={
+        Platform.OS === 'ios'
+          ? 'padding'
+          : 'height'
       }
     >
+      <ScrollView
+        ref={
+          homeScrollRef
+        }
+        style={
+          styles.container
+        }
+        contentContainerStyle={[
+          styles.content,
+
+          initialState &&
+            styles.contentInitial,
+
+          isNarrowScreen &&
+            styles.contentNarrow,
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={
+          Platform.OS === 'ios'
+            ? 'interactive'
+            : 'on-drag'
+        }
+        automaticallyAdjustKeyboardInsets={
+          Platform.OS === 'ios'
+        }
+        showsVerticalScrollIndicator={
+          false
+        }
+      >
       <Header />
 
       {!loading && (
@@ -753,6 +831,12 @@ export default function HomeScreen({
           initialState &&
             styles.tripSectionInitial,
         ]}
+        onLayout={(
+          event,
+        ) => {
+          tripSectionYRef.current =
+            event.nativeEvent.layout.y;
+        }}
       >
         <View style={styles.tripHeading}>
           <Text style={styles.sectionEyebrow}>
@@ -774,6 +858,12 @@ export default function HomeScreen({
           style={
             styles.locationGroup
           }
+          onLayout={(
+            event,
+          ) => {
+            locationGroupYRef.current =
+              event.nativeEvent.layout.y;
+          }}
         >
           <LocationInput
             label="Origem"
@@ -804,6 +894,16 @@ export default function HomeScreen({
 
               clearSelectedDestination();
 
+              if (
+                text.trim().length === 0
+              ) {
+                setSuggestions(
+                  [],
+                );
+
+                return;
+              }
+
               search(
                 text,
                 latitude,
@@ -812,6 +912,9 @@ export default function HomeScreen({
             }}
             icon="flag-checkered"
             position="bottom"
+            onFocus={
+              scrollDestinationIntoView
+            }
           />
         </View>
 
@@ -864,6 +967,8 @@ export default function HomeScreen({
                   style={[
                     styles.providerCompactCard,
                     styles.providerCompactCardDisabled,
+                    isNarrowScreen &&
+                      styles.providerCompactCardNarrow,
                     {
                       backgroundColor:
                         provider.id === 'uber'
@@ -883,6 +988,8 @@ export default function HomeScreen({
                   <Text
                     style={[
                       styles.providerCompactBrand,
+                      isNarrowScreen &&
+                        styles.providerCompactBrandNarrow,
                       {
                         color:
                           provider.id === 'uber'
@@ -1072,6 +1179,8 @@ export default function HomeScreen({
                         }
                         style={({ pressed }) => [
                           styles.providerCompactCard,
+                          isNarrowScreen &&
+                            styles.providerCompactCardNarrow,
                           {
                             backgroundColor:
                               provider.id === 'uber'
@@ -1093,6 +1202,8 @@ export default function HomeScreen({
                         <Text
                           style={[
                             styles.providerCompactBrand,
+                            isNarrowScreen &&
+                              styles.providerCompactBrandNarrow,
                             {
                               color:
                                 provider.id === 'uber'
@@ -1109,6 +1220,8 @@ export default function HomeScreen({
                         <Text
                           style={[
                             styles.providerCompactAction,
+                            isNarrowScreen &&
+                              styles.providerCompactActionNarrow,
                             {
                               color:
                                 provider.id === 'uber'
@@ -1193,6 +1306,9 @@ export default function HomeScreen({
                           }) => [
                             styles.mobilityCard,
 
+                            isNarrowScreen &&
+                              styles.mobilityCardNarrow,
+
                             selected &&
                               styles.mobilityCardSelected,
 
@@ -1203,6 +1319,9 @@ export default function HomeScreen({
                           <View
                             style={[
                               styles.mobilityIconContainer,
+
+                              isNarrowScreen &&
+                                styles.mobilityIconContainerNarrow,
 
                               selected &&
                                 styles.mobilityIconContainerSelected,
@@ -1222,9 +1341,12 @@ export default function HomeScreen({
                           </View>
 
                           <Text
-                            style={
-                              styles.mobilityLabel
-                            }
+                            style={[
+                              styles.mobilityLabel,
+
+                              isNarrowScreen &&
+                                styles.mobilityLabelNarrow,
+                            ]}
                             numberOfLines={1}
                           >
                             {option.label}
@@ -1334,12 +1456,19 @@ export default function HomeScreen({
         )}
 
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles =
   StyleSheet.create({
+    keyboardAvoidingView: {
+      flex: 1,
+      backgroundColor:
+        COLORS.background,
+    },
+
     container: {
       flex: 1,
       backgroundColor:
@@ -1352,6 +1481,10 @@ const styles =
         SPACING.lg,
       paddingTop: 2,
       paddingBottom: 32,
+    },
+
+    contentNarrow: {
+      paddingHorizontal: 14,
     },
 
     contentInitial: {
@@ -1472,6 +1605,13 @@ const styles =
       opacity: 0.94,
     },
 
+    providerCompactCardNarrow: {
+      minHeight: 88,
+      paddingHorizontal: 4,
+      paddingVertical: 8,
+      borderRadius: 14,
+    },
+
     providerCompactCardPressed: {
       opacity: 0.78,
       transform: [
@@ -1492,12 +1632,24 @@ const styles =
       textAlign: 'center',
     },
 
+    providerCompactBrandNarrow: {
+      fontSize: 17,
+      lineHeight: 21,
+      letterSpacing: -0.35,
+    },
+
     providerCompactAction: {
       marginTop: 8,
       fontSize: 9,
       lineHeight: 12,
       fontWeight: '800',
       textAlign: 'center',
+    },
+
+    providerCompactActionNarrow: {
+      marginTop: 6,
+      fontSize: 8,
+      lineHeight: 10,
     },
 
     routeSummary: {
@@ -1662,6 +1814,13 @@ const styles =
         COLORS.surface,
     },
 
+    mobilityCardNarrow: {
+      minHeight: 78,
+      paddingHorizontal: 3,
+      paddingVertical: 7,
+      borderRadius: 12,
+    },
+
     mobilityCardSelected: {
       borderWidth: 1.5,
       borderColor:
@@ -1684,6 +1843,12 @@ const styles =
         COLORS.background,
     },
 
+    mobilityIconContainerNarrow: {
+      width: 27,
+      height: 27,
+      borderRadius: 8,
+    },
+
     mobilityIconContainerSelected: {
       borderWidth: 1,
       borderColor:
@@ -1697,6 +1862,10 @@ const styles =
       fontSize: 8,
       fontWeight: '800',
       textAlign: 'center',
+    },
+
+    mobilityLabelNarrow: {
+      fontSize: 7,
     },
 
     mobilityDuration: {

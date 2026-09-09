@@ -1,4 +1,5 @@
 import { PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import {
   GoogleSignin,
@@ -16,8 +17,10 @@ GoogleSignin.configure({
 
 export default function App() {
   return (
-    <PaperProvider theme={theme}>
-      <AppNavigator />
-    </PaperProvider>
+    <SafeAreaProvider>
+      <PaperProvider theme={theme}>
+        <AppNavigator />
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }

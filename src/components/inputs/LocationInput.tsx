@@ -24,6 +24,7 @@ type Props = {
   editable?: boolean;
   compact?: boolean;
   position?: 'top' | 'bottom';
+  onFocus?: () => void;
 };
 
 export default function LocationInput({
@@ -34,6 +35,7 @@ export default function LocationInput({
   editable = true,
   compact = false,
   position,
+  onFocus,
 }: Props) {
   const grouped =
     position !== undefined;
@@ -46,6 +48,9 @@ export default function LocationInput({
       editable={editable}
       onChangeText={
         onChangeText
+      }
+      onFocus={
+        onFocus
       }
       left={
         <TextInput.Icon

@@ -1,5 +1,6 @@
 ﻿import {
   useCallback,
+  useRef,
   useState,
 } from 'react';
 
@@ -109,6 +110,9 @@ export default function useRideComparison() {
   const [suggestions, setSuggestions] =
     useState<GooglePlaceSuggestion[]>([]);
 
+  const searchRequestRef =
+    useRef(0);
+
   const [origin, setOrigin] =
     useState<Coordinate | undefined>();
 
@@ -215,7 +219,15 @@ export default function useRideComparison() {
     latitude?: number,
     longitude?: number,
   ) {
-    if (query.trim().length < 3) {
+    const requestId =
+      ++searchRequestRef.current;
+
+    const normalizedQuery =
+      query.trim();
+
+    if (
+      normalizedQuery.length < 3
+    ) {
       setSuggestions([]);
       return;
     }
@@ -223,13 +235,29 @@ export default function useRideComparison() {
     try {
       const result =
         await searchGooglePlaces(
-          query,
+          normalizedQuery,
           latitude,
           longitude,
         );
 
-      setSuggestions(result);
+      if (
+        requestId !==
+        searchRequestRef.current
+      ) {
+        return;
+      }
+
+      setSuggestions(
+        result,
+      );
     } catch {
+      if (
+        requestId !==
+        searchRequestRef.current
+      ) {
+        return;
+      }
+
       setSuggestions([]);
     }
   }
@@ -682,6 +710,10 @@ export default function useRideComparison() {
   }
 
   function clearSelectedDestination() {
+    ++searchRequestRef.current;
+
+    setSuggestions([]);
+
     setSelectedDestination(
       null,
     );
