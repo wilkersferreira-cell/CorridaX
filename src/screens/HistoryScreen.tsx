@@ -530,7 +530,7 @@ export default function HistoryScreen() {
                   styles.emptyTitle
                 }
               >
-                Nenhuma comparação ainda
+                Nenhuma corrida no histórico
               </Text>
 
               <Text
@@ -538,7 +538,7 @@ export default function HistoryScreen() {
                   styles.emptyDescription
                 }
               >
-                As corridas que você comparar aparecerão aqui.
+                As rotas que você consultar aparecerão aqui.
               </Text>
             </View>
           }
