@@ -271,6 +271,11 @@ export default function HomeScreen({
       null,
     );
 
+  const analyticsRouteRef =
+    useRef<string | null>(
+      null,
+    );
+
   useEffect(() => {
     if (
       address &&
@@ -481,6 +486,59 @@ export default function HomeScreen({
       origin,
       destination,
     ]);
+
+  useEffect(() => {
+    if (
+      !routeInfo ||
+      !currentRouteKey
+    ) {
+      analyticsRouteRef.current =
+        null;
+
+      return;
+    }
+
+    if (
+      analyticsRouteRef.current ===
+      currentRouteKey
+    ) {
+      return;
+    }
+
+    analyticsRouteRef.current =
+      currentRouteKey;
+
+    const routeDistance =
+      routeInfo.distance;
+
+    const routeDuration =
+      routeInfo.duration;
+
+    async function trackRouteCalculated() {
+      try {
+        await logEvent(
+          getAnalytics(),
+          'route_calculated',
+          {
+            mobility_mode:
+              selectedMobilityMode,
+            distance_km:
+              routeDistance,
+            duration_minutes:
+              routeDuration,
+          },
+        );
+      } catch {
+        // Analytics must never block the route flow.
+      }
+    }
+
+    void trackRouteCalculated();
+  }, [
+    currentRouteKey,
+    routeInfo,
+    selectedMobilityMode,
+  ]);
 
   async function handleSaveFavorite() {
     if (!destination) {
